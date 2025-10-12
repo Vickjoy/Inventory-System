@@ -1,0 +1,31 @@
+/* src/components/Layout/Layout.module.css */
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f3f4f6;
+}
+
+.mainContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-left: 260px;
+  transition: margin-left 0.3s ease;
+}
+
+.content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .mainContainer {
+    margin-left: 0;
+  }
+
+  .content {
+    padding: 1rem;
+  }
+}
