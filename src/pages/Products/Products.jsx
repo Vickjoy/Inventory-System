@@ -13,9 +13,10 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showModal, setShowModal] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+
   const { isAdmin } = useAuth();
 
   useEffect(() => {
@@ -42,12 +43,12 @@ const Products = () => {
 
   const handleAddProduct = () => {
     setSelectedProduct(null);
-    setShowModal(true);
+    setShowProductModal(true);
   };
 
   const handleEditProduct = (product) => {
     setSelectedProduct(product);
-    setShowModal(true);
+    setShowProductModal(true);
   };
 
   const handleDeleteProduct = async (id) => {
@@ -67,16 +68,19 @@ const Products = () => {
   };
 
   const handleModalClose = () => {
-    setShowModal(false);
+    setShowProductModal(false);
     setShowStockModal(false);
     setSelectedProduct(null);
     loadData();
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = products.filter((product) => {
+    const search = searchTerm.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(search) ||
+      product.code.toLowerCase().includes(search)
+    );
+  });
 
   if (loading) {
     return (
@@ -89,6 +93,7 @@ const Products = () => {
 
   return (
     <div className={styles.productsPage}>
+      {/* Page Header */}
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Products & Stock</h1>
@@ -101,6 +106,7 @@ const Products = () => {
         )}
       </div>
 
+      {/* Filters and Search */}
       <div className={styles.filterBar}>
         <div className={styles.filterButtons}>
           <button
@@ -129,6 +135,7 @@ const Products = () => {
         </div>
       </div>
 
+      {/* Products Table */}
       <div className="card">
         <div className="card-body">
           {filteredProducts.length === 0 ? (
@@ -149,62 +156,61 @@ const Products = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProducts.map(product => (
-                    <tr key={product.id}>
-                      <td className={styles.productCode}>{product.code}</td>
-                      <td>{product.name}</td>
-                      <td>{product.category_name}</td>
-                      <td>{product.subcategory_name}</td>
-                      <td className={styles.price}>
-                        KES {Number(product.unit_price).toLocaleString()}
-                      </td>
-                      <td>
-                        <span className={styles.stockBadge}>
-                          {product.current_stock}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`badge ${
-                          product.current_stock <= product.minimum_stock
-                            ? 'badge-danger'
-                            : 'badge-success'
-                        }`}>
-                          {product.current_stock <= product.minimum_stock
-                            ? 'Low Stock'
-                            : 'In Stock'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className={styles.actionButtons}>
-                          <button
-                            onClick={() => handleStockAdjust(product)}
-                            className="btn btn-sm btn-outline"
-                            title="Adjust Stock"
+                  {filteredProducts.map((product) => {
+                    const isLowStock = product.current_stock <= product.minimum_stock;
+                    return (
+                      <tr key={product.id}>
+                        <td className={styles.productCode}>{product.code}</td>
+                        <td>{product.name}</td>
+                        <td>{product.category_name}</td>
+                        <td>{product.subcategory_name}</td>
+                        <td className={styles.price}>
+                          KES {Number(product.unit_price).toLocaleString()}
+                        </td>
+                        <td>
+                          <span className={styles.stockBadge}>
+                            {product.current_stock}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className={`badge ${isLowStock ? 'badge-danger' : 'badge-success'}`}
                           >
-                            📊
-                          </button>
-                          {isAdmin && (
-                            <>
-                              <button
-                                onClick={() => handleEditProduct(product)}
-                                className="btn btn-sm btn-primary"
-                                title="Edit"
-                              >
-                                ✏️
-                              </button>
-                              <button
-                                onClick={() => handleDeleteProduct(product.id)}
-                                className="btn btn-sm btn-danger"
-                                title="Delete"
-                              >
-                                🗑️
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {isLowStock ? 'Low Stock' : 'In Stock'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className={styles.actionButtons}>
+                            <button
+                              onClick={() => handleStockAdjust(product)}
+                              className="btn btn-sm btn-outline"
+                              title="Adjust Stock"
+                            >
+                              📊
+                            </button>
+                            {isAdmin && (
+                              <>
+                                <button
+                                  onClick={() => handleEditProduct(product)}
+                                  className="btn btn-sm btn-primary"
+                                  title="Edit"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteProduct(product.id)}
+                                  className="btn btn-sm btn-danger"
+                                  title="Delete"
+                                >
+                                  🗑️
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -212,7 +218,8 @@ const Products = () => {
         </div>
       </div>
 
-      {showModal && (
+      {/* Modals */}
+      {showProductModal && (
         <ProductModal
           product={selectedProduct}
           categories={categories}
