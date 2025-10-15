@@ -30,11 +30,17 @@ const LPOs = () => {
         api.getSuppliers(),
         api.getProducts()
       ]);
-      setLpos(lposData);
-      setSuppliers(suppliersData);
-      setProducts(productsData);
+      
+      // Ensure we always set arrays
+      setLpos(Array.isArray(lposData) ? lposData : []);
+      setSuppliers(Array.isArray(suppliersData) ? suppliersData : []);
+      setProducts(Array.isArray(productsData) ? productsData : []);
     } catch (error) {
       console.error('Error loading data:', error);
+      // Set empty arrays on error
+      setLpos([]);
+      setSuppliers([]);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -57,11 +63,12 @@ const LPOs = () => {
     loadData();
   };
 
-  const filteredLPOs = lpos.filter(lpo =>
+  // Defensive filtering with array check
+  const filteredLPOs = Array.isArray(lpos) ? lpos.filter(lpo =>
     lpo.lpo_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
     lpo.supplier_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     lpo.product_code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ) : [];
 
   const getStatusBadge = (status) => {
     const badges = {

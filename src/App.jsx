@@ -7,10 +7,10 @@ import Products from './pages/Products/Products';
 import Invoices from './pages/Invoices/Invoices';
 import LPOs from './pages/LPOs/LPOs';
 import Customers from './pages/Customers/Customers';
-/*import Suppliers from './pages/Suppliers/Suppliers';
+import Suppliers from './pages/Suppliers/Suppliers';
 import StockEntries from './pages/StockEntries/StockEntries';
 import Reports from './pages/Reports/Reports';
-import Settings from './pages/Settings/Settings'; */
+import Settings from './pages/Settings/Settings';
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import './App.css';
@@ -38,10 +38,10 @@ function App() {
   <Route path="/invoices" element={<Invoices />} />
   <Route path="/lpos" element={<LPOs />} /> 
   <Route path="/customers" element={<Customers />} /> 
-  {/* <Route path="/suppliers" element={<Suppliers />} /> */}
-  {/* <Route path="/stock-entries" element={<StockEntries />} /> */}
-  {/* <Route path="/reports" element={<Reports />} /> */}
-  {/* <Route path="/settings" element={<Settings />} /> */}
+   <Route path="/suppliers" element={<Suppliers />} /> 
+  <Route path="/stock-entries" element={<StockEntries />} />
+  <Route path="/reports" element={<Reports />} /> 
+  <Route path="/settings" element={<Settings />} /> 
 </Route>
 
 

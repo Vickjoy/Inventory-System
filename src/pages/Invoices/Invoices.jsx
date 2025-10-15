@@ -30,11 +30,14 @@ const Invoices = () => {
         api.getCustomers(),
         api.getProducts()
       ]);
-      setInvoices(invoicesData);
-      setCustomers(customersData);
-      setProducts(productsData);
+      setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
+      setCustomers(Array.isArray(customersData) ? customersData : []);
+      setProducts(Array.isArray(productsData) ? productsData : []);
     } catch (error) {
       console.error('Error loading data:', error);
+      setInvoices([]);
+      setCustomers([]);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -57,10 +60,10 @@ const Invoices = () => {
     loadData();
   };
 
-  const filteredInvoices = invoices.filter(invoice =>
+  const filteredInvoices = Array.isArray(invoices) ? invoices.filter(invoice =>
     invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
     invoice.customer_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ) : [];
 
   const getStatusBadge = (status) => {
     const badges = {

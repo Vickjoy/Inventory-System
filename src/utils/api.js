@@ -53,6 +53,12 @@ const api = {
 
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || 'Request failed');
+    
+    // Extract results array from paginated responses
+    if (data && typeof data === 'object' && 'results' in data) {
+      return data.results;
+    }
+    
     return data;
   },
 

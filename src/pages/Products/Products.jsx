@@ -31,11 +31,17 @@ const Products = () => {
         api.getCategories(),
         api.getSubCategories()
       ]);
-      setProducts(productsData);
-      setCategories(categoriesData);
-      setSubcategories(subcategoriesData);
+      
+      // Ensure we always set arrays
+      setProducts(Array.isArray(productsData) ? productsData : []);
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+      setSubcategories(Array.isArray(subcategoriesData) ? subcategoriesData : []);
     } catch (error) {
       console.error('Error loading data:', error);
+      // Set empty arrays on error to prevent crashes
+      setProducts([]);
+      setCategories([]);
+      setSubcategories([]);
     } finally {
       setLoading(false);
     }
@@ -74,13 +80,14 @@ const Products = () => {
     loadData();
   };
 
-  const filteredProducts = products.filter((product) => {
+  // Defensive filtering with array check
+  const filteredProducts = Array.isArray(products) ? products.filter((product) => {
     const search = searchTerm.toLowerCase();
     return (
       product.name.toLowerCase().includes(search) ||
       product.code.toLowerCase().includes(search)
     );
-  });
+  }) : [];
 
   if (loading) {
     return (
