@@ -149,6 +149,27 @@ const api = {
     method: 'POST' 
   }),
 
+  // Sales (NEW)
+  getSales: (params = '') => api.request(`/sales/${params}`),
+  getSale: (id) => api.request(`/sales/${id}/`),
+  getOutstandingSales: () => api.request('/sales/outstanding/'),
+  getSalesByCustomer: (customerId) => api.request(`/sales/by_customer/?customer_id=${customerId}`),
+  createSale: (data) => api.request('/sales/', { 
+    method: 'POST', 
+    body: JSON.stringify(data) 
+  }),
+  updateSale: (id, data) => api.request(`/sales/${id}/`, { 
+    method: 'PUT', 
+    body: JSON.stringify(data) 
+  }),
+  updateSaleSupply: (id, data) => api.request(`/sales/${id}/update_supply/`, { 
+    method: 'POST', 
+    body: JSON.stringify(data) 
+  }),
+  deleteSale: (id) => api.request(`/sales/${id}/`, { method: 'DELETE' }),
+  searchSalesProducts: (query) => api.request(`/sales/search_products/?q=${query}`),
+  searchSalesCustomers: (query) => api.request(`/sales/search_customers/?q=${query}`),
+
   // Invoices
   getInvoices: (params = '') => api.request(`/invoices/${params}`),
   getInvoice: (id) => api.request(`/invoices/${id}/`),

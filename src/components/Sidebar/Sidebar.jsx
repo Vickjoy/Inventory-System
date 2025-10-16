@@ -20,6 +20,12 @@ const Sidebar = () => {
       path: '/products' 
     },
     { 
+      id: 'sales', 
+      label: 'Sales Entry', 
+      icon: '💰', 
+      path: '/sales' 
+    },
+    { 
       id: 'invoices', 
       label: 'Invoices', 
       icon: '🧾', 
