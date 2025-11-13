@@ -1,6 +1,7 @@
 // src/pages/Products/ProductModal.jsx
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
+import styles from './ProductModal.module.css';
 
 const ProductModal = ({ product, categories, subcategories, onClose }) => {
   const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [filteredSubcategories, setFilteredSubcategories] = useState([]);
 
   useEffect(() => {
     if (product) {
@@ -31,10 +33,22 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
       // Find and set category
       const subcat = subcategories.find(s => s.id === product.subcategory);
       if (subcat) {
-        setSelectedCategory(subcat.category);
+        setSelectedCategory(subcat.category.toString());
       }
     }
   }, [product, subcategories]);
+
+  // Filter subcategories when category changes
+  useEffect(() => {
+    if (selectedCategory) {
+      const filtered = subcategories.filter(
+        sub => sub.category === parseInt(selectedCategory)
+      );
+      setFilteredSubcategories(filtered);
+    } else {
+      setFilteredSubcategories([]);
+    }
+  }, [selectedCategory, subcategories]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,6 +57,7 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
 
   const handleCategoryChange = (e) => {
     setSelectedCategory(e.target.value);
+    // Reset subcategory when category changes
     setFormData(prev => ({ ...prev, subcategory: '' }));
   };
 
@@ -53,170 +68,197 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
 
     try {
       if (product) {
+        // Update existing product
         await api.updateProduct(product.id, formData);
       } else {
+        // Create new product - backend will handle stock increase
         await api.createProduct(formData);
       }
       onClose();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to save product');
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredSubcategories = subcategories.filter(
-    sub => sub.category === parseInt(selectedCategory)
-  );
-
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="modal-title">
-            {product ? 'Edit Product' : 'Add New Product'}
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <h2 className={styles.modalTitle}>
+            {product ? '✏️ Edit Product' : '➕ Add New Product'}
           </h2>
-          <button className="modal-close" onClick={onClose}>×</button>
+          <button className={styles.modalClose} onClick={onClose}>×</button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="modal-body">
+          <div className={styles.modalBody}>
             {error && (
-              <div className="alert alert-danger">{error}</div>
+              <div className={styles.alertDanger}>{error}</div>
             )}
 
-            <div className="form-group">
-              <label className="form-label">Product Code *</label>
-              <input
-                type="text"
-                name="code"
-                value={formData.code}
-                onChange={handleChange}
-                className="form-input"
-                required
-                placeholder="e.g., CAP320"
-              />
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>
+                  <span className={styles.required}>*</span> Product Code
+                </label>
+                <input
+                  type="text"
+                  name="code"
+                  value={formData.code}
+                  onChange={handleChange}
+                  className={styles.formInput}
+                  required
+                  placeholder="e.g., CAP320"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>
+                  <span className={styles.required}>*</span> Product Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className={styles.formInput}
+                  required
+                  placeholder="Enter product name"
+                />
+              </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Product Name *</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="form-input"
-                required
-                placeholder="Enter product name"
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Description</label>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Description</label>
               <textarea
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                className="form-textarea"
-                placeholder="Enter product description"
+                className={styles.formTextarea}
+                placeholder="Enter product description (optional)"
+                rows="3"
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Category *</label>
-              <select
-                value={selectedCategory}
-                onChange={handleCategoryChange}
-                className="form-select"
-                required
-              >
-                <option value="">Select Category</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>
+                  <span className={styles.required}>*</span> Category
+                </label>
+                <select
+                  value={selectedCategory}
+                  onChange={handleCategoryChange}
+                  className={styles.formSelect}
+                  required
+                >
+                  <option value="">Select Category</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>
+                  <span className={styles.required}>*</span> SubCategory
+                </label>
+                <select
+                  name="subcategory"
+                  value={formData.subcategory}
+                  onChange={handleChange}
+                  className={styles.formSelect}
+                  required
+                  disabled={!selectedCategory}
+                >
+                  <option value="">Select SubCategory</option>
+                  {filteredSubcategories.map(sub => (
+                    <option key={sub.id} value={sub.id}>
+                      {sub.name}
+                    </option>
+                  ))}
+                </select>
+                {!selectedCategory && (
+                  <small className={styles.helpText}>
+                    Please select a category first
+                  </small>
+                )}
+              </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">SubCategory *</label>
-              <select
-                name="subcategory"
-                value={formData.subcategory}
-                onChange={handleChange}
-                className="form-select"
-                required
-                disabled={!selectedCategory}
-              >
-                <option value="">Select SubCategory</option>
-                {filteredSubcategories.map(sub => (
-                  <option key={sub.id} value={sub.id}>
-                    {sub.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>
+                  <span className={styles.required}>*</span> Unit Price (KES)
+                </label>
+                <input
+                  type="number"
+                  name="unit_price"
+                  value={formData.unit_price}
+                  onChange={handleChange}
+                  className={styles.formInput}
+                  required
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                />
+              </div>
 
-            <div className="form-group">
-              <label className="form-label">Unit Price (KES) *</label>
-              <input
-                type="number"
-                name="unit_price"
-                value={formData.unit_price}
-                onChange={handleChange}
-                className="form-input"
-                required
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-              />
-            </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>
+                  <span className={styles.required}>*</span> Current Stock
+                </label>
+                <input
+                  type="number"
+                  name="current_stock"
+                  value={formData.current_stock}
+                  onChange={handleChange}
+                  className={styles.formInput}
+                  required
+                  min="0"
+                  placeholder="0"
+                />
+                <small className={styles.helpText}>
+                  Stock will be automatically recorded in the system
+                </small>
+              </div>
 
-            <div className="form-group">
-              <label className="form-label">Current Stock *</label>
-              <input
-                type="number"
-                name="current_stock"
-                value={formData.current_stock}
-                onChange={handleChange}
-                className="form-input"
-                required
-                min="0"
-                placeholder="0"
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Minimum Stock Level *</label>
-              <input
-                type="number"
-                name="minimum_stock"
-                value={formData.minimum_stock}
-                onChange={handleChange}
-                className="form-input"
-                required
-                min="0"
-                placeholder="10"
-              />
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>
+                  <span className={styles.required}>*</span> Minimum Stock
+                </label>
+                <input
+                  type="number"
+                  name="minimum_stock"
+                  value={formData.minimum_stock}
+                  onChange={handleChange}
+                  className={styles.formInput}
+                  required
+                  min="0"
+                  placeholder="10"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="modal-footer">
+          <div className={styles.modalFooter}>
             <button
               type="button"
               onClick={onClose}
-              className="btn btn-outline"
+              className={`${styles.btn} ${styles.btnOutline}`}
               disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="btn btn-primary"
+              className={`${styles.btn} ${styles.btnPrimary}`}
               disabled={loading}
             >
-              {loading ? 'Saving...' : product ? 'Update Product' : 'Add Product'}
+              {loading ? 'Saving...' : product ? '💾 Update Product' : '✅ Add Product'}
             </button>
           </div>
         </form>

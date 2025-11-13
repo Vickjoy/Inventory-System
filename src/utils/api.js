@@ -38,14 +38,13 @@ const api = {
           if (refreshResponse.ok) {
             const data = await refreshResponse.json();
             localStorage.setItem('access_token', data.access);
-            return api.request(endpoint, options); // Retry original request
+            return api.request(endpoint, options);
           }
         } catch (error) {
           console.error('Token refresh failed:', error);
         }
       }
 
-      // Clear tokens and redirect
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
@@ -56,9 +55,8 @@ const api = {
     const data = await response.json().catch(() => null);
     if (!response.ok) throw new Error(data?.detail || 'Request failed');
 
-    // Return paginated data fully (with next/previous)
     if (data && typeof data === 'object' && ('results' in data)) {
-      return data; // { results, next, previous, count }
+      return data;
     }
 
     return data;
@@ -74,13 +72,13 @@ const api = {
       body: JSON.stringify(credentials),
     }).then((r) => r.json()),
 
+  logout: () => api.request('/auth/logout/', { method: 'POST' }),
   getCurrentUser: () => api.request('/users/me/'),
 
   // ==========================
-  // Products (✅ Infinite scroll + null-safe)
+  // Products
   // ==========================
   getProducts: (urlOrParams = '') => {
-    // When loading next page (absolute URL)
     if (
       urlOrParams &&
       typeof urlOrParams === 'string' &&
@@ -91,12 +89,10 @@ const api = {
       }).then((r) => r.json());
     }
 
-    // Prevent calling `/products/null/`
     if (!urlOrParams || urlOrParams === 'null') {
       return api.request('/products/');
     }
 
-    // Otherwise, treat it as query or specific product list
     return api.request(`/products/${urlOrParams}`);
   },
 
@@ -174,6 +170,25 @@ const api = {
     api.request(`/subcategories/${id}/`, { method: 'DELETE' }),
 
   // ==========================
+  // Product Groups (NEW)
+  // ==========================
+  getGroups: (subcategoryId = '') =>
+    api.request(`/groups/${subcategoryId ? `?subcategory=${subcategoryId}` : ''}`),
+  getGroup: (id) => api.request(`/groups/${id}/`),
+  createGroup: (data) =>
+    api.request('/groups/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateGroup: (id, data) =>
+    api.request(`/groups/${id}/`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteGroup: (id) =>
+    api.request(`/groups/${id}/`, { method: 'DELETE' }),
+
+  // ==========================
   // Suppliers
   // ==========================
   getSuppliers: (params = '') => api.request(`/suppliers/${params}`),
@@ -236,11 +251,12 @@ const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  updateSupplyStatus: (id, data) =>
+    api.request(`/sales/${id}/update_supply/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   deleteSale: (id) => api.request(`/sales/${id}/`, { method: 'DELETE' }),
-  searchSalesProducts: (query) =>
-    api.request(`/sales/search_products/?q=${query}`),
-  searchSalesCustomers: (query) =>
-    api.request(`/sales/search_customers/?q=${query}`),
 
   // ==========================
   // Invoices
@@ -265,6 +281,23 @@ const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  // ==========================
+  // Invoice Items
+  // ==========================
+  getInvoiceItems: (params = '') => api.request(`/invoice-items/${params}`),
+  createInvoiceItem: (data) =>
+    api.request('/invoice-items/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateInvoiceItem: (id, data) =>
+    api.request(`/invoice-items/${id}/`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteInvoiceItem: (id) =>
+    api.request(`/invoice-items/${id}/`, { method: 'DELETE' }),
 
   // ==========================
   // Payments
@@ -299,6 +332,11 @@ const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  updateLPODelivery: (id, data) =>
+    api.request(`/lpos/${id}/update_delivery/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 
   // ==========================
   // Stock Entries
@@ -314,6 +352,11 @@ const api = {
   createMonthlyOpeningStock: (data) =>
     api.request('/monthly-opening-stock/', {
       method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateMonthlyOpeningStock: (id, data) =>
+    api.request(`/monthly-opening-stock/${id}/`, {
+      method: 'PUT',
       body: JSON.stringify(data),
     }),
 
