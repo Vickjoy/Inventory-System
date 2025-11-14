@@ -76,6 +76,81 @@ const api = {
   getCurrentUser: () => api.request('/users/me/'),
 
   // ==========================
+  // Categories (Full Tree)
+  // ==========================
+  getCategories: () => api.request('/categories/'),
+  getCategory: (id) => api.request(`/categories/${id}/`),
+  createCategory: (data) =>
+    api.request('/categories/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateCategory: (id, data) =>
+    api.request(`/categories/${id}/`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteCategory: (id) =>
+    api.request(`/categories/${id}/`, { method: 'DELETE' }),
+
+  // ==========================
+  // SubCategories
+  // ==========================
+  getSubCategories: (categoryId = '') =>
+    api.request(`/subcategories/${categoryId ? `?category=${categoryId}` : ''}`),
+  getSubCategory: (id) => api.request(`/subcategories/${id}/`),
+  createSubCategory: (data) =>
+    api.request('/subcategories/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateSubCategory: (id, data) =>
+    api.request(`/subcategories/${id}/`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteSubCategory: (id) =>
+    api.request(`/subcategories/${id}/`, { method: 'DELETE' }),
+
+  // ==========================
+  // Sub-SubCategories (NEW)
+  // ==========================
+  getSubSubCategories: (subcategoryId = '') =>
+    api.request(`/subsubcategories/${subcategoryId ? `?subcategory=${subcategoryId}` : ''}`),
+  getSubSubCategory: (id) => api.request(`/subsubcategories/${id}/`),
+  createSubSubCategory: (data) =>
+    api.request('/subsubcategories/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateSubSubCategory: (id, data) =>
+    api.request(`/subsubcategories/${id}/`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteSubSubCategory: (id) =>
+    api.request(`/subsubcategories/${id}/`, { method: 'DELETE' }),
+
+  // ==========================
+  // Product Groups (Deprecated)
+  // ==========================
+  getGroups: (subcategoryId = '') =>
+    api.request(`/groups/${subcategoryId ? `?subcategory=${subcategoryId}` : ''}`),
+  getGroup: (id) => api.request(`/groups/${id}/`),
+  createGroup: (data) =>
+    api.request('/groups/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateGroup: (id, data) =>
+    api.request(`/groups/${id}/`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteGroup: (id) =>
+    api.request(`/groups/${id}/`, { method: 'DELETE' }),
+
+  // ==========================
   // Products
   // ==========================
   getProducts: (urlOrParams = '') => {
@@ -131,62 +206,6 @@ const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-
-  // ==========================
-  // Categories
-  // ==========================
-  getCategories: () => api.request('/categories/'),
-  getCategory: (id) => api.request(`/categories/${id}/`),
-  createCategory: (data) =>
-    api.request('/categories/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  updateCategory: (id, data) =>
-    api.request(`/categories/${id}/`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-  deleteCategory: (id) =>
-    api.request(`/categories/${id}/`, { method: 'DELETE' }),
-
-  // ==========================
-  // SubCategories
-  // ==========================
-  getSubCategories: (categoryId = '') =>
-    api.request(`/subcategories/${categoryId ? `?category=${categoryId}` : ''}`),
-  getSubCategory: (id) => api.request(`/subcategories/${id}/`),
-  createSubCategory: (data) =>
-    api.request('/subcategories/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  updateSubCategory: (id, data) =>
-    api.request(`/subcategories/${id}/`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-  deleteSubCategory: (id) =>
-    api.request(`/subcategories/${id}/`, { method: 'DELETE' }),
-
-  // ==========================
-  // Product Groups (NEW)
-  // ==========================
-  getGroups: (subcategoryId = '') =>
-    api.request(`/groups/${subcategoryId ? `?subcategory=${subcategoryId}` : ''}`),
-  getGroup: (id) => api.request(`/groups/${id}/`),
-  createGroup: (data) =>
-    api.request('/groups/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  updateGroup: (id, data) =>
-    api.request(`/groups/${id}/`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-  deleteGroup: (id) =>
-    api.request(`/groups/${id}/`, { method: 'DELETE' }),
 
   // ==========================
   // Suppliers

@@ -8,57 +8,81 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
     code: '',
     name: '',
     description: '',
+    category: '',
     subcategory: '',
+    subsubcategory: '',
     unit_price: '',
     current_stock: '',
     minimum_stock: ''
   });
+  
+  const [availableSubcategories, setAvailableSubcategories] = useState([]);
+  const [availableSubsubcategories, setAvailableSubsubcategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [filteredSubcategories, setFilteredSubcategories] = useState([]);
 
+  // Load product data if editing
   useEffect(() => {
     if (product) {
       setFormData({
         code: product.code || '',
         name: product.name || '',
         description: product.description || '',
+        category: product.category || '',
         subcategory: product.subcategory || '',
+        subsubcategory: product.subsubcategory || '',
         unit_price: product.unit_price || '',
         current_stock: product.current_stock || '',
         minimum_stock: product.minimum_stock || ''
       });
-      
-      // Find and set category
-      const subcat = subcategories.find(s => s.id === product.subcategory);
-      if (subcat) {
-        setSelectedCategory(subcat.category.toString());
-      }
     }
-  }, [product, subcategories]);
+  }, [product]);
 
-  // Filter subcategories when category changes
+  // Update subcategories when category changes
   useEffect(() => {
-    if (selectedCategory) {
-      const filtered = subcategories.filter(
-        sub => sub.category === parseInt(selectedCategory)
-      );
-      setFilteredSubcategories(filtered);
+    if (formData.category) {
+      const selectedCategory = categories.find(cat => cat.id === parseInt(formData.category));
+      if (selectedCategory && selectedCategory.subcategories) {
+        setAvailableSubcategories(selectedCategory.subcategories);
+      } else {
+        setAvailableSubcategories([]);
+      }
+      
+      // Reset subcategory and subsubcategory when category changes (unless editing existing product)
+      if (!product || product.category !== formData.category) {
+        setFormData(prev => ({ ...prev, subcategory: '', subsubcategory: '' }));
+        setAvailableSubsubcategories([]);
+      }
     } else {
-      setFilteredSubcategories([]);
+      setAvailableSubcategories([]);
+      setAvailableSubsubcategories([]);
     }
-  }, [selectedCategory, subcategories]);
+  }, [formData.category, categories, product]);
+
+  // Update subsubcategories when subcategory changes
+  useEffect(() => {
+    if (formData.subcategory) {
+      const selectedSubcategory = availableSubcategories.find(
+        sub => sub.id === parseInt(formData.subcategory)
+      );
+      if (selectedSubcategory && selectedSubcategory.subsubcategories) {
+        setAvailableSubsubcategories(selectedSubcategory.subsubcategories);
+      } else {
+        setAvailableSubsubcategories([]);
+      }
+      
+      // Reset subsubcategory when subcategory changes (unless editing existing product)
+      if (!product || product.subcategory !== formData.subcategory) {
+        setFormData(prev => ({ ...prev, subsubcategory: '' }));
+      }
+    } else {
+      setAvailableSubsubcategories([]);
+    }
+  }, [formData.subcategory, availableSubcategories, product]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleCategoryChange = (e) => {
-    setSelectedCategory(e.target.value);
-    // Reset subcategory when category changes
-    setFormData(prev => ({ ...prev, subcategory: '' }));
   };
 
   const handleSubmit = async (e) => {
@@ -67,16 +91,44 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
     setLoading(true);
 
     try {
+      // Validate required fields
+      if (!formData.code || !formData.name || !formData.category || !formData.subcategory) {
+        throw new Error('Please fill in all required fields (Code, Name, Category, and SubCategory)');
+      }
+
+      // Validate numeric fields
+      if (formData.unit_price && parseFloat(formData.unit_price) < 0) {
+        throw new Error('Unit price cannot be negative');
+      }
+      if (formData.current_stock && parseInt(formData.current_stock) < 0) {
+        throw new Error('Current stock cannot be negative');
+      }
+      if (formData.minimum_stock && parseInt(formData.minimum_stock) < 0) {
+        throw new Error('Minimum stock cannot be negative');
+      }
+
+      // Prepare data for submission
+      const submitData = {
+        code: formData.code.trim(),
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        category: parseInt(formData.category),
+        subcategory: parseInt(formData.subcategory),
+        subsubcategory: formData.subsubcategory ? parseInt(formData.subsubcategory) : null,
+        unit_price: formData.unit_price ? parseFloat(formData.unit_price) : 0,
+        current_stock: formData.current_stock ? parseInt(formData.current_stock) : 0,
+        minimum_stock: formData.minimum_stock ? parseInt(formData.minimum_stock) : 10
+      };
+
       if (product) {
-        // Update existing product
-        await api.updateProduct(product.id, formData);
+        await api.updateProduct(product.id, submitData);
       } else {
-        // Create new product - backend will handle stock increase
-        await api.createProduct(formData);
+        await api.createProduct(submitData);
       }
       onClose();
     } catch (err) {
-      setError(err.message || 'Failed to save product');
+      console.error('Product save error:', err);
+      setError(err.message || 'Failed to save product. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -85,6 +137,7 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>
             {product ? '✏️ Edit Product' : '➕ Add New Product'}
@@ -92,12 +145,15 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
           <button className={styles.modalClose} onClick={onClose}>×</button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className={styles.modalBody}>
-            {error && (
-              <div className={styles.alertDanger}>{error}</div>
-            )}
+        <div className={styles.modalBody}>
+          {error && (
+            <div className={styles.alertDanger}>
+              <strong>Error:</strong> {error}
+            </div>
+          )}
 
+          <form onSubmit={handleSubmit}>
+            {/* Basic Info */}
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>
@@ -109,8 +165,8 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
                   value={formData.code}
                   onChange={handleChange}
                   className={styles.formInput}
-                  required
                   placeholder="e.g., CAP320"
+                  required
                 />
               </div>
 
@@ -124,12 +180,13 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
                   value={formData.name}
                   onChange={handleChange}
                   className={styles.formInput}
-                  required
                   placeholder="Enter product name"
+                  required
                 />
               </div>
             </div>
 
+            {/* Description */}
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Description</label>
               <textarea
@@ -142,57 +199,106 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
               />
             </div>
 
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>
-                  <span className={styles.required}>*</span> Category
-                </label>
-                <select
-                  value={selectedCategory}
-                  onChange={handleCategoryChange}
-                  className={styles.formSelect}
-                  required
-                >
-                  <option value="">Select Category</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Category Hierarchy */}
+            <div className={styles.categorySection}>
+              <h3 className={styles.categoryTitle}>📂 Category Hierarchy</h3>
+              <div className={styles.formRow}>
+                {/* Category */}
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>
+                    <span className={styles.required}>*</span> Category
+                  </label>
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleChange}
+                    className={styles.formSelect}
+                    required
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                  {categories.length === 0 && (
+                    <small className={styles.helpText} style={{ color: '#e74c3c' }}>
+                      No categories available. Please add categories first.
+                    </small>
+                  )}
+                </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>
-                  <span className={styles.required}>*</span> SubCategory
-                </label>
-                <select
-                  name="subcategory"
-                  value={formData.subcategory}
-                  onChange={handleChange}
-                  className={styles.formSelect}
-                  required
-                  disabled={!selectedCategory}
-                >
-                  <option value="">Select SubCategory</option>
-                  {filteredSubcategories.map(sub => (
-                    <option key={sub.id} value={sub.id}>
-                      {sub.name}
-                    </option>
-                  ))}
-                </select>
-                {!selectedCategory && (
-                  <small className={styles.helpText}>
-                    Please select a category first
-                  </small>
-                )}
+                {/* Subcategory */}
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>
+                    <span className={styles.required}>*</span> SubCategory
+                  </label>
+                  <select
+                    name="subcategory"
+                    value={formData.subcategory}
+                    onChange={handleChange}
+                    className={styles.formSelect}
+                    disabled={!formData.category}
+                    required
+                  >
+                    <option value="">Select SubCategory</option>
+                    {availableSubcategories.map(sub => (
+                      <option key={sub.id} value={sub.id}>
+                        {sub.name}
+                      </option>
+                    ))}
+                  </select>
+                  {!formData.category && (
+                    <small className={styles.helpText}>
+                      Please select a category first
+                    </small>
+                  )}
+                  {formData.category && availableSubcategories.length === 0 && (
+                    <small className={styles.helpText} style={{ color: '#e74c3c' }}>
+                      No subcategories available for this category
+                    </small>
+                  )}
+                </div>
+
+                {/* Sub-Subcategory (Product Group) */}
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>
+                    Product Group <small>(Optional)</small>
+                  </label>
+                  <select
+                    name="subsubcategory"
+                    value={formData.subsubcategory}
+                    onChange={handleChange}
+                    className={styles.formSelect}
+                    disabled={!formData.subcategory}
+                  >
+                    <option value="">No Group / Ungrouped</option>
+                    {availableSubsubcategories.map(subsub => (
+                      <option key={subsub.id} value={subsub.id}>
+                        {subsub.name}
+                      </option>
+                    ))}
+                  </select>
+                  {!formData.subcategory && (
+                    <small className={styles.helpText}>
+                      Please select a subcategory first
+                    </small>
+                  )}
+                  {formData.subcategory && availableSubsubcategories.length === 0 && (
+                    <small className={styles.helpText}>
+                      No product groups available (will be ungrouped)
+                    </small>
+                  )}
+                </div>
               </div>
             </div>
 
+            {/* Pricing & Stock */}
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>
-                  <span className={styles.required}>*</span> Unit Price (KES)
+                  Unit Price (KES)
                 </label>
                 <input
                   type="number"
@@ -200,7 +306,6 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
                   value={formData.unit_price}
                   onChange={handleChange}
                   className={styles.formInput}
-                  required
                   min="0"
                   step="0.01"
                   placeholder="0.00"
@@ -209,7 +314,7 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
 
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>
-                  <span className={styles.required}>*</span> Current Stock
+                  Current Stock
                 </label>
                 <input
                   type="number"
@@ -217,18 +322,17 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
                   value={formData.current_stock}
                   onChange={handleChange}
                   className={styles.formInput}
-                  required
                   min="0"
                   placeholder="0"
                 />
                 <small className={styles.helpText}>
-                  Stock will be automatically recorded in the system
+                  Initial stock quantity
                 </small>
               </div>
 
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>
-                  <span className={styles.required}>*</span> Minimum Stock
+                  Minimum Stock Level
                 </label>
                 <input
                   type="number"
@@ -236,32 +340,45 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
                   value={formData.minimum_stock}
                   onChange={handleChange}
                   className={styles.formInput}
-                  required
                   min="0"
                   placeholder="10"
                 />
+                <small className={styles.helpText}>
+                  Alert threshold for low stock
+                </small>
               </div>
             </div>
-          </div>
+          </form>
+        </div>
 
-          <div className={styles.modalFooter}>
-            <button
-              type="button"
-              onClick={onClose}
-              className={`${styles.btn} ${styles.btnOutline}`}
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className={`${styles.btn} ${styles.btnPrimary}`}
-              disabled={loading}
-            >
-              {loading ? 'Saving...' : product ? '💾 Update Product' : '✅ Add Product'}
-            </button>
-          </div>
-        </form>
+        {/* Footer */}
+        <div className={styles.modalFooter}>
+          <button
+            type="button"
+            onClick={onClose}
+            className={`${styles.btn} ${styles.btnOutline}`}
+            disabled={loading}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className={`${styles.btn} ${styles.btnPrimary}`}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <span className={styles.spinner}></span>
+                Saving...
+              </>
+            ) : product ? (
+              '💾 Update Product'
+            ) : (
+              '✅ Add Product'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -9,13 +9,11 @@ import styles from './Products.module.css';
 const Products = () => {
   const [allProducts, setAllProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
-  const [groups, setGroups] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('fire');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [subcategoryFilter, setSubcategoryFilter] = useState('all');
   const [showProductModal, setShowProductModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
@@ -24,51 +22,20 @@ const Products = () => {
   const { user } = useAuth();
   const isStaffOrAdmin = user?.is_staff || user?.is_superuser;
 
-  // Define categories with their subcategories
-  const CATEGORIES = {
-    fire: {
-      name: 'FIRE',
-      subcategories: [
-        { key: 'addressable', name: 'Addressable Fire Systems', display: 'ADDRESSABLE' },
-        { key: 'conventional', name: 'Conventional Fire Systems', display: 'CONVENTIONAL' },
-        { key: 'batteries', name: 'Batteries', display: 'BATTERIES' },
-        { key: 'cables', name: 'Cables', display: 'CABLES' },
-        { key: 'ul', name: 'UL Intelligent Systems', display: 'UL INTELLIGENT' },
-        { key: 'accessories', name: 'Accessories', display: 'ACCESSORIES' },
-        { key: 'emergency', name: 'Emergency VoCALL', display: 'EMERGENCY VoCALL' },
-      ]
-    },
-    ict: {
-      name: 'ICT',
-      subcategories: [
-        { key: 'giganet', name: 'Giganet Systems', display: 'GIGANET' },
-        { key: 'siemon', name: 'Siemon Systems', display: 'SIEMON' },
-        { key: 'ubiquiti', name: 'Ubiquiti Systems', display: 'UBIQUITI' },
-        { key: 'cisco', name: 'Cisco Systems', display: 'CISCO' },
-        { key: 'alcatel', name: 'Alcatel Lucent Systems', display: 'ALCATEL' },
-        { key: 'hikvision', name: 'Hikvision Systems', display: 'HIKVISION' },
-      ]
-    },
-    solar: {
-      name: 'SOLAR',
-      subcategories: []
-    }
-  };
-
-  // Load categories, subcategories, groups, and suppliers
+  // Load categories with full hierarchy
   useEffect(() => {
     const loadMeta = async () => {
       try {
-        const [catData, subcatData, groupsData, suppliersData] = await Promise.all([
+        const [catData, suppliersData] = await Promise.all([
           api.getCategories(),
-          api.getSubCategories(),
-          api.getGroups(),
           api.getSuppliers(),
         ]);
-        setCategories(Array.isArray(catData) ? catData : []);
-        setSubcategories(Array.isArray(subcatData) ? subcatData : []);
-        setGroups(Array.isArray(groupsData) ? groupsData : []);
-        setSuppliers(Array.isArray(suppliersData) ? suppliersData : []);
+        console.log('Loaded categories:', catData);
+
+        // ❤️ FIXED: Supports paginated OR non-paginated backend
+        setCategories(catData?.results || catData || []);
+        setSuppliers(suppliersData?.results || suppliersData || []);
+
       } catch (error) {
         console.error('Error loading meta data:', error);
       }
@@ -155,22 +122,13 @@ const Products = () => {
     loadAllProducts();
   };
 
-  // Matching helpers
-  const matchSubcategory = (productSubcatName, targetSubcatName) => {
-    if (!productSubcatName || !targetSubcatName) return false;
-    const prodName = productSubcatName.toLowerCase().trim();
-    const targetName = targetSubcatName.toLowerCase().trim();
-    return prodName.includes(targetName) || targetName.includes(prodName);
-  };
+  // Get current category object
+  const currentCategory = categories.find(cat => 
+    categoryFilter !== 'all' && cat.id === parseInt(categoryFilter)
+  );
 
-  const matchCategory = (productCategoryName, targetCategoryName) => {
-    if (!productCategoryName || !targetCategoryName) return false;
-    const prodName = productCategoryName.toLowerCase().trim();
-    const targetName = targetCategoryName.toLowerCase().trim();
-    return prodName.includes(targetName) || targetName.includes(prodName);
-  };
-
-  const currentSubcategories = CATEGORIES[categoryFilter]?.subcategories || [];
+  // Get subcategories for current category
+  const currentSubcategories = currentCategory?.subcategories || [];
 
   // Filter products
   const filteredProducts = Array.isArray(allProducts)
@@ -180,68 +138,58 @@ const Products = () => {
           product.name.toLowerCase().includes(search) ||
           product.code.toLowerCase().includes(search);
         
-        const categoryName = CATEGORIES[categoryFilter]?.name || '';
-        const matchesCategory = matchCategory(product.category_name, categoryName);
-        if (!matchesCategory) return false;
+        // Category filter
+        if (categoryFilter !== 'all') {
+          if (product.category !== parseInt(categoryFilter)) {
+            return false;
+          }
+        }
 
-        if (subcategoryFilter === 'all') return matchesSearch;
+        // Subcategory filter
+        if (subcategoryFilter !== 'all') {
+          if (product.subcategory !== parseInt(subcategoryFilter)) {
+            return false;
+          }
+        }
 
-        const selectedSubcat = currentSubcategories.find(s => s.key === subcategoryFilter);
-        if (!selectedSubcat) return matchesSearch;
-
-        const matchesSubcategory = matchSubcategory(product.subcategory_name, selectedSubcat.name);
-        return matchesSearch && matchesSubcategory;
+        return matchesSearch;
       })
     : [];
 
-  // Group by subcategory + product group (for FIRE, ICT, SOLAR)
-  const groupedBySubcategory = {};
-  if (['fire', 'ict', 'solar'].includes(categoryFilter)) {
-    currentSubcategories.forEach(subcat => {
-      const productsInSubcat = filteredProducts.filter(product => 
-        matchSubcategory(product.subcategory_name, subcat.name)
-      );
+  // Group products by subcategory and subsubcategory
+  const groupedProducts = {};
+  
+  if (categoryFilter === 'all') {
+    filteredProducts.forEach(product => {
+      const catName = product.category_name || 'Uncategorized';
+      const subcatName = product.subcategory_name || 'Uncategorized';
+      const groupName = product.subsubcategory_name || 'Ungrouped';
       
-      if (productsInSubcat.length > 0) {
-        const groupedByProductGroup = {};
-        productsInSubcat.forEach(product => {
-          const groupName = product.group_name || 'Ungrouped';
-          if (!groupedByProductGroup[groupName]) {
-            groupedByProductGroup[groupName] = [];
-          }
-          groupedByProductGroup[groupName].push(product);
-        });
-        groupedBySubcategory[subcat.name] = {
-          display: subcat.display,
-          groups: groupedByProductGroup
-        };
-      }
+      if (!groupedProducts[catName]) groupedProducts[catName] = {};
+      if (!groupedProducts[catName][subcatName]) groupedProducts[catName][subcatName] = {};
+      if (!groupedProducts[catName][subcatName][groupName]) groupedProducts[catName][subcatName][groupName] = [];
+      
+      groupedProducts[catName][subcatName][groupName].push(product);
     });
-
-    const uncategorizedProducts = filteredProducts.filter(product => {
-      const belongsToKnownSubcat = currentSubcategories.some(subcat =>
-        matchSubcategory(product.subcategory_name, subcat.name)
-      );
-      return !belongsToKnownSubcat && product.subcategory_name;
+  } else if (subcategoryFilter === 'all') {
+    filteredProducts.forEach(product => {
+      const subcatName = product.subcategory_name || 'Uncategorized';
+      const groupName = product.subsubcategory_name || 'Ungrouped';
+      
+      if (!groupedProducts[subcatName]) groupedProducts[subcatName] = {};
+      if (!groupedProducts[subcatName][groupName]) groupedProducts[subcatName][groupName] = [];
+      
+      groupedProducts[subcatName][groupName].push(product);
     });
-    
-    if (uncategorizedProducts.length > 0) {
-      const groupedByProductGroup = {};
-      uncategorizedProducts.forEach(product => {
-        const groupName = product.group_name || 'Ungrouped';
-        if (!groupedByProductGroup[groupName]) {
-          groupedByProductGroup[groupName] = [];
-        }
-        groupedByProductGroup[groupName].push(product);
-      });
-      groupedBySubcategory['Other Products'] = {
-        display: 'Other',
-        groups: groupedByProductGroup
-      };
-    }
+  } else {
+    filteredProducts.forEach(product => {
+      const groupName = product.subsubcategory_name || 'Ungrouped';
+      
+      if (!groupedProducts[groupName]) groupedProducts[groupName] = [];
+      groupedProducts[groupName].push(product);
+    });
   }
 
-  // Render product rows
   const renderProductRows = (products) =>
     products.map((product) => {
       const isLowStock = product.current_stock <= product.minimum_stock;
@@ -249,7 +197,7 @@ const Products = () => {
         <tr key={product.id}>
           <td className={styles.productCode}>{product.code}</td>
           <td>{product.name}</td>
-          <td>{product.group_name || 'N/A'}</td>
+          <td>{product.subsubcategory_name || 'N/A'}</td>
           <td className={styles.price}>KES {Number(product.unit_price).toLocaleString()}</td>
           <td><span className={styles.stockBadge}>{product.current_stock}</span></td>
           <td>
@@ -340,30 +288,42 @@ const Products = () => {
 
       {/* Category Navigation */}
       <div className={styles.categoryNav}>
-        <button onClick={() => { setCategoryFilter('fire'); setSubcategoryFilter('all'); }}
-          className={categoryFilter === 'fire' ? styles.categoryActive : styles.categoryButton}>🔥 FIRE</button>
-        <button onClick={() => { setCategoryFilter('ict'); setSubcategoryFilter('all'); }}
-          className={categoryFilter === 'ict' ? styles.categoryActive : styles.categoryButton}>💻 ICT</button>
-        <button onClick={() => { setCategoryFilter('solar'); setSubcategoryFilter('all'); }}
-          className={categoryFilter === 'solar' ? styles.categoryActive : styles.categoryButton}>☀️ SOLAR</button>
+        <button 
+          onClick={() => { setCategoryFilter('all'); setSubcategoryFilter('all'); }}
+          className={categoryFilter === 'all' ? styles.categoryActive : styles.categoryButton}
+        >
+          📂 ALL CATEGORIES
+        </button>
+        {categories.map(cat => (
+          <button 
+            key={cat.id}
+            onClick={() => { setCategoryFilter(cat.id.toString()); setSubcategoryFilter('all'); }}
+            className={categoryFilter === cat.id.toString() ? styles.categoryActive : styles.categoryButton}
+          >
+            {cat.name === 'Fire' && '🔥'} 
+            {cat.name === 'ICT' && '💻'} 
+            {cat.name === 'Solar' && '☀️'} 
+            {cat.name.toUpperCase()}
+          </button>
+        ))}
       </div>
 
-      {/* Subcategory Navigation - for FIRE and ICT */}
-      {['fire', 'ict'].includes(categoryFilter) && currentSubcategories.length > 0 && (
+      {/* Subcategory Navigation */}
+      {categoryFilter !== 'all' && currentSubcategories.length > 0 && (
         <div className={styles.subcategoryNav}>
           <button
             onClick={() => setSubcategoryFilter('all')}
             className={subcategoryFilter === 'all' ? styles.navActive : styles.navButton}
           >
-            ALL {CATEGORIES[categoryFilter]?.name}
+            ALL {currentCategory?.name.toUpperCase()}
           </button>
           {currentSubcategories.map((subcat) => (
             <button
-              key={subcat.key}
-              onClick={() => setSubcategoryFilter(subcat.key)}
-              className={subcategoryFilter === subcat.key ? styles.navActive : styles.navButton}
+              key={subcat.id}
+              onClick={() => setSubcategoryFilter(subcat.id.toString())}
+              className={subcategoryFilter === subcat.id.toString() ? styles.navActive : styles.navButton}
             >
-              {subcat.display}
+              {subcat.name}
             </button>
           ))}
         </div>
@@ -372,58 +332,54 @@ const Products = () => {
       {/* Products Display */}
       <div className={styles.productsContainer}>
         {filteredProducts.length === 0 ? (
-          <div className="card"><div className="card-body"><p className={styles.noData}>No products found in this category</p></div></div>
-        ) : ['fire', 'ict', 'solar'].includes(categoryFilter) && subcategoryFilter === 'all' ? (
-          Object.keys(groupedBySubcategory).map((subcategoryName) => {
-            const subcatData = groupedBySubcategory[subcategoryName];
-            return (
-              <div key={subcategoryName} className={styles.subcategorySection}>
-                <h2 className={styles.subcategoryHeader}>{subcatData.display} Products</h2>
-                {Object.keys(subcatData.groups).map((groupName) => (
-                  <div key={groupName} className={styles.productGroupSection}>
-                    <h3 className={styles.groupHeader}>{groupName}</h3>
-                    <div className="card">
-                      <div className="card-body">
-                        <div className="table-container">
-                          <table className="table">
-                            <thead>
-                              <tr>
-                                <th>Code</th>
-                                <th>Name</th>
-                                <th>Group</th>
-                                <th>Price</th>
-                                <th>Stock</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {renderProductRows(subcatData.groups[groupName])}
-                            </tbody>
-                          </table>
+          <div className="card">
+            <div className="card-body">
+              <p className={styles.noData}>No products found</p>
+            </div>
+          </div>
+        ) : categoryFilter === 'all' ? (
+          Object.entries(groupedProducts).map(([catName, subcats]) => (
+            <div key={catName} className={styles.categorySection}>
+              <h2 className={styles.categoryHeader}>{catName}</h2>
+              {Object.entries(subcats).map(([subcatName, groups]) => (
+                <div key={subcatName} className={styles.subcategorySection}>
+                  <h3 className={styles.subcategoryHeader}>{subcatName}</h3>
+                  {Object.entries(groups).map(([groupName, products]) => (
+                    <div key={groupName} className={styles.productGroupSection}>
+                      <h4 className={styles.groupHeader}>{groupName}</h4>
+                      <div className="card">
+                        <div className="card-body">
+                          <div className="table-container">
+                            <table className="table">
+                              <thead>
+                                <tr>
+                                  <th>Code</th>
+                                  <th>Name</th>
+                                  <th>Group</th>
+                                  <th>Price</th>
+                                  <th>Stock</th>
+                                  <th>Status</th>
+                                  <th>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {renderProductRows(products)}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })
-        ) : (
-          <div className={styles.subcategorySection}>
-            {['fire', 'ict', 'solar'].includes(categoryFilter) && subcategoryFilter !== 'all' && (
-              <h2 className={styles.subcategoryHeader}>
-                {currentSubcategories.find(s => s.key === subcategoryFilter)?.display || 'Products'}
-              </h2>
-            )}
-            {(() => {
-              const groupedByProductGroup = {};
-              filteredProducts.forEach(product => {
-                const groupName = product.group_name || 'Ungrouped';
-                if (!groupedByProductGroup[groupName]) groupedByProductGroup[groupName] = [];
-                groupedByProductGroup[groupName].push(product);
-              });
-              return Object.keys(groupedByProductGroup).map((groupName) => (
+                  ))}
+                </div>
+              ))}
+            </div>
+          ))
+        ) : subcategoryFilter === 'all' ? (
+          Object.entries(groupedProducts).map(([subcatName, groups]) => (
+            <div key={subcatName} className={styles.subcategorySection}>
+              <h2 className={styles.subcategoryHeader}>{subcatName}</h2>
+              {Object.entries(groups).map(([groupName, products]) => (
                 <div key={groupName} className={styles.productGroupSection}>
                   <h3 className={styles.groupHeader}>{groupName}</h3>
                   <div className="card">
@@ -442,16 +398,44 @@ const Products = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {renderProductRows(groupedByProductGroup[groupName])}
+                            {renderProductRows(products)}
                           </tbody>
                         </table>
                       </div>
                     </div>
                   </div>
                 </div>
-              ));
-            })()}
-          </div>
+              ))}
+            </div>
+          ))
+        ) : (
+          Object.entries(groupedProducts).map(([groupName, products]) => (
+            <div key={groupName} className={styles.productGroupSection}>
+              <h3 className={styles.groupHeader}>{groupName}</h3>
+              <div className="card">
+                <div className="card-body">
+                  <div className="table-container">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Code</th>
+                          <th>Name</th>
+                          <th>Group</th>
+                          <th>Price</th>
+                          <th>Stock</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {renderProductRows(products)}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
         )}
       </div>
 
@@ -460,8 +444,6 @@ const Products = () => {
         <ProductModal
           product={selectedProduct}
           categories={categories}
-          subcategories={subcategories}
-          groups={groups}
           onClose={handleModalClose}
         />
       )}
