@@ -21,7 +21,16 @@ const Suppliers = () => {
     try {
       setLoading(true);
       const data = await api.getSuppliers();
-      setSuppliers(Array.isArray(data) ? data : []);
+      console.log('Loaded suppliers:', data); // Debug log
+      
+      // Handle both array and paginated responses
+      if (Array.isArray(data)) {
+        setSuppliers(data);
+      } else if (data && data.results) {
+        setSuppliers(data.results);
+      } else {
+        setSuppliers([]);
+      }
     } catch (error) {
       console.error('Error loading suppliers:', error);
       setSuppliers([]);
@@ -60,17 +69,23 @@ const Suppliers = () => {
     }
   };
 
-  const handleModalClose = () => {
+  const handleModalClose = (shouldRefresh = false) => {
     setShowModal(false);
     setSelectedSupplier(null);
-    loadSuppliers();
+    if (shouldRefresh) {
+      loadSuppliers();
+    }
   };
 
-  const filteredSuppliers = Array.isArray(suppliers) ? suppliers.filter(supplier =>
-    supplier.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    supplier.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    supplier.phone.includes(searchTerm)
-  ) : [];
+  // Case-insensitive search for company name (and other fields)
+  const filteredSuppliers = suppliers.filter(supplier => {
+    const search = searchTerm.toLowerCase();
+    return (
+      (supplier.company_name?.toLowerCase() || '').includes(search) ||
+      (supplier.email?.toLowerCase() || '').includes(search) ||
+      (supplier.phone || '').includes(searchTerm)
+    );
+  });
 
   if (loading) {
     return (
@@ -86,7 +101,9 @@ const Suppliers = () => {
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Suppliers</h1>
-          <p className={styles.pageSubtitle}>Manage your supplier network</p>
+          <p className={styles.pageSubtitle}>
+            Manage your supplier network
+          </p>
         </div>
         {isAdmin && (
           <button onClick={handleAddSupplier} className="btn btn-primary">
@@ -98,7 +115,7 @@ const Suppliers = () => {
       <div className={styles.searchBox}>
         <input
           type="text"
-          placeholder="Search suppliers..."
+          placeholder="Search by company name, email or phone..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className={styles.searchInput}
@@ -109,7 +126,9 @@ const Suppliers = () => {
       <div className="card">
         <div className="card-body">
           {filteredSuppliers.length === 0 ? (
-            <p className={styles.noData}>No suppliers found</p>
+            <p className={styles.noData}>
+              {searchTerm ? 'No suppliers found matching your search' : 'No suppliers found'}
+            </p>
           ) : (
             <div className="table-container">
               <table className="table">
@@ -118,6 +137,7 @@ const Suppliers = () => {
                     <th>Company Name</th>
                     <th>Email</th>
                     <th>Phone</th>
+                    <th>Address</th>
                     <th>Status</th>
                     <th>Created</th>
                     {isAdmin && <th>Actions</th>}
@@ -127,10 +147,11 @@ const Suppliers = () => {
                   {filteredSuppliers.map(supplier => (
                     <tr key={supplier.id}>
                       <td className={styles.companyName}>
-                        {supplier.company_name}
+                        {supplier.company_name || 'N/A'}
                       </td>
-                      <td>{supplier.email}</td>
-                      <td>{supplier.phone}</td>
+                      <td>{supplier.email || 'N/A'}</td>
+                      <td>{supplier.phone || 'N/A'}</td>
+                      <td>{supplier.address || '-'}</td>
                       <td>
                         <span className={`badge ${
                           supplier.is_active ? 'badge-success' : 'badge-danger'
@@ -138,7 +159,11 @@ const Suppliers = () => {
                           {supplier.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td>{new Date(supplier.created_at).toLocaleDateString()}</td>
+                      <td>
+                        {supplier.created_at 
+                          ? new Date(supplier.created_at).toLocaleDateString()
+                          : 'N/A'}
+                      </td>
                       {isAdmin && (
                         <td>
                           <div className={styles.actionButtons}>

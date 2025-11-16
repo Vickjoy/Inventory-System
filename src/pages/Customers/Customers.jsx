@@ -21,9 +21,18 @@ const Customers = () => {
     try {
       setLoading(true);
       const data = await api.getCustomers();
-      setCustomers(data);
+      console.log('Loaded customers:', data); // Debug log
+      // Handle both array and paginated responses
+      if (Array.isArray(data)) {
+        setCustomers(data);
+      } else if (data && data.results) {
+        setCustomers(data.results);
+      } else {
+        setCustomers([]);
+      }
     } catch (error) {
       console.error('Error loading customers:', error);
+      setCustomers([]);
     } finally {
       setLoading(false);
     }
@@ -59,17 +68,23 @@ const Customers = () => {
     }
   };
 
-  const handleModalClose = () => {
+  const handleModalClose = (shouldRefresh = false) => {
     setShowModal(false);
     setSelectedCustomer(null);
-    loadCustomers();
+    if (shouldRefresh) {
+      loadCustomers();
+    }
   };
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone.includes(searchTerm)
-  );
+  // Case-insensitive search for company name (and other fields)
+  const filteredCustomers = customers.filter(customer => {
+    const search = searchTerm.toLowerCase();
+    return (
+      (customer.company_name?.toLowerCase() || '').includes(search) ||
+      (customer.email?.toLowerCase() || '').includes(search) ||
+      (customer.phone || '').includes(searchTerm)
+    );
+  });
 
   if (loading) {
     return (
@@ -97,7 +112,7 @@ const Customers = () => {
       <div className={styles.searchBox}>
         <input
           type="text"
-          placeholder="Search customers..."
+          placeholder="Search by company name, email or phone..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className={styles.searchInput}
@@ -108,7 +123,9 @@ const Customers = () => {
       <div className="card">
         <div className="card-body">
           {filteredCustomers.length === 0 ? (
-            <p className={styles.noData}>No customers found</p>
+            <p className={styles.noData}>
+              {searchTerm ? 'No customers found matching your search' : 'No customers found'}
+            </p>
           ) : (
             <div className="table-container">
               <table className="table">
@@ -117,7 +134,6 @@ const Customers = () => {
                     <th>Company Name</th>
                     <th>Email</th>
                     <th>Phone</th>
-                    <th>Payment Type</th>
                     <th>Status</th>
                     <th>Created</th>
                     {isAdmin && <th>Actions</th>}
@@ -127,15 +143,10 @@ const Customers = () => {
                   {filteredCustomers.map(customer => (
                     <tr key={customer.id}>
                       <td className={styles.companyName}>
-                        {customer.company_name}
+                        {customer.company_name || 'N/A'}
                       </td>
-                      <td>{customer.email}</td>
-                      <td>{customer.phone}</td>
-                      <td>
-                        <span className={styles.paymentBadge}>
-                          {customer.payment_type}
-                        </span>
-                      </td>
+                      <td>{customer.email || 'N/A'}</td>
+                      <td>{customer.phone || 'N/A'}</td>
                       <td>
                         <span className={`badge ${
                           customer.is_active ? 'badge-success' : 'badge-danger'
@@ -143,7 +154,11 @@ const Customers = () => {
                           {customer.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td>{new Date(customer.created_at).toLocaleDateString()}</td>
+                      <td>
+                        {customer.created_at 
+                          ? new Date(customer.created_at).toLocaleDateString()
+                          : 'N/A'}
+                      </td>
                       {isAdmin && (
                         <td>
                           <div className={styles.actionButtons}>

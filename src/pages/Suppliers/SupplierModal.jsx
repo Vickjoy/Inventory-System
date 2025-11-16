@@ -1,6 +1,7 @@
 // src/pages/Suppliers/SupplierModal.jsx
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
+import styles from './SupplierModal.module.css';
 
 const SupplierModal = ({ supplier, onClose }) => {
   const [formData, setFormData] = useState({
@@ -36,98 +37,120 @@ const SupplierModal = ({ supplier, onClose }) => {
     try {
       if (supplier) {
         await api.updateSupplier(supplier.id, formData);
+        console.log('Supplier updated successfully');
       } else {
-        await api.createSupplier(formData);
+        const response = await api.createSupplier(formData);
+        console.log('Supplier created successfully:', response);
       }
-      onClose();
+      // Close modal and trigger reload
+      onClose(true);
     } catch (err) {
-      setError(err.message);
+      console.error('Error saving supplier:', err);
+      setError(err.message || 'Failed to save supplier. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleCancel = () => {
+    // Close without reloading
+    onClose(false);
+  };
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="modal-title">
-            {supplier ? 'Edit Supplier' : 'Add New Supplier'}
+    <div className={styles.modalOverlay} onClick={handleCancel}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <h2 className={styles.modalTitle}>
+            {supplier ? '✏️ Edit Supplier' : '➕ Add New Supplier'}
           </h2>
-          <button className="modal-close" onClick={onClose}>×</button>
+          <button className={styles.modalClose} onClick={handleCancel} type="button">×</button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="modal-body">
+          <div className={styles.modalBody}>
             {error && (
-              <div className="alert alert-danger">{error}</div>
+              <div className={`${styles.alert} ${styles.alertDanger}`}>
+                {error}
+              </div>
             )}
 
-            <div className="form-group">
-              <label className="form-label">Company Name *</label>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>
+                Company Name <span>*</span>
+              </label>
               <input
                 type="text"
                 name="company_name"
                 value={formData.company_name}
                 onChange={handleChange}
-                className="form-input"
+                className={styles.formInput}
                 required
                 placeholder="Enter company name"
+                disabled={loading}
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Email *</label>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>
+                Email <span>*</span>
+              </label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="form-input"
+                className={styles.formInput}
                 required
                 placeholder="company@example.com"
+                disabled={loading}
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Phone Number *</label>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>
+                Phone Number <span>*</span>
+              </label>
               <input
                 type="tel"
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="form-input"
+                className={styles.formInput}
                 required
                 placeholder="0712345678"
+                disabled={loading}
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Address</label>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Address</label>
               <textarea
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                className="form-textarea"
+                className={styles.formTextarea}
                 placeholder="Enter company address (optional)"
+                disabled={loading}
               />
             </div>
           </div>
 
-          <div className="modal-footer">
+          <div className={styles.modalFooter}>
             <button
               type="button"
-              onClick={onClose}
-              className="btn btn-outline"
+              onClick={handleCancel}
+              className={styles.btnOutline}
               disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="btn btn-primary"
+              className={styles.btnPrimary}
               disabled={loading}
             >
+              {loading && <span className={styles.loading}></span>}
               {loading ? 'Saving...' : supplier ? 'Update Supplier' : 'Add Supplier'}
             </button>
           </div>

@@ -52,11 +52,14 @@ const api = {
       throw new Error('Unauthorized');
     }
 
-    const data = await response.json().catch(() => null);
-    if (!response.ok) throw new Error(data?.detail || 'Request failed');
+    // Handle empty responses (204 No Content)
+    if (response.status === 204) {
+      return null;
+    }
 
-    if (data && typeof data === 'object' && ('results' in data)) {
-      return data;
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(data?.detail || data?.message || 'Request failed');
     }
 
     return data;
@@ -113,7 +116,7 @@ const api = {
     api.request(`/subcategories/${id}/`, { method: 'DELETE' }),
 
   // ==========================
-  // Sub-SubCategories (NEW)
+  // Sub-SubCategories
   // ==========================
   getSubSubCategories: (subcategoryId = '') =>
     api.request(`/subsubcategories/${subcategoryId ? `?subcategory=${subcategoryId}` : ''}`),
@@ -208,42 +211,136 @@ const api = {
     }),
 
   // ==========================
-  // Suppliers
+  // Suppliers - FIXED (same as customers)
   // ==========================
-  getSuppliers: (params = '') => api.request(`/suppliers/${params}`),
+  getSuppliers: async (params = '') => {
+    try {
+      const data = await api.request(`/suppliers/${params}`);
+      console.log('Raw Suppliers API response:', data); // Debug log
+      
+      // Handle different response formats
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data && typeof data === 'object') {
+        // If paginated response with results array
+        if (Array.isArray(data.results)) {
+          return data.results;
+        }
+        // If single object, wrap in array
+        if (data.id) {
+          return [data];
+        }
+      }
+      
+      // Default to empty array if format is unexpected
+      console.warn('Unexpected suppliers response format:', data);
+      return [];
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+      throw error;
+    }
+  },
+
   getSupplier: (id) => api.request(`/suppliers/${id}/`),
-  createSupplier: (data) =>
-    api.request('/suppliers/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  updateSupplier: (id, data) =>
-    api.request(`/suppliers/${id}/`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
+  
+  createSupplier: async (data) => {
+    try {
+      const result = await api.request('/suppliers/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      console.log('Supplier created:', result);
+      return result;
+    } catch (error) {
+      console.error('Error creating supplier:', error);
+      throw error;
+    }
+  },
+
+  updateSupplier: async (id, data) => {
+    try {
+      const result = await api.request(`/suppliers/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+      console.log('Supplier updated:', result);
+      return result;
+    } catch (error) {
+      console.error('Error updating supplier:', error);
+      throw error;
+    }
+  },
+
   deleteSupplier: (id) =>
     api.request(`/suppliers/${id}/`, { method: 'DELETE' }),
+  
   toggleSupplierActive: (id) =>
     api.request(`/suppliers/${id}/toggle_active/`, { method: 'POST' }),
 
   // ==========================
-  // Customers
+  // Customers - FIXED
   // ==========================
-  getCustomers: (params = '') => api.request(`/customers/${params}`),
+  getCustomers: async (params = '') => {
+    try {
+      const data = await api.request(`/customers/${params}`);
+      console.log('Raw API response:', data); // Debug log
+      
+      // Handle different response formats
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data && typeof data === 'object') {
+        // If paginated response with results array
+        if (Array.isArray(data.results)) {
+          return data.results;
+        }
+        // If single object, wrap in array
+        if (data.id) {
+          return [data];
+        }
+      }
+      
+      // Default to empty array if format is unexpected
+      console.warn('Unexpected customers response format:', data);
+      return [];
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      throw error;
+    }
+  },
+
   getCustomer: (id) => api.request(`/customers/${id}/`),
-  createCustomer: (data) =>
-    api.request('/customers/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  updateCustomer: (id, data) =>
-    api.request(`/customers/${id}/`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
+  
+  createCustomer: async (data) => {
+    try {
+      const result = await api.request('/customers/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      console.log('Customer created:', result);
+      return result;
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      throw error;
+    }
+  },
+
+  updateCustomer: async (id, data) => {
+    try {
+      const result = await api.request(`/customers/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+      console.log('Customer updated:', result);
+      return result;
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      throw error;
+    }
+  },
+
   deleteCustomer: (id) =>
     api.request(`/customers/${id}/`, { method: 'DELETE' }),
+  
   toggleCustomerActive: (id) =>
     api.request(`/customers/${id}/toggle_active/`, { method: 'POST' }),
 
