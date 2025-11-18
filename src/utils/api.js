@@ -345,35 +345,45 @@ const api = {
     api.request(`/customers/${id}/toggle_active/`, { method: 'POST' }),
 
   // ==========================
-  // Sales
-  // ==========================
-  getSales: (params = '') => api.request(`/sales/${params}`),
-  getSale: (id) => api.request(`/sales/${id}/`),
-  getOutstandingSales: () => api.request('/sales/outstanding/'),
-  getSalesByCustomer: (customerId) =>
-    api.request(`/sales/by_customer/?customer_id=${customerId}`),
-  createSale: (data) =>
-    api.request('/sales/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  updateSale: (id, data) =>
-    api.request(`/sales/${id}/`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-  updateSaleSupply: (id, data) =>
-    api.request(`/sales/${id}/update_supply/`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  updateSupplyStatus: (id, data) =>
-    api.request(`/sales/${id}/update_supply/`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  deleteSale: (id) => api.request(`/sales/${id}/`, { method: 'DELETE' }),
+// Sales - UPDATED
+// ==========================
+getSales: (params = '') => api.request(`/sales/${params}`),
+getSale: (id) => api.request(`/sales/${id}/`),
+getOutstandingSales: () => api.request('/sales/outstanding/'),
 
+// NEW: Autocomplete endpoints
+searchSalesProducts: (query) => api.request(`/sales/search_products/?q=${query}`),
+searchSalesCustomers: (query) => api.request(`/sales/search_customers/?q=${query}`),
+
+createSale: (data) =>
+  api.request('/sales/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+updateSale: (id, data) =>
+  api.request(`/sales/${id}/`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+
+// NEW: Update supply status for specific line item
+updateSaleLineItemSupply: (saleId, data) =>
+  api.request(`/sales/${saleId}/update_line_item_supply/`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+deleteSale: (id) => api.request(`/sales/${id}/`, { method: 'DELETE' }),
+
+// Legacy endpoint (kept for backward compatibility)
+updateSaleSupply: (id, data) =>
+  api.request(`/sales/${id}/update_supply/`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  
   // ==========================
   // Invoices
   // ==========================

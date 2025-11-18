@@ -1,5 +1,6 @@
 // src/pages/Dashboard/Dashboard.jsx
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import styles from './Dashboard.module.css';
 
@@ -8,6 +9,7 @@ const Dashboard = () => {
   const [recentSales, setRecentSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadDashboardData();
@@ -46,48 +48,55 @@ const Dashboard = () => {
     );
   }
 
-  const statCards = [
+  // Quick Links Configuration
+  const quickLinks = [
     {
       title: 'Total Products',
       value: stats?.total_products || 0,
       icon: '📦',
       color: '#3b82f6',
-      bgColor: '#dbeafe'
+      bgColor: '#dbeafe',
+      onClick: () => navigate('/products')
     },
     {
-      title: 'Low Stock Items',
+      title: 'Low Stock',
       value: stats?.low_stock_items || 0,
       icon: '⚠️',
       color: '#ef4444',
-      bgColor: '#fee2e2'
+      bgColor: '#fee2e2',
+      onClick: () => navigate('/products?filter=low')
     },
     {
-      title: 'Outstanding Invoices',
+      title: 'Outstanding Supplies',
       value: stats?.outstanding_invoices || 0,
-      icon: '🧾',
-      color: '#f59e0b',
-      bgColor: '#fef3c7'
-    },
-    {
-      title: 'Pending LPOs',
-      value: stats?.pending_lpos || 0,
       icon: '📋',
-      color: '#8b5cf6',
-      bgColor: '#ede9fe'
+      color: '#f59e0b',
+      bgColor: '#fef3c7',
+      onClick: () => navigate('/sales?tab=outstanding')
     },
     {
-      title: 'Total Revenue',
+      title: 'Sales',
       value: `KES ${Number(stats?.total_revenue || 0).toLocaleString()}`,
       icon: '💰',
       color: '#10b981',
-      bgColor: '#d1fae5'
+      bgColor: '#d1fae5',
+      onClick: () => navigate('/sales')
     },
     {
-      title: 'Outstanding Amount',
-      value: `KES ${Number(stats?.total_outstanding || 0).toLocaleString()}`,
-      icon: '💳',
-      color: '#ef4444',
-      bgColor: '#fee2e2'
+      title: 'Stock Entries',
+      value: 'View All',
+      icon: '📊',
+      color: '#8b5cf6',
+      bgColor: '#ede9fe',
+      onClick: () => navigate('/stock-entries')
+    },
+    {
+      title: 'Reports',
+      value: 'Generate',
+      icon: '📈',
+      color: '#06b6d4',
+      bgColor: '#cffafe',
+      onClick: () => navigate('/reports')
     }
   ];
 
@@ -104,26 +113,27 @@ const Dashboard = () => {
     <div className={styles.dashboard}>
       <div className={styles.dashboardHeader}>
         <h1 className={styles.pageTitle}>Dashboard</h1>
-        <p className={styles.pageSubtitle}>Overview of your inventory system</p>
+        <p className={styles.pageSubtitle}>Quick access to your inventory system</p>
       </div>
 
       <div className={styles.statsGrid}>
-        {statCards.map((stat, index) => (
+        {quickLinks.map((link, index) => (
           <div 
             key={index} 
             className={styles.statCard}
-            style={{ borderLeftColor: stat.color }}
+            style={{ borderLeftColor: link.color, cursor: 'pointer' }}
+            onClick={link.onClick}
           >
             <div 
               className={styles.statIcon}
-              style={{ backgroundColor: stat.bgColor }}
+              style={{ backgroundColor: link.bgColor }}
             >
-              <span style={{ fontSize: '2rem' }}>{stat.icon}</span>
+              <span style={{ fontSize: '2rem' }}>{link.icon}</span>
             </div>
             <div className={styles.statContent}>
-              <p className={styles.statTitle}>{stat.title}</p>
-              <p className={styles.statValue} style={{ color: stat.color }}>
-                {stat.value}
+              <p className={styles.statTitle}>{link.title}</p>
+              <p className={styles.statValue} style={{ color: link.color }}>
+                {link.value}
               </p>
             </div>
           </div>

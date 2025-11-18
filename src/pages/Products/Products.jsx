@@ -1,5 +1,6 @@
 // src/pages/Products/Products.jsx
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import ProductModal from './ProductModal';
@@ -19,8 +20,17 @@ const Products = () => {
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const isStaffOrAdmin = user?.is_staff || user?.is_superuser;
+
+  // Check URL parameters on mount
+  useEffect(() => {
+    const urlFilter = searchParams.get('filter');
+    if (urlFilter === 'low') {
+      setFilter('low');
+    }
+  }, [searchParams]);
 
   // Load categories with full hierarchy
   useEffect(() => {
@@ -32,7 +42,6 @@ const Products = () => {
         ]);
         console.log('Loaded categories:', catData);
 
-        // ❤️ FIXED: Supports paginated OR non-paginated backend
         setCategories(catData?.results || catData || []);
         setSuppliers(suppliersData?.results || suppliersData || []);
 
