@@ -1,0 +1,217 @@
+// src/pages/Customers/CustomerHistory.jsx
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import api from '../../utils/api';
+import styles from './CustomerHistory.module.css';
+
+const formatCurrency = (amount) => {
+  const num = parseFloat(amount) || 0;
+  return num.toLocaleString('en-KE', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
+
+const CustomerHistory = () => {
+  const { customerId } = useParams();
+  const navigate = useNavigate();
+  const [customer, setCustomer] = useState(null);
+  const [sales, setSales] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedSaleId, setExpandedSaleId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    loadCustomerData();
+  }, [customerId]);
+
+  const loadCustomerData = async () => {
+    try {
+      setLoading(true);
+      const customerData = await api.getCustomer(customerId);
+      setCustomer(customerData);
+
+      const allSales = await api.getSales();
+      const salesArray = Array.isArray(allSales) ? allSales : allSales.results || [];
+      const customerSales = salesArray.filter(
+        sale => sale.customer === parseInt(customerId)
+      );
+      setSales(customerSales);
+    } catch (error) {
+      console.error('Error loading customer data:', error);
+      alert('Error loading customer history: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      'Supplied': 'badge-success',
+      'Partially Supplied': 'badge-warning',
+      'Not Supplied': 'badge-danger'
+    };
+    return badges[status] || 'badge-secondary';
+  };
+
+  const filteredSales = sales.filter(sale =>
+    sale.sale_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    sale.lpo_quotation_number?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className="spinner"></div>
+        <p>Loading customer history...</p>
+      </div>
+    );
+  }
+
+  if (!customer) {
+    return (
+      <div className={styles.errorContainer}>
+        <p>Customer not found</p>
+        <button onClick={() => navigate('/customers')} className="btn btn-primary">
+          Back to Customers
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.historyPage}>
+      {/* Header with Customer Info */}
+      <div className={styles.pageHeader}>
+        <button onClick={() => navigate('/customers')} className={styles.backButton}>
+          ← Back to Customers
+        </button>
+        <div className={styles.customerInfo}>
+          <h1 className={styles.pageTitle}>{customer.company_name}</h1>
+          <div className={styles.customerMeta}>
+            {customer.phone && <span>📞 {customer.phone}</span>}
+            <span className={`badge ${customer.is_active ? 'badge-success' : 'badge-danger'}`}>
+              {customer.is_active ? 'Active' : 'Inactive'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className={styles.searchBox}>
+        <input
+          type="text"
+          placeholder="Search by sale number or LPO..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className={styles.searchInput}
+        />
+        <span className={styles.searchIcon}>🔍</span>
+      </div>
+
+      {/* Sales History Table */}
+      <div className="card">
+        <div className="card-body">
+          <h2 className={styles.sectionTitle}>Purchase History</h2>
+          {filteredSales.length === 0 ? (
+            <p className={styles.noData}>
+              {searchTerm
+                ? 'No sales found matching your search.'
+                : 'No purchase history found for this customer.'}
+            </p>
+          ) : (
+            <div className="table-container">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Sale #</th>
+                    <th>Date</th>
+                    <th>Products</th>
+                    <th>Total Amount</th>
+                    <th>Payment Status</th>
+                    <th>LPO/Quote</th>
+                    <th>Delivery #</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSales.map((sale) => (
+                    <tr key={sale.id}>
+                      <td className={styles.saleNumber}>{sale.sale_number}</td>
+                      <td>{new Date(sale.created_at).toLocaleDateString()}</td>
+                      <td>
+                        <div
+                          className={styles.productsSummary}
+                          onClick={() =>
+                            setExpandedSaleId(expandedSaleId === sale.id ? null : sale.id)
+                          }
+                        >
+                          {sale.line_items[0]?.product_name}
+                          {sale.line_items.length > 1 && (
+                            <span className={styles.moreProducts}>
+                              +{sale.line_items.length - 1} more
+                            </span>
+                          )}
+                        </div>
+                        {expandedSaleId === sale.id && (
+                          <div className={styles.expandedProducts}>
+                            {sale.line_items.map((item, idx) => (
+                              <div key={idx} className={styles.expandedProductItem}>
+                                <strong>{item.product_name}</strong> ({item.quantity_supplied}/{item.quantity_ordered})
+                                <span className={`badge ${getStatusBadge(item.supply_status)}`}>
+                                  {item.supply_status}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className={styles.totalAmount}>
+                        KES {formatCurrency(sale.total_amount)}
+                      </td>
+                      <td>
+                        <div className={styles.paymentStatusContainer}>
+                          <span
+                            className={`badge ${
+                              sale.mode_of_payment === 'Not Paid'
+                                ? 'badge-warning'
+                                : 'badge-success'
+                            }`}
+                          >
+                            {sale.mode_of_payment}
+                          </span>
+                          {sale.amount_paid > 0 && (
+                            <div className={styles.amountPaid}>
+                              Paid: KES {formatCurrency(sale.amount_paid)}
+                            </div>
+                          )}
+                          {sale.outstanding_balance > 0 && (
+                            <div className={styles.outstandingBalance}>
+                              Balance: KES {formatCurrency(sale.outstanding_balance)}
+                            </div>
+                          )}
+                          {parseFloat(sale.outstanding_balance) === 0 &&
+                            parseFloat(sale.amount_paid) > 0 && (
+                              <div
+                                className="badge badge-success"
+                                style={{ marginTop: '4px' }}
+                              >
+                                ✓ Fully Paid
+                              </div>
+                            )}
+                        </div>
+                      </td>
+                      <td>{sale.lpo_quotation_number || '-'}</td>
+                      <td>{sale.delivery_number || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CustomerHistory;

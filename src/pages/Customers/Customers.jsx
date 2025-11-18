@@ -1,6 +1,7 @@
 // src/pages/Customers/Customers.jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import CustomerModal from './CustomerModal';
 import styles from './Customers.module.css';
@@ -12,6 +13,7 @@ const Customers = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const { isAdmin } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadCustomers();
@@ -21,7 +23,7 @@ const Customers = () => {
     try {
       setLoading(true);
       const data = await api.getCustomers();
-      console.log('Loaded customers:', data); // Debug log
+      console.log('Loaded customers:', data);
       // Handle both array and paginated responses
       if (Array.isArray(data)) {
         setCustomers(data);
@@ -76,12 +78,15 @@ const Customers = () => {
     }
   };
 
+  const handleCustomerClick = (customerId) => {
+    navigate(`/customers/${customerId}/history`);
+  };
+
   // Case-insensitive search for company name (and other fields)
   const filteredCustomers = customers.filter(customer => {
     const search = searchTerm.toLowerCase();
     return (
       (customer.company_name?.toLowerCase() || '').includes(search) ||
-      (customer.email?.toLowerCase() || '').includes(search) ||
       (customer.phone || '').includes(searchTerm)
     );
   });
@@ -112,7 +117,7 @@ const Customers = () => {
       <div className={styles.searchBox}>
         <input
           type="text"
-          placeholder="Search by company name, email or phone..."
+          placeholder="Search by company name or phone..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className={styles.searchInput}
@@ -132,7 +137,6 @@ const Customers = () => {
                 <thead>
                   <tr>
                     <th>Company Name</th>
-                    <th>Email</th>
                     <th>Phone</th>
                     <th>Status</th>
                     <th>Created</th>
@@ -142,10 +146,15 @@ const Customers = () => {
                 <tbody>
                   {filteredCustomers.map(customer => (
                     <tr key={customer.id}>
-                      <td className={styles.companyName}>
-                        {customer.company_name || 'N/A'}
+                      <td>
+                        <span 
+                          className={styles.companyNameLink}
+                          onClick={() => handleCustomerClick(customer.id)}
+                          title="View purchase history"
+                        >
+                          {customer.company_name || 'N/A'}
+                        </span>
                       </td>
-                      <td>{customer.email || 'N/A'}</td>
                       <td>{customer.phone || 'N/A'}</td>
                       <td>
                         <span className={`badge ${

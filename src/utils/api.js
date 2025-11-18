@@ -280,70 +280,68 @@ const api = {
   // ==========================
   // Customers - FIXED
   // ==========================
-  getCustomers: async (params = '') => {
-    try {
-      const data = await api.request(`/customers/${params}`);
-      console.log('Raw API response:', data); // Debug log
-      
-      // Handle different response formats
-      if (Array.isArray(data)) {
-        return data;
-      } else if (data && typeof data === 'object') {
-        // If paginated response with results array
-        if (Array.isArray(data.results)) {
-          return data.results;
-        }
-        // If single object, wrap in array
-        if (data.id) {
-          return [data];
-        }
+ getCustomers: async (params = '') => {
+  try {
+    const data = await api.request(`/customers/${params}`);
+    console.log('Raw API response:', data);
+    
+    if (Array.isArray(data)) {
+      return data;
+    } else if (data && typeof data === 'object') {
+      if (Array.isArray(data.results)) {
+        return data.results;
       }
-      
-      // Default to empty array if format is unexpected
-      console.warn('Unexpected customers response format:', data);
-      return [];
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-      throw error;
+      if (data.id) {
+        return [data];
+      }
     }
-  },
+    
+    console.warn('Unexpected customers response format:', data);
+    return [];
+  } catch (error) {
+    console.error('Error fetching customers:', error);
+    throw error;
+  }
+},
 
-  getCustomer: (id) => api.request(`/customers/${id}/`),
-  
-  createCustomer: async (data) => {
-    try {
-      const result = await api.request('/customers/', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-      console.log('Customer created:', result);
-      return result;
-    } catch (error) {
-      console.error('Error creating customer:', error);
-      throw error;
-    }
-  },
+getCustomer: (id) => api.request(`/customers/${id}/`),
 
-  updateCustomer: async (id, data) => {
-    try {
-      const result = await api.request(`/customers/${id}/`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
-      console.log('Customer updated:', result);
-      return result;
-    } catch (error) {
-      console.error('Error updating customer:', error);
-      throw error;
-    }
-  },
+// NEW: Get customer's sales history
+getCustomerSales: (customerId) => api.request(`/customers/${customerId}/sales/`),
 
-  deleteCustomer: (id) =>
-    api.request(`/customers/${id}/`, { method: 'DELETE' }),
-  
-  toggleCustomerActive: (id) =>
-    api.request(`/customers/${id}/toggle_active/`, { method: 'POST' }),
+createCustomer: async (data) => {
+  try {
+    const result = await api.request('/customers/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    console.log('Customer created:', result);
+    return result;
+  } catch (error) {
+    console.error('Error creating customer:', error);
+    throw error;
+  }
+},
 
+updateCustomer: async (id, data) => {
+  try {
+    const result = await api.request(`/customers/${id}/`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    console.log('Customer updated:', result);
+    return result;
+  } catch (error) {
+    console.error('Error updating customer:', error);
+    throw error;
+  }
+},
+
+deleteCustomer: (id) =>
+  api.request(`/customers/${id}/`, { method: 'DELETE' }),
+
+toggleCustomerActive: (id) =>
+  api.request(`/customers/${id}/toggle_active/`, { method: 'POST' }),
   // ==========================
 // Sales - UPDATED
 // ==========================

@@ -6,9 +6,7 @@ import styles from './SupplierModal.module.css';
 const SupplierModal = ({ supplier, onClose }) => {
   const [formData, setFormData] = useState({
     company_name: '',
-    email: '',
-    phone: '',
-    address: ''
+    phone: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,9 +15,7 @@ const SupplierModal = ({ supplier, onClose }) => {
     if (supplier) {
       setFormData({
         company_name: supplier.company_name || '',
-        email: supplier.email || '',
-        phone: supplier.phone || '',
-        address: supplier.address || ''
+        phone: supplier.phone || ''
       });
     }
   }, [supplier]);
@@ -93,23 +89,7 @@ const SupplierModal = ({ supplier, onClose }) => {
 
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>
-                Email <span>*</span>
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className={styles.formInput}
-                required
-                placeholder="company@example.com"
-                disabled={loading}
-              />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>
-                Phone Number <span>*</span>
+                Phone Number
               </label>
               <input
                 type="tel"
@@ -117,20 +97,7 @@ const SupplierModal = ({ supplier, onClose }) => {
                 value={formData.phone}
                 onChange={handleChange}
                 className={styles.formInput}
-                required
-                placeholder="0712345678"
-                disabled={loading}
-              />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Address</label>
-              <textarea
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                className={styles.formTextarea}
-                placeholder="Enter company address (optional)"
+                placeholder="0712345678 (optional)"
                 disabled={loading}
               />
             </div>

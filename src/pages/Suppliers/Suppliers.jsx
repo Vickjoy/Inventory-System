@@ -21,7 +21,7 @@ const Suppliers = () => {
     try {
       setLoading(true);
       const data = await api.getSuppliers();
-      console.log('Loaded suppliers:', data); // Debug log
+      console.log('Loaded suppliers:', data);
       
       // Handle both array and paginated responses
       if (Array.isArray(data)) {
@@ -82,7 +82,6 @@ const Suppliers = () => {
     const search = searchTerm.toLowerCase();
     return (
       (supplier.company_name?.toLowerCase() || '').includes(search) ||
-      (supplier.email?.toLowerCase() || '').includes(search) ||
       (supplier.phone || '').includes(searchTerm)
     );
   });
@@ -115,7 +114,7 @@ const Suppliers = () => {
       <div className={styles.searchBox}>
         <input
           type="text"
-          placeholder="Search by company name, email or phone..."
+          placeholder="Search by company name or phone..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className={styles.searchInput}
@@ -135,9 +134,7 @@ const Suppliers = () => {
                 <thead>
                   <tr>
                     <th>Company Name</th>
-                    <th>Email</th>
                     <th>Phone</th>
-                    <th>Address</th>
                     <th>Status</th>
                     <th>Created</th>
                     {isAdmin && <th>Actions</th>}
@@ -149,9 +146,7 @@ const Suppliers = () => {
                       <td className={styles.companyName}>
                         {supplier.company_name || 'N/A'}
                       </td>
-                      <td>{supplier.email || 'N/A'}</td>
                       <td>{supplier.phone || 'N/A'}</td>
-                      <td>{supplier.address || '-'}</td>
                       <td>
                         <span className={`badge ${
                           supplier.is_active ? 'badge-success' : 'badge-danger'

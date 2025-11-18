@@ -8,6 +8,7 @@ import Sales from './pages/Sales/Sales';
 import Invoices from './pages/Invoices/Invoices';
 import LPOs from './pages/LPOs/LPOs';
 import Customers from './pages/Customers/Customers';
+import CustomerHistory from './pages/Customers/CustomerHistory';
 import Suppliers from './pages/Suppliers/Suppliers';
 import StockEntries from './pages/StockEntries/StockEntries';
 import Reports from './pages/Reports/Reports';
@@ -40,6 +41,7 @@ function App() {
         <Route path="/invoices" element={<Invoices />} />
         <Route path="/lpos" element={<LPOs />} /> 
         <Route path="/customers" element={<Customers />} /> 
+        <Route path="/customers/:customerId/history" element={<CustomerHistory />} />
         <Route path="/suppliers" element={<Suppliers />} /> 
         <Route path="/stock-entries" element={<StockEntries />} />
         <Route path="/reports" element={<Reports />} /> 
