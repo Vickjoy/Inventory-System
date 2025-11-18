@@ -1,7 +1,9 @@
 /* src/pages/StockEntries/StockEntries.module.css */
+
 .stockEntriesPage {
   max-width: 1400px;
   margin: 0 auto;
+  padding: 1.5rem;
 }
 
 .pageHeader {
@@ -33,55 +35,59 @@
   gap: 1rem;
 }
 
-.filterBar {
+/* Tabs */
+.tabs {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 1.5rem;
-  gap: 1rem;
+  border-bottom: 2px solid #e5e7eb;
 }
 
-.filterButtons {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.filterButton,
-.filterActive {
-  padding: 0.625rem 1.25rem;
-  border: 2px solid #e5e7eb;
-  background: white;
-  border-radius: 0.5rem;
+.tab,
+.tabActive {
+  padding: 0.875rem 1.75rem;
+  border: none;
+  background: transparent;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.filterButton:hover {
-  border-color: #3b82f6;
+.tab {
+  color: #6b7280;
+}
+
+.tab:hover {
   color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
 }
 
-.filterActive {
-  background-color: #3b82f6;
-  color: white;
-  border-color: #3b82f6;
+.tabActive {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
 }
 
+/* Search Box */
 .searchBox {
   position: relative;
   width: 100%;
-  max-width: 350px;
+  max-width: 600px;
+  margin-bottom: 1.5rem;
 }
 
 .searchInput {
   width: 100%;
-  padding: 0.625rem 2.5rem 0.625rem 1rem;
+  padding: 0.75rem 2.75rem 0.75rem 1rem;
   border: 2px solid #e5e7eb;
   border-radius: 0.5rem;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   transition: all 0.2s ease;
 }
 
@@ -96,8 +102,118 @@
   right: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 1rem;
+  font-size: 1.125rem;
   color: #9ca3af;
+  pointer-events: none;
+}
+
+/* Filter Buttons */
+.filterBar,
+.subcategoryFilters,
+.subsubcategoryFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.filterButton,
+.filterActive {
+  padding: 0.625rem 1.25rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background: white;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterButton {
+  color: #6b7280;
+}
+
+.filterButton:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.filterActive {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+/* Sections */
+.entriesContainer {
+  margin-top: 1.5rem;
+}
+
+.categorySection {
+  margin-bottom: 3rem;
+}
+
+.categoryHeader {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 3px solid #3b82f6;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.subcategorySection {
+  margin-bottom: 2rem;
+  padding-left: 1rem;
+}
+
+.subcategoryHeader {
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 1rem;
+  padding-left: 1rem;
+  border-left: 4px solid #3b82f6;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.subsubcategorySection {
+  margin-bottom: 1.5rem;
+  padding-left: 1rem;
+}
+
+.subsubcategoryHeader {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 3px solid #9ca3af;
+}
+
+/* Table Enhancements */
+.productCode {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: #374151;
+}
+
+.quantity {
+  font-weight: 600;
+  color: #059669;
+  text-align: center;
+}
+
+.saleNumber {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: #3b82f6;
 }
 
 .noData {
@@ -107,53 +223,159 @@
   font-size: 1rem;
 }
 
-.productCode {
+/* Badge Styling */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: #3b82f6;
-  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
 }
 
-.quantity {
-  font-weight: 600;
-  font-family: 'Courier New', monospace;
+.badge-success {
+  background: #d1fae5;
+  color: #065f46;
 }
 
-.notes {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.badge-warning {
+  background: #fef3c7;
+  color: #92400e;
 }
 
-/* Mobile Responsive */
+.badge-danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .stockEntriesPage {
+    padding: 1rem;
+  }
+
+  .pageTitle {
+    font-size: 1.75rem;
+  }
+
+  .categoryHeader {
+    font-size: 1.5rem;
+  }
+
+  .subcategoryHeader {
+    font-size: 1.25rem;
+  }
+}
+
 @media (max-width: 768px) {
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
   .pageTitle {
     font-size: 1.5rem;
   }
 
-  .filterBar {
-    flex-direction: column;
-    align-items: stretch;
+  .pageSubtitle {
+    font-size: 0.875rem;
   }
 
-  .filterButtons {
+  .tabs {
     width: 100%;
-    justify-content: space-between;
   }
 
-  .filterButton,
-  .filterActive {
+  .tab,
+  .tabActive {
     flex: 1;
-    min-width: 0;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.8125rem;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
   }
 
   .searchBox {
     max-width: 100%;
   }
 
-  .notes {
-    max-width: 150px;
+  .filterBar,
+  .subcategoryFilters,
+  .subsubcategoryFilters {
+    gap: 0.375rem;
+  }
+
+  .filterButton,
+  .filterActive {
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
+  }
+
+  .categoryHeader {
+    font-size: 1.25rem;
+  }
+
+  .subcategoryHeader {
+    font-size: 1.125rem;
+  }
+
+  .subsubcategoryHeader {
+    font-size: 1rem;
+  }
+
+  .subcategorySection {
+    padding-left: 0.5rem;
+  }
+
+  .subsubcategorySection {
+    padding-left: 0.5rem;
+  }
+
+  /* Make tables scroll horizontally on mobile */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 600px;
+  }
+
+  table th,
+  table td {
+    font-size: 0.8125rem;
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .stockEntriesPage {
+    padding: 0.75rem;
+  }
+
+  .pageTitle {
+    font-size: 1.25rem;
+  }
+
+  .tab,
+  .tabActive {
+    font-size: 0.8125rem;
+    padding: 0.625rem 0.75rem;
+  }
+
+  .filterButton,
+  .filterActive {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  table {
+    min-width: 550px;
+  }
+
+  table th,
+  table td {
+    font-size: 0.75rem;
+    padding: 0.375rem;
   }
 }
