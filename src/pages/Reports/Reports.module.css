@@ -97,6 +97,24 @@
   overflow-x: auto;
 }
 
+.productList,
+.quantityList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 150px;
+}
+
+.textDanger {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.textSuccess {
+  color: #16a34a;
+  font-weight: 600;
+}
+
 /* Print Styles */
 @media print {
   .controlPanel,
@@ -110,6 +128,19 @@
 
   .pageTitle {
     font-size: 1.5rem;
+  }
+
+  .reportContent {
+    overflow-x: visible;
+  }
+
+  .table {
+    font-size: 0.75rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem;
   }
 }
 
@@ -142,5 +173,24 @@
 
   .actionButtons button {
     width: 100%;
+  }
+
+  .reportContent {
+    overflow-x: auto;
+  }
+
+  .table {
+    font-size: 0.75rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem;
+    white-space: nowrap;
+  }
+
+  .productList,
+  .quantityList {
+    min-width: 120px;
   }
 }

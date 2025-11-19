@@ -12,6 +12,14 @@ const Reports = () => {
     end_date: ''
   });
 
+  const formatCurrency = (amount) => {
+    const num = parseFloat(amount) || 0;
+    return num.toLocaleString('en-KE', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    });
+  };
+
   const handleDateChange = (e) => {
     const { name, value } = e.target;
     setDateRange(prev => ({ ...prev, [name]: value }));
@@ -23,27 +31,67 @@ const Reports = () => {
       let data;
       switch (reportType) {
         case 'sales':
-          data = await api.getRecentSales(30);
+          // Get all sales data
+          data = await api.getSales();
+          if (Array.isArray(data)) {
+            // Already an array
+          } else if (data && data.results) {
+            data = data.results;
+          }
           break;
+
         case 'stock':
+          // Get all products
           data = await api.getProducts();
+          if (Array.isArray(data)) {
+            // Already an array
+          } else if (data && data.results) {
+            data = data.results;
+          }
           break;
-        case 'customers':
-          data = await api.getTopCustomers(10);
+
+        case 'outstanding_supplies':
+          // Get all sales and filter for outstanding supplies
+          const salesData = await api.getSales();
+          let allSales = Array.isArray(salesData) ? salesData : (salesData?.results || []);
+          
+          // Filter for sales with outstanding supplies
+          data = allSales.filter(sale => 
+            sale.line_items && sale.line_items.some(item => 
+              item.supply_status === 'Partially Supplied' || 
+              item.supply_status === 'Not Supplied'
+            )
+          );
           break;
-        case 'invoices':
-          data = await api.getOutstandingInvoices();
+
+        case 'outstanding_balances':
+          // Get all sales and filter for outstanding balances
+          const allSalesData = await api.getSales();
+          let salesList = Array.isArray(allSalesData) ? allSalesData : (allSalesData?.results || []);
+          
+          // Filter for sales with outstanding balances
+          data = salesList.filter(sale => parseFloat(sale.outstanding_balance || 0) > 0);
           break;
-        case 'lpos':
-          data = await api.getPendingLPOs();
-          break;
+
         default:
           data = [];
       }
-      setReportData(data);
+
+      // Apply date filters if provided
+      if (dateRange.start_date || dateRange.end_date) {
+        data = data.filter(item => {
+          const itemDate = new Date(item.created_at);
+          if (dateRange.start_date && new Date(dateRange.start_date) > itemDate) return false;
+          if (dateRange.end_date && new Date(dateRange.end_date) < itemDate) return false;
+          return true;
+        });
+      }
+
+      setReportData(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error generating report:', error);
       alert('Error generating report: ' + error.message);
+      setReportData([]);
     } finally {
       setLoading(false);
     }
@@ -59,20 +107,128 @@ const Reports = () => {
       return;
     }
 
-    const headers = Object.keys(reportData[0]).join(',');
-    const rows = reportData.map(item => 
-      Object.values(item).map(val => 
-        typeof val === 'string' && val.includes(',') ? `"${val}"` : val
-      ).join(',')
-    );
-    
-    const csv = [headers, ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    let csv = '';
+    let filename = '';
+
+    switch (reportType) {
+      case 'sales':
+        csv = generateSalesCSV();
+        filename = 'sales_report';
+        break;
+      case 'stock':
+        csv = generateStockCSV();
+        filename = 'stock_report';
+        break;
+      case 'outstanding_supplies':
+        csv = generateOutstandingSuppliesCSV();
+        filename = 'outstanding_supplies_report';
+        break;
+      case 'outstanding_balances':
+        csv = generateOutstandingBalancesCSV();
+        filename = 'outstanding_balances_report';
+        break;
+      default:
+        csv = '';
+    }
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${reportType}_report_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const generateSalesCSV = () => {
+    const headers = 'Date,Sale Number,Customer,LPO/Quote,Delivery,Product Names,Quantity Supplied,Total Amount,Amount Paid,Outstanding Balance,Mode of Payment\n';
+    const rows = reportData.map(sale => {
+      const productNames = (sale.line_items || []).map(item => item.product_name || '').join('; ');
+      const quantitySupplied = (sale.line_items || []).map(item => 
+        `${item.product_name}: ${item.quantity_supplied}/${item.quantity_ordered}`
+      ).join('; ');
+      
+      return [
+        new Date(sale.created_at).toLocaleDateString(),
+        sale.sale_number || '',
+        `"${sale.customer_name || ''}"`,
+        sale.lpo_quotation_number || '-',
+        sale.delivery_number || '-',
+        `"${productNames}"`,
+        `"${quantitySupplied}"`,
+        sale.total_amount || 0,
+        sale.amount_paid || 0,
+        sale.outstanding_balance || 0,
+        sale.mode_of_payment || ''
+      ].join(',');
+    }).join('\n');
+    
+    return headers + rows;
+  };
+
+  const generateStockCSV = () => {
+    const headers = 'Product Code,Product Name,Quantity,Status\n';
+    const rows = reportData.map(product => {
+      const status = (product.current_stock || 0) <= (product.minimum_stock || 0) ? 'Low Stock' : 'In Stock';
+      return [
+        product.code || '',
+        `"${product.name || ''}"`,
+        product.current_stock || 0,
+        status
+      ].join(',');
+    }).join('\n');
+    
+    return headers + rows;
+  };
+
+  const generateOutstandingSuppliesCSV = () => {
+    const headers = 'Date,Sale Number,Customer,LPO/Quote,Delivery,Product Name,Quantity Ordered,Quantity Supplied,Outstanding Supplies,Payment Status\n';
+    const rows = [];
+    
+    reportData.forEach(sale => {
+      (sale.line_items || []).forEach(item => {
+        if (item.supply_status === 'Partially Supplied' || item.supply_status === 'Not Supplied') {
+          const outstandingQty = (item.quantity_ordered || 0) - (item.quantity_supplied || 0);
+          const paymentStatus = parseFloat(sale.outstanding_balance || 0) > 0 ? 'Pending' : 'Paid';
+          
+          rows.push([
+            new Date(sale.created_at).toLocaleDateString(),
+            sale.sale_number || '',
+            `"${sale.customer_name || ''}"`,
+            sale.lpo_quotation_number || '-',
+            sale.delivery_number || '-',
+            `"${item.product_name || ''}"`,
+            item.quantity_ordered || 0,
+            item.quantity_supplied || 0,
+            outstandingQty,
+            paymentStatus
+          ].join(','));
+        }
+      });
+    });
+    
+    return headers + rows.join('\n');
+  };
+
+  const generateOutstandingBalancesCSV = () => {
+    const headers = 'Date,Sale Number,Customer,LPO/Quote,Delivery,Products,Total Amount,Amount Paid,Outstanding Balance\n';
+    const rows = reportData.map(sale => {
+      const products = (sale.line_items || []).map(item => item.product_name || '').join('; ');
+      
+      return [
+        new Date(sale.created_at).toLocaleDateString(),
+        sale.sale_number || '',
+        `"${sale.customer_name || ''}"`,
+        sale.lpo_quotation_number || '-',
+        sale.delivery_number || '-',
+        `"${products}"`,
+        sale.total_amount || 0,
+        sale.amount_paid || 0,
+        sale.outstanding_balance || 0
+      ].join(',');
+    }).join('\n');
+    
+    return headers + rows;
   };
 
   const printReport = () => {
@@ -98,9 +254,8 @@ const Reports = () => {
           >
             <option value="sales">Sales Report</option>
             <option value="stock">Stock Report</option>
-            <option value="customers">Top Customers</option>
-            <option value="invoices">Outstanding Invoices</option>
-            <option value="lpos">Pending LPOs</option>
+            <option value="outstanding_supplies">Outstanding Supplies</option>
+            <option value="outstanding_balances">Outstanding Balances</option>
           </select>
         </div>
 
@@ -155,7 +310,10 @@ const Reports = () => {
       <div className="card">
         <div className="card-header">
           <h2 className="card-title">
-            {reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report
+            {reportType === 'sales' && 'Sales Report'}
+            {reportType === 'stock' && 'Stock Report'}
+            {reportType === 'outstanding_supplies' && 'Outstanding Supplies'}
+            {reportType === 'outstanding_balances' && 'Outstanding Balances'}
           </h2>
         </div>
         <div className="card-body">
@@ -168,63 +326,92 @@ const Reports = () => {
             <p className={styles.noData}>No data available for this report</p>
           ) : (
             <div className={styles.reportContent}>
+              {/* SALES REPORT */}
               {reportType === 'sales' && (
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Invoice #</th>
-                      <th>Customer</th>
-                      <th>Amount</th>
-                      <th>Status</th>
                       <th>Date</th>
+                      <th>Sale Number</th>
+                      <th>Customer</th>
+                      <th>LPO/Quote</th>
+                      <th>Delivery</th>
+                      <th>Product Names</th>
+                      <th>Quantity Supplied</th>
+                      <th>Total Amount</th>
+                      <th>Amount Paid</th>
+                      <th>Outstanding Balance</th>
+                      <th>Mode of Payment</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {reportData.map(item => (
-                      <tr key={item.id}>
-                        <td>{item.invoice_number}</td>
-                        <td>{item.customer_name}</td>
-                        <td>KES {Number(item.total_amount).toLocaleString()}</td>
+                    {reportData.map(sale => (
+                      <tr key={sale.id}>
+                        <td>{new Date(sale.created_at).toLocaleDateString()}</td>
+                        <td>{sale.sale_number}</td>
+                        <td>{sale.customer_name}</td>
+                        <td>{sale.lpo_quotation_number || '-'}</td>
+                        <td>{sale.delivery_number || '-'}</td>
                         <td>
-                          <span className={`badge ${
-                            item.status === 'Paid' ? 'badge-success' : 
-                            item.status === 'Partial' ? 'badge-warning' : 'badge-danger'
-                          }`}>
-                            {item.status}
+                          <div className={styles.productList}>
+                            {(sale.line_items || []).map((item, idx) => (
+                              <div key={idx}>{item.product_name}</div>
+                            ))}
+                          </div>
+                        </td>
+                        <td>
+                          <div className={styles.quantityList}>
+                            {(sale.line_items || []).map((item, idx) => (
+                              <div key={idx}>
+                                {item.quantity_supplied}/{item.quantity_ordered}
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                        <td>KES {formatCurrency(sale.total_amount)}</td>
+                        <td>KES {formatCurrency(sale.amount_paid)}</td>
+                        <td>
+                          <span className={parseFloat(sale.outstanding_balance) > 0 ? styles.textDanger : styles.textSuccess}>
+                            KES {formatCurrency(sale.outstanding_balance)}
                           </span>
                         </td>
-                        <td>{new Date(item.created_at).toLocaleDateString()}</td>
+                        <td>
+                          <span className={`badge ${sale.mode_of_payment === 'Not Paid' ? 'badge-warning' : 'badge-success'}`}>
+                            {sale.mode_of_payment}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               )}
 
+              {/* STOCK REPORT */}
               {reportType === 'stock' && (
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Code</th>
-                      <th>Name</th>
-                      <th>Category</th>
-                      <th>Current Stock</th>
-                      <th>Min Stock</th>
+                      <th>Product Code</th>
+                      <th>Product Name</th>
+                      <th>Quantity</th>
                       <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {reportData.map(item => (
-                      <tr key={item.id}>
-                        <td>{item.code}</td>
-                        <td>{item.name}</td>
-                        <td>{item.category_name}</td>
-                        <td>{item.current_stock}</td>
-                        <td>{item.minimum_stock}</td>
+                    {reportData.map(product => (
+                      <tr key={product.id}>
+                        <td>{product.code}</td>
+                        <td>{product.name}</td>
+                        <td>{product.current_stock}</td>
                         <td>
                           <span className={`badge ${
-                            item.current_stock <= item.minimum_stock ? 'badge-danger' : 'badge-success'
+                            (product.current_stock || 0) <= (product.minimum_stock || 0)
+                              ? 'badge-danger' 
+                              : 'badge-success'
                           }`}>
-                            {item.current_stock <= item.minimum_stock ? 'Low Stock' : 'In Stock'}
+                            {(product.current_stock || 0) <= (product.minimum_stock || 0)
+                              ? 'Low Stock' 
+                              : 'In Stock'}
                           </span>
                         </td>
                       </tr>
@@ -233,82 +420,99 @@ const Reports = () => {
                 </table>
               )}
 
-              {reportType === 'customers' && (
+              {/* OUTSTANDING SUPPLIES REPORT */}
+              {reportType === 'outstanding_supplies' && (
                 <table className="table">
                   <thead>
                     <tr>
+                      <th>Date</th>
+                      <th>Sale Number</th>
                       <th>Customer</th>
-                      <th>Total Sales</th>
+                      <th>LPO/Quote</th>
+                      <th>Delivery</th>
+                      <th>Product Name</th>
+                      <th>Quantity Ordered</th>
+                      <th>Quantity Supplied</th>
+                      <th>Outstanding Supplies</th>
+                      <th>Payment Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {reportData.map(item => (
-                      <tr key={item.id}>
-                        <td>{item.company_name}</td>
-                        <td>KES {Number(item.total_sales || 0).toLocaleString()}</td>
-                      </tr>
-                    ))}
+                    {reportData.map(sale => 
+                      (sale.line_items || [])
+                        .filter(item => 
+                          item.supply_status === 'Partially Supplied' || 
+                          item.supply_status === 'Not Supplied'
+                        )
+                        .map((item, idx) => {
+                          const outstandingQty = (item.quantity_ordered || 0) - (item.quantity_supplied || 0);
+                          const paymentStatus = parseFloat(sale.outstanding_balance || 0) > 0 ? 'Pending' : 'Paid';
+                          
+                          return (
+                            <tr key={`${sale.id}-${idx}`}>
+                              <td>{new Date(sale.created_at).toLocaleDateString()}</td>
+                              <td>{sale.sale_number}</td>
+                              <td>{sale.customer_name}</td>
+                              <td>{sale.lpo_quotation_number || '-'}</td>
+                              <td>{sale.delivery_number || '-'}</td>
+                              <td>{item.product_name}</td>
+                              <td>{item.quantity_ordered}</td>
+                              <td>{item.quantity_supplied}</td>
+                              <td className={styles.textDanger}>
+                                <strong>{outstandingQty}</strong>
+                              </td>
+                              <td>
+                                <span className={`badge ${
+                                  paymentStatus === 'Paid' 
+                                    ? 'badge-success' 
+                                    : 'badge-warning'
+                                }`}>
+                                  {paymentStatus}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                    )}
                   </tbody>
                 </table>
               )}
 
-              {reportType === 'invoices' && (
+              {/* OUTSTANDING BALANCES REPORT */}
+              {reportType === 'outstanding_balances' && (
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Invoice #</th>
+                      <th>Date</th>
+                      <th>Sale Number</th>
                       <th>Customer</th>
-                      <th>Total</th>
-                      <th>Paid</th>
-                      <th>Balance</th>
-                      <th>Status</th>
+                      <th>LPO/Quote</th>
+                      <th>Delivery</th>
+                      <th>Products</th>
+                      <th>Total Amount</th>
+                      <th>Amount Paid</th>
+                      <th>Outstanding Balance</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {reportData.map(item => (
-                      <tr key={item.id}>
-                        <td>{item.invoice_number}</td>
-                        <td>{item.customer_name}</td>
-                        <td>KES {Number(item.total_amount).toLocaleString()}</td>
-                        <td>KES {Number(item.paid_amount).toLocaleString()}</td>
-                        <td>KES {Number(item.remaining_balance).toLocaleString()}</td>
+                    {reportData.map(sale => (
+                      <tr key={sale.id}>
+                        <td>{new Date(sale.created_at).toLocaleDateString()}</td>
+                        <td>{sale.sale_number}</td>
+                        <td>{sale.customer_name}</td>
+                        <td>{sale.lpo_quotation_number || '-'}</td>
+                        <td>{sale.delivery_number || '-'}</td>
                         <td>
-                          <span className={`badge badge-${item.status === 'Paid' ? 'success' : 'warning'}`}>
-                            {item.status}
-                          </span>
+                          <div className={styles.productList}>
+                            {(sale.line_items || []).map((item, idx) => (
+                              <div key={idx}>{item.product_name}</div>
+                            ))}
+                          </div>
                         </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-
-              {reportType === 'lpos' && (
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>LPO #</th>
-                      <th>Supplier</th>
-                      <th>Product</th>
-                      <th>Ordered</th>
-                      <th>Delivered</th>
-                      <th>Pending</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.map(item => (
-                      <tr key={item.id}>
-                        <td>{item.lpo_number}</td>
-                        <td>{item.supplier_name}</td>
-                        <td>{item.product_code}</td>
-                        <td>{item.ordered_quantity}</td>
-                        <td>{item.delivered_quantity}</td>
-                        <td>{item.pending_quantity}</td>
-                        <td>
-                          <span className={`badge badge-${item.status === 'Completed' ? 'success' : 'warning'}`}>
-                            {item.status}
-                          </span>
+                        <td>KES {formatCurrency(sale.total_amount)}</td>
+                        <td>KES {formatCurrency(sale.amount_paid)}</td>
+                        <td className={styles.textDanger}>
+                          <strong>KES {formatCurrency(sale.outstanding_balance)}</strong>
                         </td>
                       </tr>
                     ))}

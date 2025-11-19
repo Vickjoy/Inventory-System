@@ -415,6 +415,302 @@ const api = {
   // ==========================
   getUsers: () => api.request('/users/'),
   getUser: (id) => api.request(`/users/${id}/`),
+
+  // ==========================
+  // Reports (NEW)
+  // ==========================
+  
+  /**
+   * Get Sales Report
+   * @param {Object} params - Optional parameters for filtering
+   * @param {string} params.start_date - Start date (YYYY-MM-DD)
+   * @param {string} params.end_date - End date (YYYY-MM-DD)
+   * @returns {Promise} Sales report data
+   */
+  getSalesReport: async (params = {}) => {
+    try {
+      const queryString = Object.keys(params).length 
+        ? `?${new URLSearchParams(params).toString()}` 
+        : '';
+      const data = await api.request(`/sales/${queryString}`);
+      
+      // Normalize response format
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data && data.results) {
+        return data.results;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error fetching sales report:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get Stock Report
+   * @param {Object} params - Optional parameters for filtering
+   * @param {string} params.start_date - Start date (YYYY-MM-DD)
+   * @param {string} params.end_date - End date (YYYY-MM-DD)
+   * @param {boolean} params.low_stock - Filter for low stock items only
+   * @returns {Promise} Stock report data
+   */
+  getStockReport: async (params = {}) => {
+    try {
+      let endpoint = '/products/';
+      
+      // If filtering for low stock, use the low_stock endpoint
+      if (params.low_stock) {
+        endpoint = '/products/low_stock/';
+        delete params.low_stock;
+      }
+      
+      const queryString = Object.keys(params).length 
+        ? `?${new URLSearchParams(params).toString()}` 
+        : '';
+      const data = await api.request(`${endpoint}${queryString}`);
+      
+      // Normalize response format
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data && data.results) {
+        return data.results;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error fetching stock report:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get Outstanding Supplies Report
+   * @param {Object} params - Optional parameters for filtering
+   * @param {string} params.start_date - Start date (YYYY-MM-DD)
+   * @param {string} params.end_date - End date (YYYY-MM-DD)
+   * @param {number} params.customer - Filter by customer ID
+   * @returns {Promise} Outstanding supplies report data
+   */
+  getOutstandingSuppliesReport: async (params = {}) => {
+    try {
+      // First, try to use a dedicated endpoint if it exists
+      const queryString = Object.keys(params).length 
+        ? `?${new URLSearchParams(params).toString()}` 
+        : '';
+      
+      try {
+        const data = await api.request(`/sales/outstanding-supplies/${queryString}`);
+        return Array.isArray(data) ? data : (data?.results || []);
+      } catch (endpointError) {
+        // If the endpoint doesn't exist, fall back to filtering all sales
+        console.log('Outstanding supplies endpoint not found, filtering from all sales');
+        
+        const salesData = await api.getSales(queryString);
+        const allSales = Array.isArray(salesData) ? salesData : (salesData?.results || []);
+        
+        // Filter for sales with outstanding supplies
+        return allSales.filter(sale => 
+          sale.line_items && sale.line_items.some(item => 
+            item.supply_status === 'Partially Supplied' || 
+            item.supply_status === 'Not Supplied'
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching outstanding supplies report:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get Outstanding Balances Report
+   * @param {Object} params - Optional parameters for filtering
+   * @param {string} params.start_date - Start date (YYYY-MM-DD)
+   * @param {string} params.end_date - End date (YYYY-MM-DD)
+   * @param {number} params.customer - Filter by customer ID
+   * @returns {Promise} Outstanding balances report data
+   */
+  getOutstandingBalancesReport: async (params = {}) => {
+    try {
+      // First, try to use a dedicated endpoint if it exists
+      const queryString = Object.keys(params).length 
+        ? `?${new URLSearchParams(params).toString()}` 
+        : '';
+      
+      try {
+        const data = await api.request(`/sales/outstanding-balances/${queryString}`);
+        return Array.isArray(data) ? data : (data?.results || []);
+      } catch (endpointError) {
+        // If the endpoint doesn't exist, fall back to filtering all sales
+        console.log('Outstanding balances endpoint not found, filtering from all sales');
+        
+        const salesData = await api.getSales(queryString);
+        const allSales = Array.isArray(salesData) ? salesData : (salesData?.results || []);
+        
+        // Filter for sales with outstanding balances
+        return allSales.filter(sale => parseFloat(sale.outstanding_balance || 0) > 0);
+      }
+    } catch (error) {
+      console.error('Error fetching outstanding balances report:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get Outstanding Invoices (Legacy - for backward compatibility)
+   * @returns {Promise} Outstanding invoices data
+   */
+  getOutstandingInvoices: () => api.getOutstandingBalancesReport(),
+
+  /**
+   * Get Pending LPOs (Legacy - for backward compatibility)
+   * @returns {Promise} Pending LPOs data
+   */
+  getPendingLPOs: () => api.getOutstandingSuppliesReport(),
+
+  /**
+   * Export report to CSV (client-side)
+   * @param {string} reportType - Type of report ('sales', 'stock', 'outstanding_supplies', 'outstanding_balances')
+   * @param {Array} data - Report data to export
+   * @returns {void}
+   */
+  exportReportToCSV: (reportType, data) => {
+    if (!data || data.length === 0) {
+      console.warn('No data to export');
+      return;
+    }
+
+    let csv = '';
+    let filename = '';
+
+    switch (reportType) {
+      case 'sales':
+        csv = generateSalesCSV(data);
+        filename = 'sales_report';
+        break;
+      case 'stock':
+        csv = generateStockCSV(data);
+        filename = 'stock_report';
+        break;
+      case 'outstanding_supplies':
+        csv = generateOutstandingSuppliesCSV(data);
+        filename = 'outstanding_supplies_report';
+        break;
+      case 'outstanding_balances':
+        csv = generateOutstandingBalancesCSV(data);
+        filename = 'outstanding_balances_report';
+        break;
+      default:
+        console.error('Unknown report type:', reportType);
+        return;
+    }
+
+    // Create and download CSV file
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  },
 };
+
+// ==========================
+// CSV Generation Helper Functions
+// ==========================
+
+function generateSalesCSV(data) {
+  const headers = 'Date,Sale Number,Customer,LPO/Quote,Delivery,Product Names,Quantity Supplied,Total Amount,Amount Paid,Outstanding Balance,Mode of Payment\n';
+  const rows = data.map(sale => {
+    const productNames = (sale.line_items || []).map(item => item.product_name || '').join('; ');
+    const quantitySupplied = (sale.line_items || []).map(item => 
+      `${item.product_name}: ${item.quantity_supplied}/${item.quantity_ordered}`
+    ).join('; ');
+    
+    return [
+      new Date(sale.created_at).toLocaleDateString(),
+      sale.sale_number || '',
+      `"${sale.customer_name || ''}"`,
+      sale.lpo_quotation_number || '-',
+      sale.delivery_number || '-',
+      `"${productNames}"`,
+      `"${quantitySupplied}"`,
+      sale.total_amount || 0,
+      sale.amount_paid || 0,
+      sale.outstanding_balance || 0,
+      sale.mode_of_payment || ''
+    ].join(',');
+  }).join('\n');
+  
+  return headers + rows;
+}
+
+function generateStockCSV(data) {
+  const headers = 'Product Code,Product Name,Quantity,Status\n';
+  const rows = data.map(product => {
+    const status = (product.current_stock || 0) <= (product.minimum_stock || 0) ? 'Low Stock' : 'In Stock';
+    return [
+      product.code || '',
+      `"${product.name || ''}"`,
+      product.current_stock || 0,
+      status
+    ].join(',');
+  }).join('\n');
+  
+  return headers + rows;
+}
+
+function generateOutstandingSuppliesCSV(data) {
+  const headers = 'Date,Sale Number,Customer,LPO/Quote,Delivery,Product Name,Quantity Ordered,Quantity Supplied,Outstanding Supplies,Payment Status\n';
+  const rows = [];
+  
+  data.forEach(sale => {
+    (sale.line_items || []).forEach(item => {
+      if (item.supply_status === 'Partially Supplied' || item.supply_status === 'Not Supplied') {
+        const outstandingQty = (item.quantity_ordered || 0) - (item.quantity_supplied || 0);
+        const paymentStatus = parseFloat(sale.outstanding_balance || 0) > 0 ? 'Pending' : 'Paid';
+        
+        rows.push([
+          new Date(sale.created_at).toLocaleDateString(),
+          sale.sale_number || '',
+          `"${sale.customer_name || ''}"`,
+          sale.lpo_quotation_number || '-',
+          sale.delivery_number || '-',
+          `"${item.product_name || ''}"`,
+          item.quantity_ordered || 0,
+          item.quantity_supplied || 0,
+          outstandingQty,
+          paymentStatus
+        ].join(','));
+      }
+    });
+  });
+  
+  return headers + rows.join('\n');
+}
+
+function generateOutstandingBalancesCSV(data) {
+  const headers = 'Date,Sale Number,Customer,LPO/Quote,Delivery,Products,Total Amount,Amount Paid,Outstanding Balance\n';
+  const rows = data.map(sale => {
+    const products = (sale.line_items || []).map(item => item.product_name || '').join('; ');
+    
+    return [
+      new Date(sale.created_at).toLocaleDateString(),
+      sale.sale_number || '',
+      `"${sale.customer_name || ''}"`,
+      sale.lpo_quotation_number || '-',
+      sale.delivery_number || '-',
+      `"${products}"`,
+      sale.total_amount || 0,
+      sale.amount_paid || 0,
+      sale.outstanding_balance || 0
+    ].join(',');
+  }).join('\n');
+  
+  return headers + rows;
+}
 
 export default api;
