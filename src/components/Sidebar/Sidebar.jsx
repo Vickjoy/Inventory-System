@@ -1,4 +1,3 @@
-// src/components/Sidebar/Sidebar.jsx
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import styles from './Sidebar.module.css';
@@ -26,18 +25,6 @@ const Sidebar = () => {
       path: '/sales' 
     },
     { 
-      id: 'invoices', 
-      label: 'Invoices', 
-      icon: '🧾', 
-      path: '/invoices' 
-    },
-    { 
-      id: 'lpos', 
-      label: 'LPOs', 
-      icon: '📋', 
-      path: '/lpos' 
-    },
-    { 
       id: 'suppliers', 
       label: 'Suppliers', 
       icon: '🏢', 
@@ -61,13 +48,6 @@ const Sidebar = () => {
       label: 'Reports', 
       icon: '📈', 
       path: '/reports' 
-    },
-    { 
-      id: 'settings', 
-      label: 'Settings', 
-      icon: '⚙️', 
-      path: '/settings',
-      adminOnly: true 
     }
   ];
 

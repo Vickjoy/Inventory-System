@@ -211,28 +211,24 @@ const api = {
     }),
 
   // ==========================
-  // Suppliers - FIXED (same as customers)
+  // Suppliers
   // ==========================
   getSuppliers: async (params = '') => {
     try {
       const data = await api.request(`/suppliers/${params}`);
-      console.log('Raw Suppliers API response:', data); // Debug log
+      console.log('Raw Suppliers API response:', data);
       
-      // Handle different response formats
       if (Array.isArray(data)) {
         return data;
       } else if (data && typeof data === 'object') {
-        // If paginated response with results array
         if (Array.isArray(data.results)) {
           return data.results;
         }
-        // If single object, wrap in array
         if (data.id) {
           return [data];
         }
       }
       
-      // Default to empty array if format is unexpected
       console.warn('Unexpected suppliers response format:', data);
       return [];
     } catch (error) {
@@ -278,186 +274,102 @@ const api = {
     api.request(`/suppliers/${id}/toggle_active/`, { method: 'POST' }),
 
   // ==========================
-  // Customers - FIXED
+  // Customers
   // ==========================
- getCustomers: async (params = '') => {
-  try {
-    const data = await api.request(`/customers/${params}`);
-    console.log('Raw API response:', data);
-    
-    if (Array.isArray(data)) {
-      return data;
-    } else if (data && typeof data === 'object') {
-      if (Array.isArray(data.results)) {
-        return data.results;
+  getCustomers: async (params = '') => {
+    try {
+      const data = await api.request(`/customers/${params}`);
+      console.log('Raw API response:', data);
+      
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data && typeof data === 'object') {
+        if (Array.isArray(data.results)) {
+          return data.results;
+        }
+        if (data.id) {
+          return [data];
+        }
       }
-      if (data.id) {
-        return [data];
-      }
+      
+      console.warn('Unexpected customers response format:', data);
+      return [];
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      throw error;
     }
-    
-    console.warn('Unexpected customers response format:', data);
-    return [];
-  } catch (error) {
-    console.error('Error fetching customers:', error);
-    throw error;
-  }
-},
+  },
 
-getCustomer: (id) => api.request(`/customers/${id}/`),
+  getCustomer: (id) => api.request(`/customers/${id}/`),
 
-// NEW: Get customer's sales history
-getCustomerSales: (customerId) => api.request(`/customers/${customerId}/sales/`),
+  getCustomerSales: (customerId) => api.request(`/customers/${customerId}/sales/`),
 
-createCustomer: async (data) => {
-  try {
-    const result = await api.request('/customers/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    console.log('Customer created:', result);
-    return result;
-  } catch (error) {
-    console.error('Error creating customer:', error);
-    throw error;
-  }
-},
+  createCustomer: async (data) => {
+    try {
+      const result = await api.request('/customers/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      console.log('Customer created:', result);
+      return result;
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      throw error;
+    }
+  },
 
-updateCustomer: async (id, data) => {
-  try {
-    const result = await api.request(`/customers/${id}/`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-    console.log('Customer updated:', result);
-    return result;
-  } catch (error) {
-    console.error('Error updating customer:', error);
-    throw error;
-  }
-},
+  updateCustomer: async (id, data) => {
+    try {
+      const result = await api.request(`/customers/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+      console.log('Customer updated:', result);
+      return result;
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      throw error;
+    }
+  },
 
-deleteCustomer: (id) =>
-  api.request(`/customers/${id}/`, { method: 'DELETE' }),
+  deleteCustomer: (id) =>
+    api.request(`/customers/${id}/`, { method: 'DELETE' }),
 
-toggleCustomerActive: (id) =>
-  api.request(`/customers/${id}/toggle_active/`, { method: 'POST' }),
+  toggleCustomerActive: (id) =>
+    api.request(`/customers/${id}/toggle_active/`, { method: 'POST' }),
+
   // ==========================
-// Sales - UPDATED
-// ==========================
-getSales: (params = '') => api.request(`/sales/${params}`),
-getSale: (id) => api.request(`/sales/${id}/`),
-getOutstandingSales: () => api.request('/sales/outstanding/'),
-
-// NEW: Autocomplete endpoints
-searchSalesProducts: (query) => api.request(`/sales/search_products/?q=${query}`),
-searchSalesCustomers: (query) => api.request(`/sales/search_customers/?q=${query}`),
-
-createSale: (data) =>
-  api.request('/sales/', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
-
-updateSale: (id, data) =>
-  api.request(`/sales/${id}/`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  }),
-
-// NEW: Update supply status for specific line item
-updateSaleLineItemSupply: (saleId, data) =>
-  api.request(`/sales/${saleId}/update_line_item_supply/`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
-
-deleteSale: (id) => api.request(`/sales/${id}/`, { method: 'DELETE' }),
-
-// Legacy endpoint (kept for backward compatibility)
-updateSaleSupply: (id, data) =>
-  api.request(`/sales/${id}/update_supply/`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
-
-  
+  // Sales
   // ==========================
-  // Invoices
-  // ==========================
-  getInvoices: (params = '') => api.request(`/invoices/${params}`),
-  getInvoice: (id) => api.request(`/invoices/${id}/`),
-  getOutstandingInvoices: () => api.request('/invoices/outstanding/'),
-  createInvoice: (data) =>
-    api.request('/invoices/', {
+  getSales: (params = '') => api.request(`/sales/${params}`),
+  getSale: (id) => api.request(`/sales/${id}/`),
+  getOutstandingSales: () => api.request('/sales/outstanding/'),
+
+  searchSalesProducts: (query) => api.request(`/sales/search_products/?q=${query}`),
+  searchSalesCustomers: (query) => api.request(`/sales/search_customers/?q=${query}`),
+
+  createSale: (data) =>
+    api.request('/sales/', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  updateInvoice: (id, data) =>
-    api.request(`/invoices/${id}/`, {
+
+  updateSale: (id, data) =>
+    api.request(`/sales/${id}/`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-  deleteInvoice: (id) =>
-    api.request(`/invoices/${id}/`, { method: 'DELETE' }),
-  recordPayment: (id, data) =>
-    api.request(`/invoices/${id}/record_payment/`, {
+
+  updateSaleLineItemSupply: (saleId, data) =>
+    api.request(`/sales/${saleId}/update_line_item_supply/`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  // ==========================
-  // Invoice Items
-  // ==========================
-  getInvoiceItems: (params = '') => api.request(`/invoice-items/${params}`),
-  createInvoiceItem: (data) =>
-    api.request('/invoice-items/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  updateInvoiceItem: (id, data) =>
-    api.request(`/invoice-items/${id}/`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-  deleteInvoiceItem: (id) =>
-    api.request(`/invoice-items/${id}/`, { method: 'DELETE' }),
+  deleteSale: (id) => api.request(`/sales/${id}/`, { method: 'DELETE' }),
 
-  // ==========================
-  // Payments
-  // ==========================
-  getPayments: (params = '') => api.request(`/payments/${params}`),
-  getPayment: (id) => api.request(`/payments/${id}/`),
-  createPayment: (data) =>
-    api.request('/payments/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
-  // ==========================
-  // LPOs
-  // ==========================
-  getLPOs: (params = '') => api.request(`/lpos/${params}`),
-  getLPO: (id) => api.request(`/lpos/${id}/`),
-  getPendingLPOs: () => api.request('/lpos/pending/'),
-  createLPO: (data) =>
-    api.request('/lpos/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  updateLPO: (id, data) =>
-    api.request(`/lpos/${id}/`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-  deleteLPO: (id) => api.request(`/lpos/${id}/`, { method: 'DELETE' }),
-  updateDelivery: (id, data) =>
-    api.request(`/lpos/${id}/update_delivery/`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  updateLPODelivery: (id, data) =>
-    api.request(`/lpos/${id}/update_delivery/`, {
+  updateSaleSupply: (id, data) =>
+    api.request(`/sales/${id}/update_supply/`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),

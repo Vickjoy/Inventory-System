@@ -24,7 +24,6 @@ const Customers = () => {
       setLoading(true);
       const data = await api.getCustomers();
       console.log('Loaded customers:', data);
-      // Handle both array and paginated responses
       if (Array.isArray(data)) {
         setCustomers(data);
       } else if (data && data.results) {
@@ -50,39 +49,12 @@ const Customers = () => {
     setShowModal(true);
   };
 
-  const handleDeleteCustomer = async (id) => {
-    if (window.confirm('Are you sure you want to delete this customer?')) {
-      try {
-        await api.deleteCustomer(id);
-        loadCustomers();
-      } catch (error) {
-        alert('Error deleting customer: ' + error.message);
-      }
-    }
-  };
-
-  const handleToggleActive = async (id) => {
-    try {
-      await api.toggleCustomerActive(id);
-      loadCustomers();
-    } catch (error) {
-      alert('Error updating customer status: ' + error.message);
-    }
-  };
-
   const handleModalClose = (shouldRefresh = false) => {
     setShowModal(false);
     setSelectedCustomer(null);
-    if (shouldRefresh) {
-      loadCustomers();
-    }
+    if (shouldRefresh) loadCustomers();
   };
 
-  const handleCustomerClick = (customerId) => {
-    navigate(`/customers/${customerId}/history`);
-  };
-
-  // Case-insensitive search for company name (and other fields)
   const filteredCustomers = customers.filter(customer => {
     const search = searchTerm.toLowerCase();
     return (
@@ -138,8 +110,6 @@ const Customers = () => {
                   <tr>
                     <th>Company Name</th>
                     <th>Phone</th>
-                    <th>Status</th>
-                    <th>Created</th>
                     {isAdmin && <th>Actions</th>}
                   </tr>
                 </thead>
@@ -147,54 +117,24 @@ const Customers = () => {
                   {filteredCustomers.map(customer => (
                     <tr key={customer.id}>
                       <td>
-                        <span 
+                        <span
                           className={styles.companyNameLink}
-                          onClick={() => handleCustomerClick(customer.id)}
+                          onClick={() => navigate(`/customers/${customer.id}/history`)}
                           title="View purchase history"
                         >
-                          {customer.company_name || 'N/A'}
+                          {customer.company_name || '-'}
                         </span>
                       </td>
-                      <td>{customer.phone || 'N/A'}</td>
-                      <td>
-                        <span className={`badge ${
-                          customer.is_active ? 'badge-success' : 'badge-danger'
-                        }`}>
-                          {customer.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td>
-                        {customer.created_at 
-                          ? new Date(customer.created_at).toLocaleDateString()
-                          : 'N/A'}
-                      </td>
+                      <td>{customer.phone || '-'}</td>
                       {isAdmin && (
                         <td>
-                          <div className={styles.actionButtons}>
-                            <button
-                              onClick={() => handleEditCustomer(customer)}
-                              className="btn btn-sm btn-primary"
-                              title="Edit"
-                            >
-                              ✏️
-                            </button>
-                            <button
-                              onClick={() => handleToggleActive(customer.id)}
-                              className={`btn btn-sm ${
-                                customer.is_active ? 'btn-danger' : 'btn-secondary'
-                              }`}
-                              title={customer.is_active ? 'Deactivate' : 'Activate'}
-                            >
-                              {customer.is_active ? '🚫' : '✓'}
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCustomer(customer.id)}
-                              className="btn btn-sm btn-danger"
-                              title="Delete"
-                            >
-                              🗑️
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => handleEditCustomer(customer)}
+                            className="btn btn-sm btn-primary"
+                            title="Edit"
+                          >
+                            ✏️
+                          </button>
                         </td>
                       )}
                     </tr>

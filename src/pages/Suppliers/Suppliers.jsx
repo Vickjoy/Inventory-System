@@ -22,8 +22,7 @@ const Suppliers = () => {
       setLoading(true);
       const data = await api.getSuppliers();
       console.log('Loaded suppliers:', data);
-      
-      // Handle both array and paginated responses
+
       if (Array.isArray(data)) {
         setSuppliers(data);
       } else if (data && data.results) {
@@ -49,35 +48,12 @@ const Suppliers = () => {
     setShowModal(true);
   };
 
-  const handleDeleteSupplier = async (id) => {
-    if (window.confirm('Are you sure you want to delete this supplier?')) {
-      try {
-        await api.deleteSupplier(id);
-        loadSuppliers();
-      } catch (error) {
-        alert('Error deleting supplier: ' + error.message);
-      }
-    }
-  };
-
-  const handleToggleActive = async (id) => {
-    try {
-      await api.toggleSupplierActive(id);
-      loadSuppliers();
-    } catch (error) {
-      alert('Error updating supplier status: ' + error.message);
-    }
-  };
-
   const handleModalClose = (shouldRefresh = false) => {
     setShowModal(false);
     setSelectedSupplier(null);
-    if (shouldRefresh) {
-      loadSuppliers();
-    }
+    if (shouldRefresh) loadSuppliers();
   };
 
-  // Case-insensitive search for company name (and other fields)
   const filteredSuppliers = suppliers.filter(supplier => {
     const search = searchTerm.toLowerCase();
     return (
@@ -100,9 +76,7 @@ const Suppliers = () => {
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Suppliers</h1>
-          <p className={styles.pageSubtitle}>
-            Manage your supplier network
-          </p>
+          <p className={styles.pageSubtitle}>Manage your supplier network</p>
         </div>
         {isAdmin && (
           <button onClick={handleAddSupplier} className="btn btn-primary">
@@ -135,8 +109,6 @@ const Suppliers = () => {
                   <tr>
                     <th>Company Name</th>
                     <th>Phone</th>
-                    <th>Status</th>
-                    <th>Created</th>
                     {isAdmin && <th>Actions</th>}
                   </tr>
                 </thead>
@@ -144,48 +116,18 @@ const Suppliers = () => {
                   {filteredSuppliers.map(supplier => (
                     <tr key={supplier.id}>
                       <td className={styles.companyName}>
-                        {supplier.company_name || 'N/A'}
+                        {supplier.company_name || '-'}
                       </td>
-                      <td>{supplier.phone || 'N/A'}</td>
-                      <td>
-                        <span className={`badge ${
-                          supplier.is_active ? 'badge-success' : 'badge-danger'
-                        }`}>
-                          {supplier.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td>
-                        {supplier.created_at 
-                          ? new Date(supplier.created_at).toLocaleDateString()
-                          : 'N/A'}
-                      </td>
+                      <td>{supplier.phone || '-'}</td>
                       {isAdmin && (
                         <td>
-                          <div className={styles.actionButtons}>
-                            <button
-                              onClick={() => handleEditSupplier(supplier)}
-                              className="btn btn-sm btn-primary"
-                              title="Edit"
-                            >
-                              ✏️
-                            </button>
-                            <button
-                              onClick={() => handleToggleActive(supplier.id)}
-                              className={`btn btn-sm ${
-                                supplier.is_active ? 'btn-danger' : 'btn-secondary'
-                              }`}
-                              title={supplier.is_active ? 'Deactivate' : 'Activate'}
-                            >
-                              {supplier.is_active ? '🚫' : '✓'}
-                            </button>
-                            <button
-                              onClick={() => handleDeleteSupplier(supplier.id)}
-                              className="btn btn-sm btn-danger"
-                              title="Delete"
-                            >
-                              🗑️
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => handleEditSupplier(supplier)}
+                            className="btn btn-sm btn-primary"
+                            title="Edit"
+                          >
+                            ✏️
+                          </button>
                         </td>
                       )}
                     </tr>
@@ -198,10 +140,7 @@ const Suppliers = () => {
       </div>
 
       {showModal && (
-        <SupplierModal
-          supplier={selectedSupplier}
-          onClose={handleModalClose}
-        />
+        <SupplierModal supplier={selectedSupplier} onClose={handleModalClose} />
       )}
     </div>
   );
