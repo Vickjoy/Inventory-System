@@ -201,17 +201,20 @@ const Products = () => {
 
   const renderProductRows = (products) =>
     products.map((product) => {
-      const isLowStock = product.current_stock <= product.minimum_stock;
+      // Updated: Low stock is when current_stock is 0 or less
+      const isLowStock = product.current_stock <= 0;
       return (
         <tr key={product.id}>
           <td className={styles.productCode}>{product.code}</td>
           <td>{product.name}</td>
           <td>{product.subsubcategory_name || 'N/A'}</td>
-          <td className={styles.price}>KES {Number(product.unit_price).toLocaleString()}</td>
+          <td className={styles.price}>
+            {product.unit_price ? `KES ${Number(product.unit_price).toLocaleString()}` : 'N/A'}
+          </td>
           <td><span className={styles.stockBadge}>{product.current_stock}</span></td>
           <td>
             <span className={`badge ${isLowStock ? 'badge-danger' : 'badge-success'}`}>
-              {isLowStock ? 'Low Stock' : 'In Stock'}
+              {isLowStock ? 'Out of Stock' : 'In Stock'}
             </span>
           </td>
           <td>
@@ -279,7 +282,7 @@ const Products = () => {
             onClick={() => setFilter('low')}
             className={filter === 'low' ? styles.filterActive : styles.filterButton}
           >
-            Low Stock
+            Out of Stock
           </button>
         </div>
 

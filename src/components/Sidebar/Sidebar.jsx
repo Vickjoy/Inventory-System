@@ -1,9 +1,11 @@
+// src/components/Sidebar/Sidebar.jsx
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import CompanyLogo from '../../assets/Company_logo.webp';
 import styles from './Sidebar.module.css';
 
 const Sidebar = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
 
   const navigation = [
     { 
@@ -58,11 +60,22 @@ const Sidebar = () => {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.sidebarHeader}>
-        <h2 className={styles.logo}>IMS</h2>
-        <p className={styles.logoSubtitle}>Inventory Management</p>
+        <img src={CompanyLogo} alt="Edge Systems" className={styles.logo} />
+        <div className={styles.userSection}>
+          <div className={styles.userAvatar}>
+            {user?.username?.charAt(0).toUpperCase()}
+          </div>
+          <div className={styles.userInfo}>
+            <p className={styles.userName}>{user?.username}</p>
+            <p className={styles.userRole}>
+              {user?.is_superuser ? 'Admin' : 'Staff'}
+            </p>
+          </div>
+        </div>
       </div>
       
       <nav className={styles.navigation}>
+        <p className={styles.navTitle}>Navigation</p>
         {filteredNav.map(item => (
           <NavLink
             key={item.id}

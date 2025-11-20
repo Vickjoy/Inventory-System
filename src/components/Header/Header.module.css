@@ -1,8 +1,7 @@
 /* src/components/Header/Header.module.css */
 .header {
-  background-color: white;
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background-color: #1e88e5;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
   z-index: 50;
@@ -12,17 +11,26 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 0.75rem 2rem;
+  max-width: 100%;
 }
 
 .headerLeft {
-  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.pageTitle {
+.logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+.companyName {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #111827;
+  color: #ffffff;
   margin: 0;
 }
 
@@ -38,71 +46,62 @@
   gap: 0.75rem;
 }
 
+.username {
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 0.9375rem;
+}
+
 .userAvatar {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
-  color: white;
+  background-color: #ffffff;
+  color: #1e88e5;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1.125rem;
-}
-
-.userDetails {
-  display: flex;
-  flex-direction: column;
-}
-
-.userName {
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-  font-size: 0.9375rem;
-}
-
-.userRole {
-  font-size: 0.8125rem;
-  color: #6b7280;
-  margin: 0;
+  font-size: 1rem;
 }
 
 .logoutButton {
-  padding: 0.625rem 1.25rem;
-  background-color: #ef4444;
+  padding: 0.5rem 1.25rem;
+  background-color: rgba(255, 255, 255, 0.2);
   color: white;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0.25rem;
+  font-weight: 500;
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .logoutButton:hover {
-  background-color: #dc2626;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2);
+  background-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .headerContent {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
   }
 
-  .pageTitle {
-    font-size: 1.25rem;
+  .logo {
+    height: 32px;
   }
 
-  .userDetails {
+  .companyName {
+    font-size: 1.125rem;
+  }
+
+  .username {
     display: none;
   }
 
   .logoutButton {
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 1rem;
     font-size: 0.8125rem;
   }
 }

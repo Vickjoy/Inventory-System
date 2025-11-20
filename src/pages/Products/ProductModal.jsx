@@ -96,7 +96,7 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
         throw new Error('Please fill in all required fields (Code, Name, Category, and SubCategory)');
       }
 
-      // Validate numeric fields
+      // Validate numeric fields if provided
       if (formData.unit_price && parseFloat(formData.unit_price) < 0) {
         throw new Error('Unit price cannot be negative');
       }
@@ -117,7 +117,7 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
         subsubcategory: formData.subsubcategory ? parseInt(formData.subsubcategory) : null,
         unit_price: formData.unit_price ? parseFloat(formData.unit_price) : 0,
         current_stock: formData.current_stock ? parseInt(formData.current_stock) : 0,
-        minimum_stock: formData.minimum_stock ? parseInt(formData.minimum_stock) : 10
+        minimum_stock: formData.minimum_stock ? parseInt(formData.minimum_stock) : 0
       };
 
       if (product) {
@@ -298,7 +298,7 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>
-                  Unit Price (KES)
+                  Unit Price (KES) <small>(Optional)</small>
                 </label>
                 <input
                   type="number"
@@ -310,6 +310,9 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
                   step="0.01"
                   placeholder="0.00"
                 />
+                <small className={styles.helpText}>
+                  Leave blank if price not yet determined
+                </small>
               </div>
 
               <div className={styles.formGroup}>
@@ -341,10 +344,10 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
                   onChange={handleChange}
                   className={styles.formInput}
                   min="0"
-                  placeholder="10"
+                  placeholder="0"
                 />
                 <small className={styles.helpText}>
-                  Alert threshold for low stock
+                  Alert threshold for low stock (0 = out of stock)
                 </small>
               </div>
             </div>
