@@ -5,7 +5,7 @@ import CompanyLogo from '../../assets/Company_logo.webp';
 import styles from './Sidebar.module.css';
 
 const Sidebar = () => {
-  const { isAdmin, user } = useAuth();
+  const { isAdmin } = useAuth();
 
   const navigation = [
     { 
@@ -61,21 +61,9 @@ const Sidebar = () => {
     <aside className={styles.sidebar}>
       <div className={styles.sidebarHeader}>
         <img src={CompanyLogo} alt="Edge Systems" className={styles.logo} />
-        <div className={styles.userSection}>
-          <div className={styles.userAvatar}>
-            {user?.username?.charAt(0).toUpperCase()}
-          </div>
-          <div className={styles.userInfo}>
-            <p className={styles.userName}>{user?.username}</p>
-            <p className={styles.userRole}>
-              {user?.is_superuser ? 'Admin' : 'Staff'}
-            </p>
-          </div>
-        </div>
       </div>
       
       <nav className={styles.navigation}>
-        <p className={styles.navTitle}>Navigation</p>
         {filteredNav.map(item => (
           <NavLink
             key={item.id}

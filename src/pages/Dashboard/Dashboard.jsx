@@ -1,3 +1,4 @@
+// src/pages/Dashboard/Dashboard.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
@@ -42,54 +43,41 @@ const Dashboard = () => {
     );
   }
 
-  // Quick Links Configuration
   const quickLinks = [
     {
       title: 'Total Products',
       value: stats?.total_products || 0,
-      icon: '📦',
-      color: '#3b82f6',
-      bgColor: '#dbeafe',
+      color: '#2563eb',
       onClick: () => navigate('/products')
     },
     {
       title: 'Low Stock',
       value: stats?.low_stock_items || 0,
-      icon: '⚠️',
       color: '#ef4444',
-      bgColor: '#fee2e2',
       onClick: () => navigate('/products?filter=low')
     },
     {
       title: 'Outstanding Supplies',
       value: stats?.outstanding_invoices || 0,
-      icon: '📋',
       color: '#f59e0b',
-      bgColor: '#fef3c7',
       onClick: () => navigate('/sales?tab=outstanding')
     },
     {
       title: 'Sales',
-      value: `KES ${Number(stats?.total_revenue || 0).toLocaleString()}`,
-      icon: '💰',
+      value: 'View Sales',
       color: '#10b981',
-      bgColor: '#d1fae5',
       onClick: () => navigate('/sales')
     },
     {
-      title: 'Stock Entries',
-      value: 'View All',
-      icon: '📊',
+      title: 'Stock In/Out',
+      value: 'View Entries',
       color: '#8b5cf6',
-      bgColor: '#ede9fe',
       onClick: () => navigate('/stock-entries')
     },
     {
-      title: 'Reports',
-      value: 'Generate',
-      icon: '📈',
+      title: 'Reports & Analytics',
+      value: 'Generate Report',
       color: '#06b6d4',
-      bgColor: '#cffafe',
       onClick: () => navigate('/reports')
     }
   ];
@@ -98,7 +86,7 @@ const Dashboard = () => {
     <div className={styles.dashboard}>
       <div className={styles.dashboardHeader}>
         <h1 className={styles.pageTitle}>Dashboard</h1>
-        <p className={styles.pageSubtitle}>Quick access to your inventory system</p>
+        <p className={styles.pageSubtitle}>Overview of your inventory management system</p>
       </div>
 
       <div className={styles.statsGrid}>
@@ -106,15 +94,9 @@ const Dashboard = () => {
           <div 
             key={index} 
             className={styles.statCard}
-            style={{ borderLeftColor: link.color, cursor: 'pointer' }}
+            style={{ borderLeftColor: link.color }}
             onClick={link.onClick}
           >
-            <div 
-              className={styles.statIcon}
-              style={{ backgroundColor: link.bgColor }}
-            >
-              <span style={{ fontSize: '2rem' }}>{link.icon}</span>
-            </div>
             <div className={styles.statContent}>
               <p className={styles.statTitle}>{link.title}</p>
               <p className={styles.statValue} style={{ color: link.color }}>

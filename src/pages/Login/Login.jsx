@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import styles from './Login.module.css';
+import companyLogo from '../../assets/Company_logo.webp';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -41,11 +42,19 @@ const Login = () => {
   return (
     <div className={styles.loginContainer}>
       <div className={styles.loginCard}>
+        {/* Logo and Title Section */}
         <div className={styles.loginHeader}>
-          <h1 className={styles.loginTitle}>Inventory Management System</h1>
-          <p className={styles.loginSubtitle}>Sign in to your account</p>
+          <div className={styles.logoContainer}>
+            <img 
+              src={companyLogo} 
+              alt="Edge Systems Logo" 
+              className={styles.companyLogo}
+            />
+          </div>
+          <h1 className={styles.loginTitle}>EDGE SYSTEMS INVENTORY</h1>
         </div>
         
+        {/* Form Section */}
         <form onSubmit={handleSubmit} className={styles.loginForm}>
           {error && (
             <div className={styles.errorAlert}>
@@ -102,9 +111,10 @@ const Login = () => {
           </button>
         </form>
 
+        {/* Footer */}
         <div className={styles.loginFooter}>
           <p className={styles.footerText}>
-            Secure access to your inventory management system
+            © Edgesystems 2025. All rights reserved.
           </p>
         </div>
       </div>

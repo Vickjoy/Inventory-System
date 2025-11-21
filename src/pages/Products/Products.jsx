@@ -255,16 +255,10 @@ const Products = () => {
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Products & Stock</h1>
-          <p className={styles.pageSubtitle}>
-            Manage your inventory ({allProducts.length} total products)
-          </p>
         </div>
         <div className={styles.headerButtons}>
           {isStaffOrAdmin && (
-            <>
-              <button onClick={handleAddProduct} className="btn btn-primary">➕ Add Product</button>
-              <button onClick={() => handleStockAdjust()} className="btn btn-success">📦 Add Stock</button>
-            </>
+            <button onClick={handleAddProduct} className="btn btn-primary">➕ Add Product</button>
           )}
         </div>
       </div>
@@ -304,7 +298,7 @@ const Products = () => {
           onClick={() => { setCategoryFilter('all'); setSubcategoryFilter('all'); }}
           className={categoryFilter === 'all' ? styles.categoryActive : styles.categoryButton}
         >
-          📂 ALL CATEGORIES
+          ALL CATEGORIES
         </button>
         {categories.map(cat => (
           <button 
@@ -312,9 +306,6 @@ const Products = () => {
             onClick={() => { setCategoryFilter(cat.id.toString()); setSubcategoryFilter('all'); }}
             className={categoryFilter === cat.id.toString() ? styles.categoryActive : styles.categoryButton}
           >
-            {cat.name === 'Fire' && '🔥'} 
-            {cat.name === 'ICT' && '💻'} 
-            {cat.name === 'Solar' && '☀️'} 
             {cat.name.toUpperCase()}
           </button>
         ))}

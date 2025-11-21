@@ -1,60 +1,70 @@
 /* src/pages/Login/Login.module.css */
+
 .loginContainer {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
   padding: 1rem;
 }
 
 .loginCard {
   background: white;
-  border-radius: 1rem;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 450px;
+  max-width: 420px;
   overflow: hidden;
 }
 
+/* Logo and Title Section */
 .loginHeader {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  padding: 2.5rem 2rem;
+  padding: 2.5rem 2rem 2rem 2rem;
   text-align: center;
-  color: white;
+  background: white;
+}
+
+.logoContainer {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.companyLogo {
+  height: 80px;
+  width: auto;
+  object-fit: contain;
 }
 
 .loginTitle {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  margin: 0 0 0.5rem 0;
-}
-
-.loginSubtitle {
-  font-size: 0.9375rem;
   margin: 0;
-  opacity: 0.95;
+  color: #1e40af;
+  letter-spacing: 0.5px;
 }
 
+/* Form Section */
 .loginForm {
-  padding: 2rem;
+  padding: 0 2rem 2.5rem 2rem;
 }
 
 .errorAlert {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 1rem;
+  padding: 0.875rem 1rem;
   background-color: #fee2e2;
   color: #991b1b;
-  border-radius: 0.5rem;
+  border-radius: 8px;
   margin-bottom: 1.5rem;
   border-left: 4px solid #ef4444;
   font-size: 0.875rem;
 }
 
 .formGroup {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .formLabel {
@@ -69,10 +79,11 @@
   width: 100%;
   padding: 0.875rem 1rem;
   border: 2px solid #e5e7eb;
-  border-radius: 0.5rem;
+  border-radius: 8px;
   font-size: 0.9375rem;
   transition: all 0.2s ease;
   background-color: #f9fafb;
+  box-sizing: border-box;
 }
 
 .formInput:focus {
@@ -89,10 +100,10 @@
 .loginButton {
   width: 100%;
   padding: 1rem;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
   color: white;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
@@ -105,7 +116,7 @@
 
 .loginButton:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
 }
 
 .loginButton:disabled {
@@ -127,34 +138,44 @@
   to { transform: rotate(360deg); }
 }
 
+/* Footer */
 .loginFooter {
-  padding: 1.5rem 2rem;
-  background-color: #f9fafb;
-  border-top: 1px solid #e5e7eb;
+  padding: 1rem 2rem;
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
   text-align: center;
 }
 
 .footerText {
   margin: 0;
   font-size: 0.8125rem;
-  color: #6b7280;
+  color: #64748b;
+  font-weight: 500;
 }
 
 /* Mobile Responsive */
 @media (max-width: 480px) {
   .loginCard {
-    border-radius: 0;
+    border-radius: 8px;
   }
 
   .loginHeader {
-    padding: 2rem 1.5rem;
+    padding: 2rem 1.5rem 1.5rem 1.5rem;
+  }
+
+  .companyLogo {
+    height: 70px;
   }
 
   .loginTitle {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
 
   .loginForm {
-    padding: 1.5rem;
+    padding: 0 1.5rem 2rem 1.5rem;
+  }
+
+  .loginFooter {
+    padding: 0.875rem 1.5rem;
   }
 }

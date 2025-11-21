@@ -183,7 +183,6 @@ const StockEntries = () => {
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Stock Entries</h1>
-          <p className={styles.pageSubtitle}>Track all stock movements - incoming and outgoing</p>
         </div>
       </div>
 
@@ -199,7 +198,7 @@ const StockEntries = () => {
           }}
           className={activeTab === 'stock-in' ? styles.tabActive : styles.tab}
         >
-          📥 Stock In
+          Stock In
         </button>
         <button
           onClick={() => {
@@ -208,7 +207,7 @@ const StockEntries = () => {
           }}
           className={activeTab === 'stock-out' ? styles.tabActive : styles.tab}
         >
-          📤 Stock Out
+          Stock Out
         </button>
       </div>
 
@@ -248,9 +247,6 @@ const StockEntries = () => {
                 }}
                 className={categoryFilter === cat.name ? styles.filterActive : styles.filterButton}
               >
-                {cat.name === 'Fire' && '🔥'} 
-                {cat.name === 'ICT' && '💻'} 
-                {cat.name === 'Solar' && '☀️'} 
                 {cat.name.toUpperCase()}
               </button>
             ))}

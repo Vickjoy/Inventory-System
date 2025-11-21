@@ -1,7 +1,7 @@
 // src/components/Layout/Layout.jsx
 import { Outlet } from 'react-router-dom';
-import Sidebar from '../Sidebar/Sidebar';
 import Header from '../Header/Header';
+import Sidebar from '../Sidebar/Sidebar';
 import styles from './Layout.module.css';
 
 const Layout = () => {
@@ -14,6 +14,11 @@ const Layout = () => {
           <Outlet />
         </main>
       </div>
+      <footer className={styles.footer}>
+        <p className={styles.footerText}>
+          © EdgeSystems 2025. All rights reserved.
+        </p>
+      </footer>
     </div>
   );
 };

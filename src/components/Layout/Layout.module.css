@@ -2,7 +2,9 @@
 .layout {
   display: flex;
   min-height: 100vh;
-  background-color: #fafafa;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
+  position: relative;
+  padding-bottom: 60px;
 }
 
 .mainContainer {
@@ -15,9 +17,29 @@
 
 .content {
   flex: 1;
-  padding: 2rem;
+  padding: 2.5rem;
   overflow-y: auto;
-  background-color: #fafafa;
+  background: transparent;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1.25rem 2.5rem;
+  background-color: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+  z-index: 40;
+}
+
+.footerText {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 500;
 }
 
 /* Mobile Responsive */
@@ -27,6 +49,14 @@
   }
 
   .content {
-    padding: 1rem;
+    padding: 1.5rem 1rem;
+  }
+
+  .footer {
+    padding: 1rem 1.5rem;
+  }
+
+  .footerText {
+    font-size: 0.75rem;
   }
 }
