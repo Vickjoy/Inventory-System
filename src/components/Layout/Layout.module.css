@@ -50,10 +50,13 @@
 
   .content {
     padding: 1.5rem 1rem;
+    padding-bottom: 2rem;
   }
 
   .footer {
     padding: 1rem 1.5rem;
+    left: 0;
+    margin-left: 0;
   }
 
   .footerText {

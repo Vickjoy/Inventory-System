@@ -2,7 +2,7 @@
 import { useAuth } from '../../context/AuthContext';
 import styles from './Header.module.css';
 
-const Header = () => {
+const Header = ({ onMenuToggle }) => {
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
@@ -15,6 +15,15 @@ const Header = () => {
     <header className={styles.header}>
       <div className={styles.headerContent}>
         <div className={styles.headerLeft}>
+          <button 
+            className={styles.hamburgerButton}
+            onClick={onMenuToggle}
+            aria-label="Toggle menu"
+          >
+            <span className={styles.hamburgerLine}></span>
+            <span className={styles.hamburgerLine}></span>
+            <span className={styles.hamburgerLine}></span>
+          </button>
           <h1 className={styles.companyName}>EDGE SYSTEMS INVENTORY</h1>
         </div>
         

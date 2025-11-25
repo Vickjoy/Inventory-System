@@ -12,6 +12,11 @@
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.06);
   z-index: 100;
   border-right: 1px solid #e2e8f0;
+  transition: transform 0.3s ease;
+}
+
+.overlay {
+  display: none;
 }
 
 .sidebarHeader {
@@ -19,6 +24,29 @@
   border-bottom: 1px solid #e2e8f0;
   background: #ffffff;
   text-align: center;
+  position: relative;
+}
+
+.closeButton {
+  display: none;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(37, 99, 235, 0.1);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  font-size: 1.25rem;
+  color: #2563eb;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background: rgba(37, 99, 235, 0.2);
 }
 
 .logo {
@@ -96,11 +124,36 @@
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    z-index: 1000;
   }
 
-  .sidebar.open {
+  .sidebarOpen {
     transform: translateX(0);
+  }
+
+  .overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .closeButton {
+    display: flex;
   }
 
   .logo {

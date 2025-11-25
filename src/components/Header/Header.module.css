@@ -18,6 +18,35 @@
 .headerLeft {
   display: flex;
   align-items: center;
+  gap: 1rem;
+}
+
+.hamburgerButton {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  gap: 5px;
+  transition: all 0.3s ease;
+  padding: 8px;
+}
+
+.hamburgerButton:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.hamburgerLine {
+  width: 24px;
+  height: 3px;
+  background-color: #ffffff;
+  border-radius: 2px;
+  transition: all 0.3s ease;
 }
 
 .companyName {
@@ -110,6 +139,10 @@
 @media (max-width: 768px) {
   .headerContent {
     padding: 0.625rem 1rem;
+  }
+
+  .hamburgerButton {
+    display: flex;
   }
 
   .companyName {

@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import CompanyLogo from '../../assets/Company_logo.webp';
 import styles from './Sidebar.module.css';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }) => {
   const { isAdmin } = useAuth();
 
   const navigation = [
@@ -57,27 +57,52 @@ const Sidebar = () => {
     !item.adminOnly || (item.adminOnly && isAdmin)
   );
 
+  const handleNavClick = () => {
+    // Close sidebar on mobile when clicking a nav item
+    if (window.innerWidth <= 768) {
+      onClose();
+    }
+  };
+
   return (
-    <aside className={styles.sidebar}>
-      <div className={styles.sidebarHeader}>
-        <img src={CompanyLogo} alt="Edge Systems" className={styles.logo} />
-      </div>
+    <>
+      {/* Overlay for mobile */}
+      {isOpen && (
+        <div 
+          className={styles.overlay} 
+          onClick={onClose}
+        ></div>
+      )}
       
-      <nav className={styles.navigation}>
-        {filteredNav.map(item => (
-          <NavLink
-            key={item.id}
-            to={item.path}
-            className={({ isActive }) => 
-              isActive ? `${styles.navItem} ${styles.navItemActive}` : styles.navItem
-            }
+      <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
+        <div className={styles.sidebarHeader}>
+          <img src={CompanyLogo} alt="Edge Systems" className={styles.logo} />
+          <button 
+            className={styles.closeButton}
+            onClick={onClose}
+            aria-label="Close menu"
           >
-            <span className={styles.navIcon}>{item.icon}</span>
-            <span className={styles.navLabel}>{item.label}</span>
-          </NavLink>
-        ))}
-      </nav>
-    </aside>
+            ✕
+          </button>
+        </div>
+        
+        <nav className={styles.navigation}>
+          {filteredNav.map(item => (
+            <NavLink
+              key={item.id}
+              to={item.path}
+              onClick={handleNavClick}
+              className={({ isActive }) => 
+                isActive ? `${styles.navItem} ${styles.navItemActive}` : styles.navItem
+              }
+            >
+              <span className={styles.navIcon}>{item.icon}</span>
+              <span className={styles.navLabel}>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+      </aside>
+    </>
   );
 };
 

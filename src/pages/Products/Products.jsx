@@ -1,5 +1,5 @@
 // src/pages/Products/Products.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
@@ -12,7 +12,6 @@ const Products = () => {
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [subcategoryFilter, setSubcategoryFilter] = useState('all');
@@ -24,11 +23,41 @@ const Products = () => {
   const { user } = useAuth();
   const isStaffOrAdmin = user?.is_staff || user?.is_superuser;
 
-  // Check URL parameters on mount
+  // Get filter from URL or default to 'all'
+  const urlFilter = searchParams.get('filter');
+  const initialFilter = urlFilter === 'low' ? 'low' : 'all';
+  const [filter, setFilter] = useState(initialFilter);
+  
+  // Use ref to track if we've initialized from URL
+  const hasInitialized = useRef(false);
+
+  // Sync filter with URL parameter
   useEffect(() => {
     const urlFilter = searchParams.get('filter');
-    if (urlFilter === 'low') {
+    
+    // On first mount, set filter from URL
+    if (!hasInitialized.current) {
+      console.log('Initial URL filter:', urlFilter);
+      if (urlFilter === 'low') {
+        setFilter('low');
+        setCategoryFilter('all');
+        setSubcategoryFilter('all');
+        setSearchTerm('');
+      }
+      hasInitialized.current = true;
+      return;
+    }
+
+    // On subsequent changes, update filter if URL changes
+    if (urlFilter === 'low' && filter !== 'low') {
+      console.log('URL changed to low, updating filter');
       setFilter('low');
+      setCategoryFilter('all');
+      setSubcategoryFilter('all');
+      setSearchTerm('');
+    } else if (!urlFilter && filter === 'low') {
+      console.log('URL changed to normal, updating filter');
+      setFilter('all');
     }
   }, [searchParams]);
 
@@ -52,8 +81,9 @@ const Products = () => {
     loadMeta();
   }, []);
 
-  // Load ALL products
+  // Load ALL products when filter changes
   useEffect(() => {
+    console.log('Loading products with filter:', filter);
     loadAllProducts();
   }, [filter]);
 
@@ -63,6 +93,7 @@ const Products = () => {
       let allLoadedProducts = [];
       let nextUrl = null;
 
+      console.log(`Fetching ${filter} products...`);
       const response = filter === 'low'
         ? await api.getLowStock()
         : await api.getProducts();
@@ -87,7 +118,7 @@ const Products = () => {
         allLoadedProducts = Array.isArray(response) ? response : [];
       }
 
-      console.log('Total products loaded:', allLoadedProducts.length);
+      console.log(`✅ Total ${filter} products loaded:`, allLoadedProducts.length);
       setAllProducts(allLoadedProducts);
     } catch (error) {
       console.error('Error loading products:', error);
@@ -129,6 +160,17 @@ const Products = () => {
     setShowStockModal(false);
     setSelectedProduct(null);
     loadAllProducts();
+  };
+
+  // Handle filter button clicks - Reset category filters
+  const handleFilterChange = (newFilter) => {
+    if (newFilter !== filter) {
+      console.log('Manual filter change to:', newFilter);
+      setFilter(newFilter);
+      setCategoryFilter('all');
+      setSubcategoryFilter('all');
+      setSearchTerm('');
+    }
   };
 
   // Get current category object
@@ -244,7 +286,7 @@ const Products = () => {
     return (
       <div className={styles.loadingContainer}>
         <div className="spinner"></div>
-        <p>Loading products...</p>
+        <p>Loading {filter === 'low' ? 'out of stock' : ''} products...</p>
       </div>
     );
   }
@@ -255,6 +297,11 @@ const Products = () => {
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Products & Stock</h1>
+          {filter === 'low' && (
+            <p className={styles.pageSubtitle} style={{color: '#ef4444', fontWeight: 600}}>
+              Showing Out of Stock Items ({filteredProducts.length})
+            </p>
+          )}
         </div>
         <div className={styles.headerButtons}>
           {isStaffOrAdmin && (
@@ -267,13 +314,13 @@ const Products = () => {
       <div className={styles.filterBar}>
         <div className={styles.filterButtons}>
           <button
-            onClick={() => setFilter('all')}
+            onClick={() => handleFilterChange('all')}
             className={filter === 'all' ? styles.filterActive : styles.filterButton}
           >
             All Products
           </button>
           <button
-            onClick={() => setFilter('low')}
+            onClick={() => handleFilterChange('low')}
             className={filter === 'low' ? styles.filterActive : styles.filterButton}
           >
             Out of Stock
@@ -337,7 +384,9 @@ const Products = () => {
         {filteredProducts.length === 0 ? (
           <div className="card">
             <div className="card-body">
-              <p className={styles.noData}>No products found</p>
+              <p className={styles.noData}>
+                {filter === 'low' ? 'No out of stock products found' : 'No products found'}
+              </p>
             </div>
           </div>
         ) : categoryFilter === 'all' ? (
