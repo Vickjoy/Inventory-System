@@ -118,11 +118,27 @@ const SaleModal = ({ onClose, onSuccess }) => {
     });
   };
 
-  const calculateTotal = () => lineItems.reduce((sum, item) => {
-    return sum + ((parseFloat(item.quantity_ordered) || 0) * (parseFloat(item.unit_price) || 0));
-  }, 0);
+  // Calculate subtotal (products only, no VAT)
+  const calculateSubtotal = () => {
+    return lineItems.reduce((sum, item) => {
+      return sum + ((parseFloat(item.quantity_ordered) || 0) * (parseFloat(item.unit_price) || 0));
+    }, 0);
+  };
 
-  const calculateBalance = () => roundToTwoDecimals(calculateTotal() - (parseFloat(formData.amount_paid) || 0));
+  // Calculate VAT (16% of subtotal)
+  const calculateVAT = () => {
+    return roundToTwoDecimals(calculateSubtotal() * 0.16);
+  };
+
+  // Calculate total (subtotal + VAT)
+  const calculateTotal = () => {
+    return roundToTwoDecimals(calculateSubtotal() + calculateVAT());
+  };
+
+  // Calculate outstanding balance (total - amount paid)
+  const calculateBalance = () => {
+    return roundToTwoDecimals(calculateTotal() - (parseFloat(formData.amount_paid) || 0));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -152,7 +168,10 @@ const SaleModal = ({ onClose, onSuccess }) => {
           supply_status: item.supply_status,
           unit_price: roundToTwoDecimals(parseFloat(item.unit_price))
         })),
-        amount_paid: formData.mode_of_payment === 'Not Paid' ? 0 : roundToTwoDecimals(parseFloat(formData.amount_paid))
+        amount_paid: formData.mode_of_payment === 'Not Paid' ? 0 : roundToTwoDecimals(parseFloat(formData.amount_paid)),
+        subtotal: roundToTwoDecimals(calculateSubtotal()),
+        vat_amount: calculateVAT(),
+        total_amount: calculateTotal()
       };
 
       const result = await api.request('/sales/', { method: 'POST', body: JSON.stringify(payload) });
@@ -273,7 +292,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
                     </div>
                     {item.quantity_ordered && item.unit_price && (
                       <div className={styles.subtotal}>
-                        <label>Subtotal</label>
+                        <label>Item Subtotal</label>
                         <span>KES {formatCurrency((parseInt(item.quantity_ordered) || 0) * (parseFloat(item.unit_price) || 0))}</span>
                       </div>
                     )}
@@ -285,7 +304,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
 
           {/* Payment Section */}
           <div className={`${styles.section} ${styles.paymentSection}`}>
-            <h3 className={styles.sectionTitle}><span>💳</span> Payment</h3>
+            <h3 className={styles.sectionTitle}><span>💳</span> Payment & Summary</h3>
             <div className={styles.formGrid}>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Payment Mode <span className={styles.required}>*</span></label>
@@ -301,16 +320,46 @@ const SaleModal = ({ onClose, onSuccess }) => {
                 <input type="number" name="amount_paid" value={formData.amount_paid} onChange={handleInputChange} className={styles.formInput} min="0" step="0.01" placeholder="0.00" disabled={formData.mode_of_payment === 'Not Paid'} />
               </div>
             </div>
-            <div className={styles.totals}>
-              <div className={styles.totalRow}><span>Total:</span><strong>KES {formatCurrency(calculateTotal())}</strong></div>
+
+            {/* Financial Summary */}
+            <div className={styles.financialSummary}>
+              <div className={styles.summaryRow}>
+                <span className={styles.summaryLabel}>Subtotal (Products):</span>
+                <span className={styles.summaryValue}>KES {formatCurrency(calculateSubtotal())}</span>
+              </div>
+              
+              <div className={styles.summaryRow}>
+                <span className={styles.summaryLabel}>VAT (16%):</span>
+                <span className={styles.summaryValue}>KES {formatCurrency(calculateVAT())}</span>
+              </div>
+              
+              <div className={`${styles.summaryRow} ${styles.totalRow}`}>
+                <span className={styles.totalLabel}>Total Amount:</span>
+                <span className={styles.totalValue}>KES {formatCurrency(calculateTotal())}</span>
+              </div>
+
               {formData.amount_paid && parseFloat(formData.amount_paid) > 0 && (
                 <>
-                  <div className={styles.totalRow}><span>Paid:</span><span className={styles.paid}>KES {formatCurrency(formData.amount_paid)}</span></div>
-                  {calculateBalance() > 0 && <div className={styles.totalRow}><span>Balance:</span><span className={styles.balance}>KES {formatCurrency(calculateBalance())}</span></div>}
-                  {calculateBalance() <= 0 && <div className={styles.totalRow}><span>Status:</span><span className={styles.fullyPaid}>✓ Fully Paid</span></div>}
+                  <div className={styles.summaryRow}>
+                    <span className={styles.summaryLabel}>Amount Paid:</span>
+                    <span className={styles.paidValue}>KES {formatCurrency(formData.amount_paid)}</span>
+                  </div>
+                  
+                  <div className={`${styles.summaryRow} ${styles.balanceRow}`}>
+                    <span className={styles.balanceLabel}>Outstanding Balance:</span>
+                    <span className={calculateBalance() <= 0 ? styles.fullyPaidValue : styles.balanceValue}>
+                      {calculateBalance() <= 0 ? '✓ Fully Paid' : `KES ${formatCurrency(calculateBalance())}`}
+                    </span>
+                  </div>
                 </>
               )}
-              {formData.mode_of_payment === 'Not Paid' && <div className={styles.totalRow}><span>Outstanding:</span><span className={styles.balance}>KES {formatCurrency(calculateTotal())}</span></div>}
+
+              {formData.mode_of_payment === 'Not Paid' && (
+                <div className={`${styles.summaryRow} ${styles.balanceRow}`}>
+                  <span className={styles.balanceLabel}>Outstanding Balance:</span>
+                  <span className={styles.balanceValue}>KES {formatCurrency(calculateTotal())}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
