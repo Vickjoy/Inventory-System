@@ -454,3 +454,130 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+
+/* ============================================
+   ORIGINAL PRINT SECTION YOU ALREADY HAD
+   ============================================ */
+@media print {
+  aside,
+  nav,
+  [class*="sidebar"]:not([class*="print"]),
+  [class*="Sidebar"]:not([class*="print"]),
+  [class*="navbar"],
+  [class*="Navbar"] {
+    display: none !important;
+  }
+
+  header:not([class*="print"]),
+  footer:not([class*="print"]),
+  [class*="pageHeader"],
+  [class*="PageHeader"],
+  [class*="appHeader"],
+  [class*="AppHeader"] {
+    display: none !important;
+  }
+
+  [class*="mainContainer"],
+  [class*="content"],
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  [class*="printHeader"],
+  [class*="printFooter"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+}
+
+/* ============================================================
+   FINAL GLOBAL PRINT FIX — DO NOT MODIFY ANYTHING ABOVE
+   ============================================================ */
+@media print {
+
+  body {
+    zoom: 85%;
+  }
+
+  .table-container {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    box-shadow: none !important;
+  }
+
+  .table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+    font-size: 0.62rem !important;
+  }
+
+  .table th,
+  .table td {
+    white-space: normal !important;
+    padding: 0.35rem 0.25rem !important;
+    border: 1px solid var(--border-color) !important;
+    line-height: 1.2 !important;
+    vertical-align: top !important;
+  }
+
+  .table thead {
+    display: table-header-group !important;
+  }
+
+  .table tfoot {
+    display: table-footer-group !important;
+  }
+
+  .table tr {
+    page-break-inside: avoid !important;
+  }
+
+  .badge {
+    font-size: 0.5rem !important;
+    padding: 0.1rem 0.3rem !important;
+  }
+
+  [class*="printContent"],
+  [class*="historyPage"],
+  [class*="reportsPage"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+}
+
+@media print {
+
+  /* Make the existing logo larger when printing */
+  img.printLogo,
+  .printLogo,
+  [class*="logo"] img,
+  img[alt*="logo"],
+  img[src*="logo"] {
+    width: 160px !important;  /* Increase logo size */
+    height: auto !important;  /* Maintain aspect ratio */
+    object-fit: contain !important;
+  }
+
+}

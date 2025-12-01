@@ -63,3 +63,17 @@
     font-size: 0.75rem;
   }
 }
+
+@media print {
+  .layout {
+    padding-bottom: 0;
+  }
+  
+  .mainContainer {
+    margin-left: 0 !important;
+  }
+  
+  .footer {
+    display: none !important;
+  }
+}

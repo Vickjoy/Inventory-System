@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import styles from './Reports.module.css';
+import companyLogo from '../../assets/Company_logo.webp';
 
 const Reports = () => {
   const [reportType, setReportType] = useState('sales');
@@ -31,7 +32,6 @@ const Reports = () => {
       let data;
       switch (reportType) {
         case 'sales':
-          // Get all sales data
           data = await api.getSales();
           if (Array.isArray(data)) {
             // Already an array
@@ -41,7 +41,6 @@ const Reports = () => {
           break;
 
         case 'stock':
-          // Get all products
           data = await api.getProducts();
           if (Array.isArray(data)) {
             // Already an array
@@ -51,11 +50,9 @@ const Reports = () => {
           break;
 
         case 'outstanding_supplies':
-          // Get all sales and filter for outstanding supplies
           const salesData = await api.getSales();
           let allSales = Array.isArray(salesData) ? salesData : (salesData?.results || []);
           
-          // Filter for sales with outstanding supplies
           data = allSales.filter(sale => 
             sale.line_items && sale.line_items.some(item => 
               item.supply_status === 'Partially Supplied' || 
@@ -65,11 +62,9 @@ const Reports = () => {
           break;
 
         case 'outstanding_balances':
-          // Get all sales and filter for outstanding balances
           const allSalesData = await api.getSales();
           let salesList = Array.isArray(allSalesData) ? allSalesData : (allSalesData?.results || []);
           
-          // Filter for sales with outstanding balances
           data = salesList.filter(sale => parseFloat(sale.outstanding_balance || 0) > 0);
           break;
 
@@ -235,8 +230,35 @@ const Reports = () => {
     window.print();
   };
 
+  const getReportTitle = () => {
+    switch (reportType) {
+      case 'sales':
+        return 'Sales Report';
+      case 'stock':
+        return 'Stock Report';
+      case 'outstanding_supplies':
+        return 'Outstanding Supplies';
+      case 'outstanding_balances':
+        return 'Outstanding Balances';
+      default:
+        return 'Report';
+    }
+  };
+
   return (
     <div className={styles.reportsPage}>
+      {/* Print Header - Only visible when printing */}
+      <div className={styles.printHeader}>
+        <div className={styles.printHeaderContent}>
+          <img src={companyLogo} alt="Company Logo" className={styles.printLogo} />
+          <div className={styles.printCompanyInfo}>
+            <h1 className={styles.printCompanyName}>EDGE SYSTEMS LIMITED</h1>
+            <h2 className={styles.printReportTitle}>{getReportTitle()}</h2>
+          </div>
+        </div>
+      </div>
+
+      {/* Screen Header - Hidden when printing */}
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Reports</h1>
@@ -309,12 +331,7 @@ const Reports = () => {
 
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">
-            {reportType === 'sales' && 'Sales Report'}
-            {reportType === 'stock' && 'Stock Report'}
-            {reportType === 'outstanding_supplies' && 'Outstanding Supplies'}
-            {reportType === 'outstanding_balances' && 'Outstanding Balances'}
-          </h2>
+          <h2 className="card-title">{getReportTitle()}</h2>
         </div>
         <div className="card-body">
           {loading ? (
@@ -335,8 +352,7 @@ const Reports = () => {
                       <th>Sale Number</th>
                       <th>Customer</th>
                       <th>LPO/Quote</th>
-                      <th>Delivery</th>
-                      <th>Product Names</th>
+                      <th>Product Name</th>
                       <th>Quantity Supplied</th>
                       <th>Total Amount</th>
                       <th>Amount Paid</th>
@@ -351,7 +367,6 @@ const Reports = () => {
                         <td>{sale.sale_number}</td>
                         <td>{sale.customer_name}</td>
                         <td>{sale.lpo_quotation_number || '-'}</td>
-                        <td>{sale.delivery_number || '-'}</td>
                         <td>
                           <div className={styles.productList}>
                             {(sale.line_items || []).map((item, idx) => (
@@ -429,7 +444,6 @@ const Reports = () => {
                       <th>Sale Number</th>
                       <th>Customer</th>
                       <th>LPO/Quote</th>
-                      <th>Delivery</th>
                       <th>Product Name</th>
                       <th>Quantity Ordered</th>
                       <th>Quantity Supplied</th>
@@ -454,7 +468,6 @@ const Reports = () => {
                               <td>{sale.sale_number}</td>
                               <td>{sale.customer_name}</td>
                               <td>{sale.lpo_quotation_number || '-'}</td>
-                              <td>{sale.delivery_number || '-'}</td>
                               <td>{item.product_name}</td>
                               <td>{item.quantity_ordered}</td>
                               <td>{item.quantity_supplied}</td>
@@ -486,8 +499,6 @@ const Reports = () => {
                       <th>Date</th>
                       <th>Sale Number</th>
                       <th>Customer</th>
-                      <th>LPO/Quote</th>
-                      <th>Delivery</th>
                       <th>Products</th>
                       <th>Total Amount</th>
                       <th>Amount Paid</th>
@@ -500,8 +511,6 @@ const Reports = () => {
                         <td>{new Date(sale.created_at).toLocaleDateString()}</td>
                         <td>{sale.sale_number}</td>
                         <td>{sale.customer_name}</td>
-                        <td>{sale.lpo_quotation_number || '-'}</td>
-                        <td>{sale.delivery_number || '-'}</td>
                         <td>
                           <div className={styles.productList}>
                             {(sale.line_items || []).map((item, idx) => (
@@ -521,6 +530,18 @@ const Reports = () => {
               )}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Print Footer - Only visible when printing */}
+      <div className={styles.printFooter}>
+        <div className={styles.printFooterContent}>
+          <p className={styles.printAddress}>
+            <strong>Office Location:</strong> Shelter House, Dai Dai Road, South B, Ground Floor Apartment GF4, Nairobi
+          </p>
+          <p className={styles.printContact}>
+            <strong>Email:</strong> info@edgesystems.co.ke | <strong>Tel:</strong> 0721247366 / 0117320000
+          </p>
         </div>
       </div>
     </div>

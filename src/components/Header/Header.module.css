@@ -170,3 +170,9 @@
     font-size: 0.75rem;
   }
 }
+
+@media print {
+  .header {
+    display: none !important;
+  }
+}
