@@ -405,6 +405,8 @@ const api = {
   // Dashboard
   // ==========================
   getDashboardSummary: () => api.request('/dashboard/summary/'),
+  getMonthlySales: () => api.request('/dashboard/monthly_sales/'),
+  getTopProducts: (limit = 5) => api.request(`/dashboard/top_products/?limit=${limit}`),
   getRecentSales: (days = 30) =>
     api.request(`/dashboard/recent_sales/?days=${days}`),
   getTopCustomers: (limit = 10) =>
