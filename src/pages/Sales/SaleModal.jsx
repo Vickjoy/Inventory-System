@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import styles from './SaleModal.module.css';
 
+// Keep numbers precise - only round when displaying or submitting
 const roundToTwoDecimals = (num) => Math.round((parseFloat(num) + Number.EPSILON) * 100) / 100;
 
 const formatCurrency = (amount) => {
@@ -57,7 +58,12 @@ const SaleModal = ({ onClose, onSuccess }) => {
 
   const selectProduct = (product, index) => {
     const newItems = [...lineItems];
-    newItems[index] = { ...newItems[index], product: product.id, unit_price: product.unit_price };
+    // Store unit_price as string to preserve exact value
+    newItems[index] = { 
+      ...newItems[index], 
+      product: product.id, 
+      unit_price: String(product.unit_price) 
+    };
     setLineItems(newItems);
     const newSearch = [...productSearch];
     newSearch[index] = `${product.code} - ${product.name}`;
@@ -87,9 +93,11 @@ const SaleModal = ({ onClose, onSuccess }) => {
       if (value === 'Supplied') newItems[index].quantity_supplied = newItems[index].quantity_ordered || '';
       else if (value === 'Not Supplied') newItems[index].quantity_supplied = '0';
     } else if (field === 'quantity_ordered') {
+      // Store as string to preserve exact user input
       newItems[index].quantity_ordered = value;
       if (newItems[index].supply_status === 'Supplied') newItems[index].quantity_supplied = value;
     } else {
+      // For unit_price and other fields, keep as string
       newItems[index][field] = value;
     }
     setLineItems(newItems);
@@ -121,7 +129,9 @@ const SaleModal = ({ onClose, onSuccess }) => {
   // Calculate subtotal (products only, no VAT)
   const calculateSubtotal = () => {
     return lineItems.reduce((sum, item) => {
-      return sum + ((parseFloat(item.quantity_ordered) || 0) * (parseFloat(item.unit_price) || 0));
+      const qty = parseFloat(item.quantity_ordered) || 0;
+      const price = parseFloat(item.unit_price) || 0;
+      return sum + (qty * price);
     }, 0);
   };
 
@@ -147,9 +157,17 @@ const SaleModal = ({ onClose, onSuccess }) => {
     for (let i = 0; i < lineItems.length; i++) {
       const item = lineItems[i];
       if (!item.product || !item.quantity_ordered || !item.unit_price) return alert(`Complete all fields for product ${i + 1}`);
+      
+      // Validate numeric values
+      const qty = parseFloat(item.quantity_ordered);
+      const price = parseFloat(item.unit_price);
+      if (isNaN(qty) || qty <= 0) return alert(`Invalid quantity for product ${i + 1}`);
+      if (isNaN(price) || price <= 0) return alert(`Invalid unit price for product ${i + 1}`);
+      
       if (item.supply_status === 'Partially Supplied') {
+        const qtySupplied = parseFloat(item.quantity_supplied);
         if (!item.quantity_supplied || item.quantity_supplied === '0') return alert(`Enter quantity supplied for product ${i + 1}`);
-        if (parseInt(item.quantity_supplied) >= parseInt(item.quantity_ordered)) return alert(`Quantity supplied must be less than ordered for product ${i + 1}`);
+        if (qtySupplied >= qty) return alert(`Quantity supplied must be less than ordered for product ${i + 1}`);
       }
     }
 
@@ -166,6 +184,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
           quantity_ordered: parseInt(item.quantity_ordered),
           quantity_supplied: item.supply_status === 'Not Supplied' ? 0 : parseInt(item.quantity_supplied),
           supply_status: item.supply_status,
+          // Only round when submitting to backend
           unit_price: roundToTwoDecimals(parseFloat(item.unit_price))
         })),
         amount_paid: formData.mode_of_payment === 'Not Paid' ? 0 : roundToTwoDecimals(parseFloat(formData.amount_paid)),
@@ -271,11 +290,26 @@ const SaleModal = ({ onClose, onSuccess }) => {
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.formLabel}>Unit Price (KES) <span className={styles.required}>*</span></label>
-                      <input type="number" value={item.unit_price} onChange={(e) => handleLineItemChange(index, 'unit_price', e.target.value)} className={styles.formInput} min="0" step="0.01" placeholder="0.00" />
+                      <input 
+                        type="number" 
+                        value={item.unit_price} 
+                        onChange={(e) => handleLineItemChange(index, 'unit_price', e.target.value)} 
+                        className={styles.formInput} 
+                        min="0" 
+                        step="0.01" 
+                        placeholder="0.00"
+                      />
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.formLabel}>Qty Ordered <span className={styles.required}>*</span></label>
-                      <input type="number" value={item.quantity_ordered} onChange={(e) => handleLineItemChange(index, 'quantity_ordered', e.target.value)} className={styles.formInput} min="1" placeholder="0" />
+                      <input 
+                        type="number" 
+                        value={item.quantity_ordered} 
+                        onChange={(e) => handleLineItemChange(index, 'quantity_ordered', e.target.value)} 
+                        className={styles.formInput} 
+                        min="1" 
+                        placeholder="0"
+                      />
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.formLabel}>Supply Status <span className={styles.required}>*</span></label>
@@ -287,13 +321,21 @@ const SaleModal = ({ onClose, onSuccess }) => {
                     </div>
                     <div className={styles.formGroup}>
                       <label className={styles.formLabel}>Qty Supplied <span className={styles.required}>*</span></label>
-                      <input type="number" value={item.quantity_supplied} onChange={(e) => handleLineItemChange(index, 'quantity_supplied', e.target.value)} className={styles.formInput} min="0" max={item.quantity_ordered} placeholder="0" />
+                      <input 
+                        type="number" 
+                        value={item.quantity_supplied} 
+                        onChange={(e) => handleLineItemChange(index, 'quantity_supplied', e.target.value)} 
+                        className={styles.formInput} 
+                        min="0" 
+                        max={item.quantity_ordered} 
+                        placeholder="0"
+                      />
                       {item.supply_status === 'Partially Supplied' && <span className={styles.hint}>Must be less than {item.quantity_ordered || 'ordered'}</span>}
                     </div>
                     {item.quantity_ordered && item.unit_price && (
                       <div className={styles.subtotal}>
                         <label>Item Subtotal</label>
-                        <span>KES {formatCurrency((parseInt(item.quantity_ordered) || 0) * (parseFloat(item.unit_price) || 0))}</span>
+                        <span>KES {formatCurrency((parseFloat(item.quantity_ordered) || 0) * (parseFloat(item.unit_price) || 0))}</span>
                       </div>
                     )}
                   </div>

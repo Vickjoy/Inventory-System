@@ -5,6 +5,7 @@ import Login from './pages/Login/Login';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Products from './pages/Products/Products';
 import Sales from './pages/Sales/Sales';
+import OutstandingSupplies from './pages/Sales/OutstandingSupplies';
 import Customers from './pages/Customers/Customers';
 import CustomerHistory from './pages/Customers/CustomerHistory';
 import Suppliers from './pages/Suppliers/Suppliers';
@@ -35,6 +36,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/products" element={<Products />} />
         <Route path="/sales" element={<Sales />} />
+        <Route path="/outstanding-supplies" element={<OutstandingSupplies />} />
         <Route path="/customers" element={<Customers />} /> 
         <Route path="/customers/:customerId/history" element={<CustomerHistory />} />
         <Route path="/suppliers" element={<Suppliers />} /> 

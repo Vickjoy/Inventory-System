@@ -1,6 +1,6 @@
 // src/pages/Sales/Sales.jsx
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import SaleModal from './SaleModal';
 import styles from './Sales.module.css';
@@ -15,25 +15,18 @@ const Sales = () => {
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedSaleId, setExpandedSaleId] = useState(null);
-  const [searchParams] = useSearchParams();
-
-  useEffect(() => {
-    const urlTab = searchParams.get('tab');
-    if (urlTab === 'outstanding') setActiveTab('outstanding');
-  }, [searchParams]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadSales();
-  }, [activeTab]);
+  }, []);
 
   const loadSales = async () => {
     try {
       setLoading(true);
-      const endpoint = activeTab === 'outstanding' ? '/sales/outstanding/' : '/sales/';
-      const data = await api.request(endpoint);
+      const data = await api.request('/sales/');
       if (Array.isArray(data)) setSales(data);
       else if (data?.results) setSales(data.results);
       else setSales([]);
@@ -67,9 +60,11 @@ const Sales = () => {
           <h1 className={styles.pageTitle}>Sales Entry</h1>
           <p className={styles.pageSubtitle}>Record and manage daily sales</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn btn-primary">
-          ➕ New Sale
-        </button>
+        <div className={styles.headerButtons}>
+          <button onClick={() => setShowModal(true)} className={`btn btn-primary ${styles.btnNewSale}`}>
+            ➕ New Sale
+          </button>
+        </div>
       </div>
 
       {showModal && (
@@ -79,18 +74,18 @@ const Sales = () => {
         />
       )}
 
-      <div className={styles.tabs}>
+      <div className={styles.actionBar}>
         <button
-          onClick={() => setActiveTab('all')}
-          className={activeTab === 'all' ? styles.tabActive : styles.tab}
+          onClick={() => navigate('/sales')}
+          className={styles.btnAllSales}
         >
-          All Sales
+          📊 All Sales
         </button>
         <button
-          onClick={() => setActiveTab('outstanding')}
-          className={activeTab === 'outstanding' ? styles.tabActive : styles.tab}
+          onClick={() => navigate('/outstanding-supplies')}
+          className={styles.btnOutstanding}
         >
-          Outstanding Supplies
+          📦 Outstanding Supplies
         </button>
       </div>
 

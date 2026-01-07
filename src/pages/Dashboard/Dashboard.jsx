@@ -59,7 +59,7 @@ const Dashboard = () => {
     {
       title: 'Outstanding Supplies',
       value: stats?.outstanding_invoices || 0,
-      onClick: () => navigate('/sales?tab=outstanding')
+      onClick: () => navigate('/outstanding-supplies')
     },
     {
       title: 'Sales',
