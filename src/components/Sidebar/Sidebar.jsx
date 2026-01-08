@@ -1,7 +1,7 @@
 // src/components/Sidebar/Sidebar.jsx
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import CompanyLogo from '../../assets/Company_logo.webp';
+import CompanyLogo from '../../assets/CompanyIcon.png';
 import styles from './Sidebar.module.css';
 
 const Sidebar = ({ isOpen, onClose }) => {

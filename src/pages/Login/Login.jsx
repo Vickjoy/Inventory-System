@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import styles from './Login.module.css';
-import companyLogo from '../../assets/Company_logo.webp';
+import companyLogo from '../../assets/CompanyIcon.png';
 
 const Login = () => {
   const [username, setUsername] = useState('');

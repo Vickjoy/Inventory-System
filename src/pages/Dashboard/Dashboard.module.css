@@ -51,6 +51,18 @@
   overflow: hidden;
   transition: all 0.3s ease;
   border: none;
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+}
+
+/* Cards without values - centered text */
+.statCardNoValue {
+  justify-content: center;
+}
+
+.statCardNoValue .statContent {
+  text-align: center;
 }
 
 /* Card 1 - Purple Gradient */
@@ -117,12 +129,17 @@
 }
 
 .statTitle {
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: white;
   margin: 0 0 1rem 0;
   letter-spacing: 0.3px;
   opacity: 0.95;
+}
+
+.statCardNoValue .statTitle {
+  font-size: 1.25rem;
+  margin: 0;
 }
 
 .statValue {
@@ -185,6 +202,106 @@
   margin: 0 0 1.5rem 0;
 }
 
+/* Pie Chart Container with Legend */
+.pieChartContainer {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  min-height: 400px;
+}
+
+.pieChartLegend {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.legendTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.legendItemsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+/* Custom scrollbar for legend */
+.legendItemsContainer::-webkit-scrollbar {
+  width: 6px;
+}
+
+.legendItemsContainer::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.legendItemsContainer::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.legendItemsContainer::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.legendItem:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateX(4px);
+}
+
+.legendColor {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.legendText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.legendName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.legendValue {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
 /* Custom Tooltip Styles */
 .customTooltip {
   background: white;
@@ -206,6 +323,17 @@
   font-weight: 700;
   color: #667eea;
   margin: 0;
+}
+
+/* Tablet Responsive */
+@media (max-width: 1024px) {
+  .pieChartContainer {
+    gap: 1.5rem;
+  }
+
+  .legendItemsContainer {
+    max-height: 320px;
+  }
 }
 
 /* Mobile Responsive */
@@ -230,6 +358,7 @@
 
   .statCard {
     padding: 1.5rem;
+    min-height: 120px;
   }
 
   .statValue {
@@ -237,7 +366,11 @@
   }
 
   .statTitle {
-    font-size: 0.9375rem;
+    font-size: 1rem;
+  }
+
+  .statCardNoValue .statTitle {
+    font-size: 1.125rem;
   }
 
   .bannerContainer {
@@ -256,5 +389,106 @@
 
   .chartTitle {
     font-size: 1.25rem;
+  }
+
+  .pieChartContainer {
+    flex-direction: column;
+    gap: 1.5rem;
+    min-height: auto;
+  }
+
+  .pieChartLegend {
+    width: 100%;
+  }
+
+  .legendItemsContainer {
+    max-height: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .legendItem {
+    padding: 0.5rem;
+  }
+
+  .legendName {
+    font-size: 0.8125rem;
+  }
+
+  .legendValue {
+    font-size: 0.6875rem;
+  }
+
+  .legendColor {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard {
+    padding: 0 0.5rem;
+  }
+
+  .statCard {
+    padding: 1.25rem;
+    min-height: 100px;
+  }
+
+  .statTitle {
+    font-size: 0.9375rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .statCardNoValue .statTitle {
+    font-size: 1rem;
+  }
+
+  .statValue {
+    font-size: 1.75rem;
+  }
+
+  .chartCard {
+    padding: 1.25rem;
+  }
+
+  .chartTitle {
+    font-size: 1.125rem;
+  }
+
+  .chartSubtitle {
+    font-size: 0.8125rem;
+  }
+
+  .pieChartContainer {
+    gap: 1.25rem;
+  }
+
+  .legendItemsContainer {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .legendItem {
+    padding: 0.5rem 0.625rem;
+  }
+
+  .legendName {
+    font-size: 0.8125rem;
+  }
+
+  .legendValue {
+    font-size: 0.6875rem;
+  }
+
+  .legendColor {
+    width: 18px;
+    height: 18px;
+  }
+
+  .bannerContainer {
+    height: 160px;
+    border-radius: 12px;
   }
 }
