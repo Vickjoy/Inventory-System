@@ -1,53 +1,93 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer
-} from 'recharts';
 import api from '../../utils/api';
 import styles from './Dashboard.module.css';
 import DashboardBanner from '../../assets/banner.jpg';
+import DashboardStats from './components/DashboardStats';
+import SalesLineChart from './components/SalesLineChart';
+import TopProductsPie from './components/TopProductsPie';
+import { quickLinksConfig } from './config/quickLinksConfig';
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
+  const [previousStats, setPreviousStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [errorType, setErrorType] = useState(null);
+
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadDashboardData(false);
+  // Guards
+  const isFetchingRef = useRef(false);
+  const hasMountedRef = useRef(false);
 
-    const refreshInterval = setInterval(() => {
-      loadDashboardData(true);
-    }, 30000);
+  const loadDashboardData = async (isRefresh = false) => {
+    if (isFetchingRef.current) return;
 
-    return () => clearInterval(refreshInterval);
-  }, []);
+    isFetchingRef.current = true;
 
-  const loadDashboardData = async (isRefresh) => {
     try {
       if (!isRefresh) {
         setLoading(true);
       }
 
+      setError(null);
+      setErrorType(null);
+
       const summaryData = await api.getDashboardSummary();
+
+      setPreviousStats(prev => (prev ? prev : summaryData));
       setStats(summaryData);
     } catch (err) {
-      setError(err.message);
+      const message = err?.message || 'An unexpected error occurred';
+      setError(message);
+
+      if (message.includes('Network') || message.includes('fetch')) {
+        setErrorType('network');
+      } else if (message.includes('401') || message.includes('auth')) {
+        setErrorType('auth');
+      } else if (message.includes('500') || message.includes('server')) {
+        setErrorType('server');
+      } else {
+        setErrorType('unknown');
+      }
     } finally {
       if (!isRefresh) {
         setLoading(false);
       }
+      isFetchingRef.current = false;
     }
+  };
+
+  useEffect(() => {
+    // Prevent StrictMode double-fetch in development
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      loadDashboardData(false);
+    }
+
+    const refreshInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadDashboardData(true);
+      }
+    }, 30000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadDashboardData(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  const handleRetry = () => {
+    loadDashboardData(false);
   };
 
   if (loading && !stats) {
@@ -61,90 +101,29 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <div className="alert alert-danger">
-        Error loading dashboard: {error}
+      <div className={styles.errorContainer}>
+        <div className={styles.errorContent}>
+          <div className={styles.errorIcon}>⚠️</div>
+          <h2 className={styles.errorTitle}>
+            {errorType === 'network' && 'Network Error'}
+            {errorType === 'auth' && 'Authentication Error'}
+            {errorType === 'server' && 'Server Error'}
+            {errorType === 'unknown' && 'Error Loading Dashboard'}
+          </h2>
+          <p className={styles.errorMessage}>{error}</p>
+          <button
+            onClick={handleRetry}
+            className={styles.retryButton}
+            aria-label="Retry loading dashboard"
+          >
+            🔄 Retry
+          </button>
+        </div>
       </div>
     );
   }
 
-  const quickLinks = [
-    {
-      title: 'Total Products',
-      value: stats?.total_products || 0,
-      hasValue: true,
-      onClick: () => navigate('/products')
-    },
-    {
-      title: 'Low Stock',
-      value: stats?.low_stock_items || 0,
-      hasValue: true,
-      onClick: () => navigate('/products?filter=low')
-    },
-    {
-      title: 'Outstanding Supplies',
-      value: stats?.outstanding_invoices || 0,
-      hasValue: true,
-      onClick: () => navigate('/outstanding-supplies')
-    },
-    {
-      title: 'Sales',
-      hasValue: false,
-      onClick: () => navigate('/sales')
-    },
-    {
-      title: 'Stock In/Out',
-      hasValue: false,
-      onClick: () => navigate('/stock-entries')
-    },
-    {
-      title: 'Reports & Analytics',
-      hasValue: false,
-      onClick: () => navigate('/reports')
-    }
-  ];
-
-  const pieColors = [
-    '#667eea',
-    '#f59e0b',
-    '#10b981',
-    '#ef4444',
-    '#3b82f6',
-    '#8b5cf6',
-    '#ec4899',
-    '#14b8a6',
-    '#f97316',
-    '#06b6d4'
-  ];
-
-  const currentYear = new Date().getFullYear();
-
-  const CustomLineTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className={styles.customTooltip}>
-          <p className={styles.tooltipLabel}>{payload[0].payload.month}</p>
-          <p className={styles.tooltipValue}>
-            KES {parseFloat(payload[0].value).toLocaleString()}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const CustomPieTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className={styles.customTooltip}>
-          <p className={styles.tooltipLabel}>{payload[0].name}</p>
-          <p className={styles.tooltipValue}>
-            {payload[0].value} units sold
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+  const quickLinks = quickLinksConfig(stats, navigate);
 
   return (
     <div className={styles.dashboard}>
@@ -156,25 +135,7 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className={styles.statsGrid}>
-        {quickLinks.map((link, index) => (
-          <div
-            key={index}
-            className={`${styles.statCard} ${styles[`statCard${index + 1}`]} ${
-              !link.hasValue ? styles.statCardNoValue : ''
-            }`}
-            onClick={link.onClick}
-          >
-            <div className={styles.statContent}>
-              <p className={styles.statTitle}>{link.title}</p>
-              {link.hasValue && (
-                <p className={styles.statValue}>{link.value}</p>
-              )}
-            </div>
-            <div className={styles.statCardDecoration}></div>
-          </div>
-        ))}
-      </div>
+      <DashboardStats quickLinks={quickLinks} />
 
       {/* Banner */}
       <div className={styles.bannerContainer}>
@@ -182,94 +143,14 @@ const Dashboard = () => {
           src={DashboardBanner}
           alt="Dashboard Banner"
           className={styles.bannerImage}
+          loading="lazy"
         />
       </div>
 
       {/* Charts */}
       <div className={styles.chartsGrid}>
-        <div className={styles.chartCard}>
-          <h2 className={styles.chartTitle}>
-            Monthly Sales Summary - {currentYear}
-          </h2>
-          <p className={styles.chartSubtitle}>
-            Total sales revenue by month
-          </p>
-
-          <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={stats?.monthly_sales || []}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="month" stroke="#64748b" />
-              <YAxis
-                stroke="#64748b"
-                domain={[0, 20000000]}
-                tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`}
-              />
-              <Tooltip content={<CustomLineTooltip />} />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="total"
-                stroke="#667eea"
-                strokeWidth={3}
-                dot={{ r: 5 }}
-                activeDot={{ r: 7 }}
-                name="Total Sales (KES)"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className={styles.chartCard}>
-          <h2 className={styles.chartTitle}>Top Selling Products</h2>
-          <p className={styles.chartSubtitle}>
-            Best performing products by quantity sold
-          </p>
-
-          <div className={styles.pieChartContainer}>
-            <ResponsiveContainer width="55%" height={400}>
-              <PieChart>
-                <Pie
-                  data={stats?.top_products || []}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={140}
-                  dataKey="value"
-                >
-                  {(stats?.top_products || []).map((_, index) => (
-                    <Cell
-                      key={index}
-                      fill={pieColors[index % pieColors.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomPieTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-
-            <div className={styles.pieChartLegend}>
-              <h3 className={styles.legendTitle}>Products</h3>
-              {(stats?.top_products || []).map((product, index) => (
-                <div key={index} className={styles.legendItem}>
-                  <div
-                    className={styles.legendColor}
-                    style={{
-                      backgroundColor:
-                        pieColors[index % pieColors.length]
-                    }}
-                  ></div>
-                  <div className={styles.legendText}>
-                    <span className={styles.legendName}>
-                      {product.name}
-                    </span>
-                    <span className={styles.legendValue}>
-                      {product.value} units
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <SalesLineChart salesData={stats?.monthly_sales} />
+        <TopProductsPie productsData={stats?.top_products} />
       </div>
     </div>
   );

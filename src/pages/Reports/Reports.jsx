@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import styles from './Reports.module.css';
-import companyLogo from '../../assets/Company_logo.webp';
 
 const Reports = () => {
   const [reportType, setReportType] = useState('sales');
@@ -96,138 +95,23 @@ const Reports = () => {
     generateReport();
   }, [reportType]);
 
-  const exportToCSV = () => {
-    if (!reportData || reportData.length === 0) {
-      alert('No data to export');
-      return;
-    }
-
-    let csv = '';
-    let filename = '';
-
-    switch (reportType) {
-      case 'sales':
-        csv = generateSalesCSV();
-        filename = 'sales_report';
-        break;
-      case 'stock':
-        csv = generateStockCSV();
-        filename = 'stock_report';
-        break;
-      case 'outstanding_supplies':
-        csv = generateOutstandingSuppliesCSV();
-        filename = 'outstanding_supplies_report';
-        break;
-      case 'outstanding_balances':
-        csv = generateOutstandingBalancesCSV();
-        filename = 'outstanding_balances_report';
-        break;
-      default:
-        csv = '';
-    }
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
-  const generateSalesCSV = () => {
-    const headers = 'Date,Sale Number,Customer,LPO/Quote,Delivery,Product Names,Quantity Supplied,Total Amount,Amount Paid,Outstanding Balance,Mode of Payment\n';
-    const rows = reportData.map(sale => {
-      const productNames = (sale.line_items || []).map(item => item.product_name || '').join('; ');
-      const quantitySupplied = (sale.line_items || []).map(item => 
-        `${item.product_name}: ${item.quantity_supplied}/${item.quantity_ordered}`
-      ).join('; ');
+  // Group stock products hierarchically
+  const groupStockProducts = (products) => {
+    const grouped = {};
+    
+    products.forEach(product => {
+      const catName = product.category_name || 'Uncategorized';
+      const subcatName = product.subcategory_name || 'Uncategorized';
+      const groupName = product.subsubcategory_name || 'Ungrouped';
       
-      return [
-        new Date(sale.created_at).toLocaleDateString(),
-        sale.sale_number || '',
-        `"${sale.customer_name || ''}"`,
-        sale.lpo_quotation_number || '-',
-        sale.delivery_number || '-',
-        `"${productNames}"`,
-        `"${quantitySupplied}"`,
-        sale.total_amount || 0,
-        sale.amount_paid || 0,
-        sale.outstanding_balance || 0,
-        sale.mode_of_payment || ''
-      ].join(',');
-    }).join('\n');
-    
-    return headers + rows;
-  };
-
-  const generateStockCSV = () => {
-    const headers = 'Product Code,Product Name,Quantity,Status\n';
-    const rows = reportData.map(product => {
-      const status = (product.current_stock || 0) <= (product.minimum_stock || 0) ? 'Low Stock' : 'In Stock';
-      return [
-        product.code || '',
-        `"${product.name || ''}"`,
-        product.current_stock || 0,
-        status
-      ].join(',');
-    }).join('\n');
-    
-    return headers + rows;
-  };
-
-  const generateOutstandingSuppliesCSV = () => {
-    const headers = 'Date,Sale Number,Customer,LPO/Quote,Delivery,Product Name,Quantity Ordered,Quantity Supplied,Outstanding Supplies,Payment Status\n';
-    const rows = [];
-    
-    reportData.forEach(sale => {
-      (sale.line_items || []).forEach(item => {
-        if (item.supply_status === 'Partially Supplied' || item.supply_status === 'Not Supplied') {
-          const outstandingQty = (item.quantity_ordered || 0) - (item.quantity_supplied || 0);
-          const paymentStatus = parseFloat(sale.outstanding_balance || 0) > 0 ? 'Pending' : 'Paid';
-          
-          rows.push([
-            new Date(sale.created_at).toLocaleDateString(),
-            sale.sale_number || '',
-            `"${sale.customer_name || ''}"`,
-            sale.lpo_quotation_number || '-',
-            sale.delivery_number || '-',
-            `"${item.product_name || ''}"`,
-            item.quantity_ordered || 0,
-            item.quantity_supplied || 0,
-            outstandingQty,
-            paymentStatus
-          ].join(','));
-        }
-      });
+      if (!grouped[catName]) grouped[catName] = {};
+      if (!grouped[catName][subcatName]) grouped[catName][subcatName] = {};
+      if (!grouped[catName][subcatName][groupName]) grouped[catName][subcatName][groupName] = [];
+      
+      grouped[catName][subcatName][groupName].push(product);
     });
     
-    return headers + rows.join('\n');
-  };
-
-  const generateOutstandingBalancesCSV = () => {
-    const headers = 'Date,Sale Number,Customer,LPO/Quote,Delivery,Products,Total Amount,Amount Paid,Outstanding Balance\n';
-    const rows = reportData.map(sale => {
-      const products = (sale.line_items || []).map(item => item.product_name || '').join('; ');
-      
-      return [
-        new Date(sale.created_at).toLocaleDateString(),
-        sale.sale_number || '',
-        `"${sale.customer_name || ''}"`,
-        sale.lpo_quotation_number || '-',
-        sale.delivery_number || '-',
-        `"${products}"`,
-        sale.total_amount || 0,
-        sale.amount_paid || 0,
-        sale.outstanding_balance || 0
-      ].join(',');
-    }).join('\n');
-    
-    return headers + rows;
-  };
-
-  const printReport = () => {
-    window.print();
+    return grouped;
   };
 
   const getReportTitle = () => {
@@ -245,303 +129,359 @@ const Reports = () => {
     }
   };
 
+  const getReportStats = () => {
+    if (!reportData || reportData.length === 0) return null;
+
+    // Only show stats for stock report
+    if (reportType === 'stock') {
+      const totalProducts = reportData.length;
+      const lowStock = reportData.filter(p => (p.current_stock || 0) <= (p.minimum_stock || 0)).length;
+      const inStock = totalProducts - lowStock;
+      return {
+        'Total Products': totalProducts,
+        'In Stock': inStock,
+        'Low Stock': lowStock
+      };
+    }
+    
+    return null;
+  };
+
+  const stats = getReportStats();
+
   return (
     <div className={styles.reportsPage}>
-      {/* Print Header - Only visible when printing */}
-      <div className={styles.printHeader}>
-        <div className={styles.printHeaderContent}>
-          <img src={companyLogo} alt="Company Logo" className={styles.printLogo} />
-          <div className={styles.printCompanyInfo}>
-            <h1 className={styles.printCompanyName}>EDGE SYSTEMS LIMITED</h1>
-            <h2 className={styles.printReportTitle}>{getReportTitle()}</h2>
-          </div>
-        </div>
-      </div>
-
-      {/* Screen Header - Hidden when printing */}
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={styles.pageTitle}>Reports</h1>
-          <p className={styles.pageSubtitle}>Generate and export various reports</p>
+          <h1 className={styles.pageTitle}>Reports & Analytics</h1>
+          <p className={styles.pageSubtitle}>Generate comprehensive business reports</p>
         </div>
       </div>
 
       <div className={styles.controlPanel}>
-        <div className={styles.reportSelector}>
-          <label className={styles.label}>Report Type</label>
-          <select
-            value={reportType}
-            onChange={(e) => setReportType(e.target.value)}
-            className={styles.select}
-          >
-            <option value="sales">Sales Report</option>
-            <option value="stock">Stock Report</option>
-            <option value="outstanding_supplies">Outstanding Supplies</option>
-            <option value="outstanding_balances">Outstanding Balances</option>
-          </select>
-        </div>
-
-        <div className={styles.dateRange}>
-          <div className={styles.dateInput}>
-            <label className={styles.label}>Start Date</label>
-            <input
-              type="date"
-              name="start_date"
-              value={dateRange.start_date}
-              onChange={handleDateChange}
-              className={styles.input}
-            />
+        <div className={styles.filtersRow}>
+          <div className={styles.reportSelector}>
+            <label className={styles.label}>Report Type</label>
+            <select
+              value={reportType}
+              onChange={(e) => setReportType(e.target.value)}
+              className={styles.select}
+            >
+              <option value="sales">Sales Report</option>
+              <option value="stock">Stock Report</option>
+              <option value="outstanding_supplies">Outstanding Supplies</option>
+              <option value="outstanding_balances">Outstanding Balances</option>
+            </select>
           </div>
-          <div className={styles.dateInput}>
-            <label className={styles.label}>End Date</label>
-            <input
-              type="date"
-              name="end_date"
-              value={dateRange.end_date}
-              onChange={handleDateChange}
-              className={styles.input}
-            />
-          </div>
-        </div>
 
-        <div className={styles.actionButtons}>
-          <button
-            onClick={generateReport}
-            className="btn btn-primary"
-            disabled={loading}
-          >
-            {loading ? 'Generating...' : '📊 Generate Report'}
-          </button>
-          <button
-            onClick={exportToCSV}
-            className="btn btn-secondary"
-            disabled={!reportData || reportData.length === 0}
-          >
-            📥 Export CSV
-          </button>
-          <button
-            onClick={printReport}
-            className="btn btn-outline"
-            disabled={!reportData || reportData.length === 0}
-          >
-            🖨️ Print
-          </button>
+          <div className={styles.dateRange}>
+            <div className={styles.dateInput}>
+              <label className={styles.label}>Start Date</label>
+              <input
+                type="date"
+                name="start_date"
+                value={dateRange.start_date}
+                onChange={handleDateChange}
+                className={styles.input}
+              />
+            </div>
+            <div className={styles.dateInput}>
+              <label className={styles.label}>End Date</label>
+              <input
+                type="date"
+                name="end_date"
+                value={dateRange.end_date}
+                onChange={handleDateChange}
+                className={styles.input}
+              />
+            </div>
+          </div>
+
+          <div className={styles.actionButtonWrapper}>
+            <button
+              onClick={generateReport}
+              className={styles.generateBtn}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className={styles.spinner}></span>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <span className={styles.btnIcon}>📊</span>
+                  Generate Report
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">{getReportTitle()}</h2>
+      {stats && (
+        <div className={styles.statsGrid}>
+          {Object.entries(stats).map(([label, value]) => (
+            <div key={label} className={styles.statCard}>
+              <div className={styles.statLabel}>{label}</div>
+              <div className={styles.statValue}>{value}</div>
+            </div>
+          ))}
         </div>
-        <div className="card-body">
+      )}
+
+      <div className={styles.reportCard}>
+        <div className={styles.reportHeader}>
+          <h2 className={styles.reportTitle}>{getReportTitle()}</h2>
+          {reportData && reportData.length > 0 && (
+            <div className={styles.recordCount}>
+              {reportData.length} {reportData.length === 1 ? 'record' : 'records'}
+            </div>
+          )}
+        </div>
+        
+        <div className={styles.reportBody}>
           {loading ? (
             <div className={styles.loadingContainer}>
-              <div className="spinner"></div>
-              <p>Generating report...</p>
+              <div className={styles.loadingSpinner}></div>
+              <p className={styles.loadingText}>Generating report...</p>
             </div>
           ) : !reportData || reportData.length === 0 ? (
-            <p className={styles.noData}>No data available for this report</p>
+            <div className={styles.emptyState}>
+              <div className={styles.emptyIcon}>📊</div>
+              <p className={styles.emptyText}>No data available for this report</p>
+              <p className={styles.emptySubtext}>Try adjusting your filters or date range</p>
+            </div>
           ) : (
             <div className={styles.reportContent}>
               {/* SALES REPORT */}
               {reportType === 'sales' && (
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Sale Number</th>
-                      <th>Customer</th>
-                      <th>LPO/Quote</th>
-                      <th>Product Name</th>
-                      <th>Quantity Supplied</th>
-                      <th>Total Amount</th>
-                      <th>Amount Paid</th>
-                      <th>Outstanding Balance</th>
-                      <th>Mode of Payment</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.map(sale => (
-                      <tr key={sale.id}>
-                        <td>{new Date(sale.created_at).toLocaleDateString()}</td>
-                        <td>{sale.sale_number}</td>
-                        <td>{sale.customer_name}</td>
-                        <td>{sale.lpo_quotation_number || '-'}</td>
-                        <td>
-                          <div className={styles.productList}>
-                            {(sale.line_items || []).map((item, idx) => (
-                              <div key={idx}>{item.product_name}</div>
-                            ))}
-                          </div>
-                        </td>
-                        <td>
-                          <div className={styles.quantityList}>
-                            {(sale.line_items || []).map((item, idx) => (
-                              <div key={idx}>
-                                {item.quantity_supplied}/{item.quantity_ordered}
+                <div className={styles.tableWrapper}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Sale Number</th>
+                        <th>Customer</th>
+                        <th>LPO/Quote</th>
+                        <th>Product Name</th>
+                        <th>Quantity Supplied</th>
+                        <th>Total Amount</th>
+                        <th>Amount Paid</th>
+                        <th>Outstanding Balance</th>
+                        <th>Mode of Payment</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportData.map(sale => (
+                        <tr key={sale.id}>
+                          <td>{new Date(sale.created_at).toLocaleDateString()}</td>
+                          <td className={styles.saleNumber}>{sale.sale_number}</td>
+                          <td>{sale.customer_name}</td>
+                          <td>{sale.lpo_quotation_number || '-'}</td>
+                          <td>
+                            <div className={styles.productList}>
+                              {(sale.line_items || []).map((item, idx) => (
+                                <div key={idx} className={styles.productItem}>{item.product_name}</div>
+                              ))}
+                            </div>
+                          </td>
+                          <td>
+                            <div className={styles.quantityList}>
+                              {(sale.line_items || []).map((item, idx) => (
+                                <div key={idx} className={styles.quantityItem}>
+                                  {item.quantity_supplied}/{item.quantity_ordered}
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                          <td className={styles.amount}>KES {formatCurrency(sale.total_amount)}</td>
+                          <td className={styles.amount}>KES {formatCurrency(sale.amount_paid)}</td>
+                          <td>
+                            <span className={parseFloat(sale.outstanding_balance) > 0 ? styles.textDanger : styles.textSuccess}>
+                              KES {formatCurrency(sale.outstanding_balance)}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`${styles.badge} ${sale.mode_of_payment === 'Not Paid' ? styles.badgeWarning : styles.badgeSuccess}`}>
+                              {sale.mode_of_payment}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* STOCK REPORT - GROUPED BY HIERARCHY */}
+              {reportType === 'stock' && (() => {
+                const grouped = groupStockProducts(reportData);
+                
+                return (
+                  <div className={styles.stockReport}>
+                    {Object.entries(grouped).map(([catName, subcats]) => (
+                      <div key={catName} className={styles.categorySection}>
+                        <div className={styles.categoryHeader}>
+                          <h3 className={styles.categoryTitle}>{catName}</h3>
+                        </div>
+                        
+                        {Object.entries(subcats).map(([subcatName, groups]) => (
+                          <div key={subcatName} className={styles.subcategorySection}>
+                            <div className={styles.subcategoryHeader}>
+                              <h4 className={styles.subcategoryTitle}>{subcatName}</h4>
+                            </div>
+                            
+                            {Object.entries(groups).map(([groupName, products]) => (
+                              <div key={groupName} className={styles.groupSection}>
+                                <div className={styles.groupHeader}>
+                                  <h5 className={styles.groupTitle}>{groupName}</h5>
+                                  <span className={styles.groupCount}>{products.length} products</span>
+                                </div>
+                                
+                                <div className={styles.tableWrapper}>
+                                  <table className={styles.table}>
+                                    <thead>
+                                      <tr>
+                                        <th>Product Code</th>
+                                        <th>Product Name</th>
+                                        <th>Current Stock</th>
+                                        <th>Minimum Stock</th>
+                                        <th>Status</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {products.map(product => (
+                                        <tr key={product.id}>
+                                          <td className={styles.productCode}>{product.code}</td>
+                                          <td className={styles.productName}>{product.name}</td>
+                                          <td className={styles.stockQuantity}>{product.current_stock}</td>
+                                          <td className={styles.stockQuantity}>{product.minimum_stock || 0}</td>
+                                          <td>
+                                            <span className={`${styles.badge} ${
+                                              (product.current_stock || 0) <= (product.minimum_stock || 0)
+                                                ? styles.badgeDanger
+                                                : styles.badgeSuccess
+                                            }`}>
+                                              {(product.current_stock || 0) <= (product.minimum_stock || 0)
+                                                ? 'Low Stock' 
+                                                : 'In Stock'}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
                               </div>
                             ))}
                           </div>
-                        </td>
-                        <td>KES {formatCurrency(sale.total_amount)}</td>
-                        <td>KES {formatCurrency(sale.amount_paid)}</td>
-                        <td>
-                          <span className={parseFloat(sale.outstanding_balance) > 0 ? styles.textDanger : styles.textSuccess}>
-                            KES {formatCurrency(sale.outstanding_balance)}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`badge ${sale.mode_of_payment === 'Not Paid' ? 'badge-warning' : 'badge-success'}`}>
-                            {sale.mode_of_payment}
-                          </span>
-                        </td>
-                      </tr>
+                        ))}
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              )}
-
-              {/* STOCK REPORT */}
-              {reportType === 'stock' && (
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Product Code</th>
-                      <th>Product Name</th>
-                      <th>Quantity</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.map(product => (
-                      <tr key={product.id}>
-                        <td>{product.code}</td>
-                        <td>{product.name}</td>
-                        <td>{product.current_stock}</td>
-                        <td>
-                          <span className={`badge ${
-                            (product.current_stock || 0) <= (product.minimum_stock || 0)
-                              ? 'badge-danger' 
-                              : 'badge-success'
-                          }`}>
-                            {(product.current_stock || 0) <= (product.minimum_stock || 0)
-                              ? 'Low Stock' 
-                              : 'In Stock'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+                  </div>
+                );
+              })()}
 
               {/* OUTSTANDING SUPPLIES REPORT */}
               {reportType === 'outstanding_supplies' && (
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Sale Number</th>
-                      <th>Customer</th>
-                      <th>LPO/Quote</th>
-                      <th>Product Name</th>
-                      <th>Quantity Ordered</th>
-                      <th>Quantity Supplied</th>
-                      <th>Outstanding Supplies</th>
-                      <th>Payment Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.map(sale => 
-                      (sale.line_items || [])
-                        .filter(item => 
-                          item.supply_status === 'Partially Supplied' || 
-                          item.supply_status === 'Not Supplied'
-                        )
-                        .map((item, idx) => {
-                          const outstandingQty = (item.quantity_ordered || 0) - (item.quantity_supplied || 0);
-                          const paymentStatus = parseFloat(sale.outstanding_balance || 0) > 0 ? 'Pending' : 'Paid';
-                          
-                          return (
-                            <tr key={`${sale.id}-${idx}`}>
-                              <td>{new Date(sale.created_at).toLocaleDateString()}</td>
-                              <td>{sale.sale_number}</td>
-                              <td>{sale.customer_name}</td>
-                              <td>{sale.lpo_quotation_number || '-'}</td>
-                              <td>{item.product_name}</td>
-                              <td>{item.quantity_ordered}</td>
-                              <td>{item.quantity_supplied}</td>
-                              <td className={styles.textDanger}>
-                                <strong>{outstandingQty}</strong>
-                              </td>
-                              <td>
-                                <span className={`badge ${
-                                  paymentStatus === 'Paid' 
-                                    ? 'badge-success' 
-                                    : 'badge-warning'
-                                }`}>
-                                  {paymentStatus}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })
-                    )}
-                  </tbody>
-                </table>
+                <div className={styles.tableWrapper}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Sale Number</th>
+                        <th>Customer</th>
+                        <th>LPO/Quote</th>
+                        <th>Product Name</th>
+                        <th>Quantity Ordered</th>
+                        <th>Quantity Supplied</th>
+                        <th>Outstanding Supplies</th>
+                        <th>Payment Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportData.map(sale => 
+                        (sale.line_items || [])
+                          .filter(item => 
+                            item.supply_status === 'Partially Supplied' || 
+                            item.supply_status === 'Not Supplied'
+                          )
+                          .map((item, idx) => {
+                            const outstandingQty = (item.quantity_ordered || 0) - (item.quantity_supplied || 0);
+                            const paymentStatus = parseFloat(sale.outstanding_balance || 0) > 0 ? 'Pending' : 'Paid';
+                            
+                            return (
+                              <tr key={`${sale.id}-${idx}`}>
+                                <td>{new Date(sale.created_at).toLocaleDateString()}</td>
+                                <td className={styles.saleNumber}>{sale.sale_number}</td>
+                                <td>{sale.customer_name}</td>
+                                <td>{sale.lpo_quotation_number || '-'}</td>
+                                <td className={styles.productName}>{item.product_name}</td>
+                                <td className={styles.stockQuantity}>{item.quantity_ordered}</td>
+                                <td className={styles.stockQuantity}>{item.quantity_supplied}</td>
+                                <td className={styles.outstandingQty}>
+                                  {outstandingQty}
+                                </td>
+                                <td>
+                                  <span className={`${styles.badge} ${
+                                    paymentStatus === 'Paid' 
+                                      ? styles.badgeSuccess
+                                      : styles.badgeWarning
+                                  }`}>
+                                    {paymentStatus}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               )}
 
               {/* OUTSTANDING BALANCES REPORT */}
               {reportType === 'outstanding_balances' && (
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Sale Number</th>
-                      <th>Customer</th>
-                      <th>Products</th>
-                      <th>Total Amount</th>
-                      <th>Amount Paid</th>
-                      <th>Outstanding Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.map(sale => (
-                      <tr key={sale.id}>
-                        <td>{new Date(sale.created_at).toLocaleDateString()}</td>
-                        <td>{sale.sale_number}</td>
-                        <td>{sale.customer_name}</td>
-                        <td>
-                          <div className={styles.productList}>
-                            {(sale.line_items || []).map((item, idx) => (
-                              <div key={idx}>{item.product_name}</div>
-                            ))}
-                          </div>
-                        </td>
-                        <td>KES {formatCurrency(sale.total_amount)}</td>
-                        <td>KES {formatCurrency(sale.amount_paid)}</td>
-                        <td className={styles.textDanger}>
-                          <strong>KES {formatCurrency(sale.outstanding_balance)}</strong>
-                        </td>
+                <div className={styles.tableWrapper}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Sale Number</th>
+                        <th>Customer</th>
+                        <th>Products</th>
+                        <th>Total Amount</th>
+                        <th>Amount Paid</th>
+                        <th>Outstanding Balance</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {reportData.map(sale => (
+                        <tr key={sale.id}>
+                          <td>{new Date(sale.created_at).toLocaleDateString()}</td>
+                          <td className={styles.saleNumber}>{sale.sale_number}</td>
+                          <td>{sale.customer_name}</td>
+                          <td>
+                            <div className={styles.productList}>
+                              {(sale.line_items || []).map((item, idx) => (
+                                <div key={idx} className={styles.productItem}>{item.product_name}</div>
+                              ))}
+                            </div>
+                          </td>
+                          <td className={styles.amount}>KES {formatCurrency(sale.total_amount)}</td>
+                          <td className={styles.amount}>KES {formatCurrency(sale.amount_paid)}</td>
+                          <td className={styles.outstandingAmount}>
+                            KES {formatCurrency(sale.outstanding_balance)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Print Footer - Only visible when printing */}
-      <div className={styles.printFooter}>
-        <div className={styles.printFooterContent}>
-          <p className={styles.printAddress}>
-            <strong>Office Location:</strong> Shelter House, Dai Dai Road, South B, Ground Floor Apartment GF4, Nairobi
-          </p>
-          <p className={styles.printContact}>
-            <strong>Email:</strong> info@edgesystems.co.ke | <strong>Tel:</strong> 0721247366 / 0117320000
-          </p>
         </div>
       </div>
     </div>

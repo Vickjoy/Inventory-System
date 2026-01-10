@@ -5,7 +5,7 @@ import styles from './StockAdjustModal.module.css';
 
 const StockAdjustModal = ({ product, allProducts, suppliers, onClose }) => {
   const [formData, setFormData] = useState({
-    action_type: 'restock', // 'restock' or 'manual'
+    action_type: 'restock',
     quantity: '',
     supplier: '',
     notes: ''
@@ -24,7 +24,6 @@ const StockAdjustModal = ({ product, allProducts, suppliers, onClose }) => {
     }
   }, [product]);
 
-  // Filter products based on search term
   useEffect(() => {
     if (searchTerm.trim() && !selectedProduct) {
       const search = searchTerm.toLowerCase();
@@ -62,7 +61,7 @@ const StockAdjustModal = ({ product, allProducts, suppliers, onClose }) => {
     setError('');
     
     if (!selectedProduct) {
-      setError('Please select a product');
+      setError('Select a product');
       return;
     }
 
@@ -80,25 +79,23 @@ const StockAdjustModal = ({ product, allProducts, suppliers, onClose }) => {
       let payload;
 
       if (formData.action_type === 'restock') {
-        // Restock - requires supplier and adds quantity
         if (!formData.supplier) {
-          setError('Please select a supplier for restocking');
+          setError('Select a supplier');
           setLoading(false);
           return;
         }
 
         payload = {
-          type: 'In', // Stock In
+          type: 'In',
           quantity: quantity,
           supplier: formData.supplier,
           notes: formData.notes || `Restocked from supplier`
         };
       } else {
-        // Manual Adjustment - sets absolute quantity
         payload = {
           type: 'Adjustment',
           quantity: quantity,
-          notes: formData.notes || 'Manual stock adjustment'
+          notes: formData.notes || 'Manual adjustment'
         };
       }
 
@@ -117,10 +114,8 @@ const StockAdjustModal = ({ product, allProducts, suppliers, onClose }) => {
     const qty = parseInt(formData.quantity);
     
     if (formData.action_type === 'restock') {
-      // Add to current stock
       return selectedProduct.current_stock + qty;
     } else {
-      // Set to absolute value
       return qty;
     }
   };
@@ -152,19 +147,16 @@ const StockAdjustModal = ({ product, allProducts, suppliers, onClose }) => {
               <div className={styles.alertDanger}>{error}</div>
             )}
 
-            {/* Product Search - Only show when no product is pre-selected */}
             {!product && (
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>
-                  Search Product * (Type code or name)
-                </label>
+                <label className={styles.formLabel}>Product *</label>
                 <div className={styles.searchContainer}>
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={handleSearchChange}
                     className={styles.formInput}
-                    placeholder="Type product code or name..."
+                    placeholder="Type code or name..."
                     required
                     autoComplete="off"
                   />
@@ -188,22 +180,17 @@ const StockAdjustModal = ({ product, allProducts, suppliers, onClose }) => {
                     </div>
                   )}
                 </div>
-                <small className={styles.helpText}>
-                  Start typing to see matching products
-                </small>
               </div>
             )}
 
             {selectedProduct && (
               <>
                 <div className={styles.alertInfo}>
-                  <strong>Current Stock:</strong> {selectedProduct.current_stock} units
-                  <br />
-                  <strong>Minimum Stock:</strong> {selectedProduct.minimum_stock} units
+                  <strong>Current:</strong> {selectedProduct.current_stock} | <strong>Min:</strong> {selectedProduct.minimum_stock}
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Action Type *</label>
+                  <label className={styles.formLabel}>Action *</label>
                   <select
                     name="action_type"
                     value={formData.action_type}
@@ -211,21 +198,17 @@ const StockAdjustModal = ({ product, allProducts, suppliers, onClose }) => {
                     className={styles.formSelect}
                     required
                   >
-                    <option value="restock">📦 Restock (Add from Supplier)</option>
-                    <option value="manual">⚙️ Manual Adjustment (Set New Quantity)</option>
+                    <option value="restock">📦 Restock (Add)</option>
+                    <option value="manual">⚙️ Manual (Set Total)</option>
                   </select>
                   <small className={styles.helpText}>
-                    {formData.action_type === 'restock' && '• Adds stock received from a supplier'}
-                    {formData.action_type === 'manual' && '• Sets the exact total stock quantity'}
+                    {formData.action_type === 'restock' ? 'Adds to current stock' : 'Sets exact total'}
                   </small>
                 </div>
 
-                {/* Show supplier dropdown only for Restock */}
                 {showSupplierField && (
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>
-                      Supplier * (Select supplier for restock)
-                    </label>
+                    <label className={styles.formLabel}>Supplier *</label>
                     <select
                       name="supplier"
                       value={formData.supplier}
@@ -233,7 +216,7 @@ const StockAdjustModal = ({ product, allProducts, suppliers, onClose }) => {
                       className={styles.formSelect}
                       required
                     >
-                      <option value="">-- Select Supplier --</option>
+                      <option value="">-- Select --</option>
                       {activeSuppliers.map(supplier => (
                         <option key={supplier.id} value={supplier.id}>
                           {supplier.company_name}
@@ -242,7 +225,7 @@ const StockAdjustModal = ({ product, allProducts, suppliers, onClose }) => {
                     </select>
                     {activeSuppliers.length === 0 && (
                       <small className={styles.errorText}>
-                        No active suppliers available. Please add suppliers first.
+                        No active suppliers available
                       </small>
                     )}
                   </div>
@@ -250,9 +233,7 @@ const StockAdjustModal = ({ product, allProducts, suppliers, onClose }) => {
 
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>
-                    {formData.action_type === 'manual' 
-                      ? 'New Total Stock Quantity *' 
-                      : 'Quantity to Add *'}
+                    {formData.action_type === 'manual' ? 'New Total *' : 'Quantity *'}
                   </label>
                   <input
                     type="number"
@@ -262,32 +243,16 @@ const StockAdjustModal = ({ product, allProducts, suppliers, onClose }) => {
                     className={styles.formInput}
                     required
                     min="1"
-                    placeholder={
-                      formData.action_type === 'manual' 
-                        ? 'Enter new total quantity' 
-                        : 'Enter quantity to add'
-                    }
+                    placeholder={formData.action_type === 'manual' ? 'Total quantity' : 'Units to add'}
                   />
-                  <small className={styles.helpText}>
-                    {formData.action_type === 'manual' 
-                      ? '• Enter the exact total stock you want (e.g., 100 units total)'
-                      : '• Enter the number of units being added (e.g., add 50 units)'
-                    }
-                  </small>
                 </div>
 
                 {formData.quantity && (
                   <div className={styles.alertSuccess}>
-                    <strong>
-                      {formData.action_type === 'restock' 
-                        ? `Adding ${formData.quantity} units to current stock` 
-                        : `Setting total stock to ${formData.quantity} units`}
-                    </strong>
-                    <br />
-                    <strong>New Stock Level:</strong> {newStock} units
+                    <strong>New Stock: {newStock} units</strong>
                     {newStock <= selectedProduct.minimum_stock && (
                       <div className={styles.cautionText}>
-                        ⚠️ Stock will be at or below minimum level ({selectedProduct.minimum_stock} units)
+                        ⚠️ At or below minimum ({selectedProduct.minimum_stock})
                       </div>
                     )}
                   </div>
@@ -301,7 +266,7 @@ const StockAdjustModal = ({ product, allProducts, suppliers, onClose }) => {
                     onChange={handleChange}
                     className={styles.formTextarea}
                     rows="3"
-                    placeholder="Enter reason for stock adjustment (optional)"
+                    placeholder="Optional notes..."
                   />
                 </div>
               </>
@@ -322,7 +287,7 @@ const StockAdjustModal = ({ product, allProducts, suppliers, onClose }) => {
               className={`${styles.btn} ${styles.btnPrimary}`}
               disabled={loading || !selectedProduct}
             >
-              {loading ? 'Processing...' : '✅ Confirm Stock Change'}
+              {loading ? 'Processing...' : '✅ Confirm'}
             </button>
           </div>
         </form>
