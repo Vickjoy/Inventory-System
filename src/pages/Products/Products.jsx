@@ -19,7 +19,7 @@ const Products = () => {
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const isStaffOrAdmin = user?.is_staff || user?.is_superuser;
 
@@ -58,6 +58,15 @@ const Products = () => {
     } else if (!urlFilter && filter === 'low') {
       console.log('URL changed to normal, updating filter');
       setFilter('all');
+    }
+  }, [searchParams]);
+
+  // Handle sidebar action to open Add Product modal
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'add') {
+      handleAddProduct();
+      setSearchParams({});
     }
   }, [searchParams]);
 

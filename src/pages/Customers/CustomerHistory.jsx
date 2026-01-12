@@ -26,6 +26,8 @@ const CustomerHistory = () => {
     start_date: '',
     end_date: ''
   });
+  const [specificDate, setSpecificDate] = useState('');
+  const [generatedReport, setGeneratedReport] = useState(null);
 
   useEffect(() => {
     loadCustomerData();
@@ -63,6 +65,42 @@ const CustomerHistory = () => {
       'Not Supplied': 'badge-danger'
     };
     return badges[status] || 'badge-secondary';
+  };
+
+  const handleGenerateReport = () => {
+    if (!specificDate) {
+      alert('Please select a date to generate the report');
+      return;
+    }
+
+    const reportDate = new Date(specificDate);
+    const reportSales = sales.filter(sale => {
+      const saleDate = new Date(sale.created_at);
+      return saleDate.toDateString() === reportDate.toDateString();
+    });
+
+    if (reportSales.length === 0) {
+      alert(`No sales found for ${reportDate.toLocaleDateString()}`);
+      return;
+    }
+
+    setGeneratedReport({
+      date: specificDate,
+      sales: reportSales,
+      totalAmount: reportSales.reduce((sum, sale) => sum + parseFloat(sale.total_amount || 0), 0),
+      totalPaid: reportSales.reduce((sum, sale) => sum + parseFloat(sale.amount_paid || 0), 0),
+      totalOutstanding: reportSales.reduce((sum, sale) => sum + parseFloat(sale.outstanding_balance || 0), 0)
+    });
+
+    // Scroll to report
+    setTimeout(() => {
+      document.getElementById('generatedReport')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  const clearReport = () => {
+    setGeneratedReport(null);
+    setSpecificDate('');
   };
 
   const filteredSales = sales.filter(sale => {
@@ -115,7 +153,11 @@ const CustomerHistory = () => {
           <img src={companyLogo} alt="Company Logo" className={styles.printLogo} />
           <div className={styles.printCompanyInfo}>
             <h1 className={styles.printCompanyName}>EDGE SYSTEMS LIMITED</h1>
-            <h2 className={styles.printReportTitle}>Purchase History</h2>
+            <h2 className={styles.printReportTitle}>
+              {generatedReport 
+                ? `Daily Purchase Report - ${new Date(generatedReport.date).toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' })}`
+                : 'Purchase History'}
+            </h2>
             <h3 className={styles.printCustomerName}>{customer.company_name}</h3>
           </div>
         </div>
@@ -130,6 +172,7 @@ const CustomerHistory = () => {
           <h1 className={styles.pageTitle}>{customer.company_name}</h1>
           <div className={styles.customerMeta}>
             {customer.phone && <span>📞 {customer.phone}</span>}
+            {customer.email && <span>✉️ {customer.email}</span>}
             <span className={`badge ${customer.is_active ? 'badge-success' : 'badge-danger'}`}>
               {customer.is_active ? 'Active' : 'Inactive'}
             </span>
@@ -139,55 +182,234 @@ const CustomerHistory = () => {
 
       {/* Control Panel - Hidden when printing */}
       <div className={styles.controlPanel}>
-        <div className={styles.searchBox}>
-          <input
-            type="text"
-            placeholder="Search by sale number or LPO..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={styles.searchInput}
-          />
-          <span className={styles.searchIcon}>🔍</span>
+        <div className={styles.controlSection}>
+          <h3 className={styles.controlTitle}>🔍 Search & Filter</h3>
+          <div className={styles.searchBox}>
+            <input
+              type="text"
+              placeholder="Search by sale number or LPO..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={styles.searchInput}
+            />
+            <span className={styles.searchIcon}>🔍</span>
+          </div>
+
+          <div className={styles.dateRange}>
+            <div className={styles.dateInput}>
+              <label className={styles.label}>Start Date</label>
+              <input
+                type="date"
+                name="start_date"
+                value={dateRange.start_date}
+                onChange={handleDateChange}
+                className={styles.input}
+              />
+            </div>
+            <div className={styles.dateInput}>
+              <label className={styles.label}>End Date</label>
+              <input
+                type="date"
+                name="end_date"
+                value={dateRange.end_date}
+                onChange={handleDateChange}
+                className={styles.input}
+              />
+            </div>
+          </div>
         </div>
 
-        <div className={styles.dateRange}>
-          <div className={styles.dateInput}>
-            <label className={styles.label}>Start Date</label>
-            <input
-              type="date"
-              name="start_date"
-              value={dateRange.start_date}
-              onChange={handleDateChange}
-              className={styles.input}
-            />
-          </div>
-          <div className={styles.dateInput}>
-            <label className={styles.label}>End Date</label>
-            <input
-              type="date"
-              name="end_date"
-              value={dateRange.end_date}
-              onChange={handleDateChange}
-              className={styles.input}
-            />
-          </div>
-        </div>
+        <div className={styles.divider}></div>
 
-        <div className={styles.actionButtons}>
-          <button
-            onClick={printHistory}
-            className="btn btn-primary"
-            disabled={filteredSales.length === 0}
-          >
-            🖨️ Print History
-          </button>
+        <div className={styles.controlSection}>
+          <h3 className={styles.controlTitle}>📊 Daily Report Generator</h3>
+          <div className={styles.reportGenerator}>
+            <div className={styles.dateInput}>
+              <label className={styles.label}>Select Specific Date</label>
+              <input
+                type="date"
+                value={specificDate}
+                onChange={(e) => setSpecificDate(e.target.value)}
+                className={styles.input}
+                max={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            <div className={styles.actionButtons}>
+              <button
+                onClick={handleGenerateReport}
+                className={`btn btn-success ${styles.generateBtn}`}
+                disabled={!specificDate}
+              >
+                📊 Generate Report
+              </button>
+              {generatedReport && (
+                <button
+                  onClick={clearReport}
+                  className="btn btn-secondary"
+                >
+                  ✖️ Clear Report
+                </button>
+              )}
+              <button
+                onClick={printHistory}
+                className={`btn btn-primary ${styles.printBtn}`}
+                disabled={filteredSales.length === 0 && !generatedReport}
+              >
+                🖨️ Print
+              </button>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Generated Daily Report */}
+      {generatedReport && (
+        <div id="generatedReport" className={`card ${styles.generatedReportCard}`}>
+          <div className={styles.reportHeader}>
+            <div className={styles.reportHeaderLeft}>
+              <h2 className={styles.reportTitle}>
+                📅 Daily Report - {new Date(generatedReport.date).toLocaleDateString('en-KE', { 
+                  weekday: 'long',
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </h2>
+              <p className={styles.reportSubtitle}>
+                Total Transactions: <strong>{generatedReport.sales.length}</strong>
+              </p>
+            </div>
+            <div className={styles.reportSummary}>
+              <div className={styles.summaryCard}>
+                <span className={styles.summaryLabel}>Total Sales</span>
+                <span className={styles.summaryValue}>
+                  KES {formatCurrency(generatedReport.totalAmount)}
+                </span>
+              </div>
+              <div className={styles.summaryCard}>
+                <span className={styles.summaryLabel}>Amount Paid</span>
+                <span className={`${styles.summaryValue} ${styles.summaryPaid}`}>
+                  KES {formatCurrency(generatedReport.totalPaid)}
+                </span>
+              </div>
+              <div className={styles.summaryCard}>
+                <span className={styles.summaryLabel}>Outstanding</span>
+                <span className={`${styles.summaryValue} ${styles.summaryOutstanding}`}>
+                  KES {formatCurrency(generatedReport.totalOutstanding)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="card-body">
+            <div className="table-container">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Sale #</th>
+                    <th>Time</th>
+                    <th>Products</th>
+                    <th>Total Amount</th>
+                    <th>Payment Status</th>
+                    <th>LPO/Quote</th>
+                    <th>Delivery #</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {generatedReport.sales.map((sale) => (
+                    <tr key={sale.id}>
+                      <td className={styles.saleNumber}>{sale.sale_number}</td>
+                      <td>{new Date(sale.created_at).toLocaleTimeString('en-KE', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}</td>
+                      <td>
+                        <div
+                          className={styles.productsSummary}
+                          onClick={() =>
+                            setExpandedSaleId(expandedSaleId === sale.id ? null : sale.id)
+                          }
+                        >
+                          {sale.line_items[0]?.product_name}
+                          {sale.line_items.length > 1 && (
+                            <span className={styles.moreProducts}>
+                              +{sale.line_items.length - 1} more
+                            </span>
+                          )}
+                        </div>
+                        {expandedSaleId === sale.id && (
+                          <div className={styles.expandedProducts}>
+                            {sale.line_items.map((item, idx) => (
+                              <div key={idx} className={styles.expandedProductItem}>
+                                <strong>{item.product_name}</strong> ({item.quantity_supplied}/{item.quantity_ordered})
+                                <span className={`badge ${getStatusBadge(item.supply_status)}`}>
+                                  {item.supply_status}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className={styles.printOnlyProducts}>
+                          {sale.line_items.map((item, idx) => (
+                            <div key={idx} className={styles.printProductItem}>
+                              <strong>{item.product_name}</strong> ({item.quantity_supplied}/{item.quantity_ordered})
+                              <span className={`badge ${getStatusBadge(item.supply_status)}`}>
+                                {item.supply_status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className={styles.totalAmount}>
+                        KES {formatCurrency(sale.total_amount)}
+                      </td>
+                      <td>
+                        <div className={styles.paymentStatusContainer}>
+                          <span
+                            className={`badge ${
+                              sale.mode_of_payment === 'Not Paid'
+                                ? 'badge-warning'
+                                : 'badge-success'
+                            }`}
+                          >
+                            {sale.mode_of_payment}
+                          </span>
+                          {sale.amount_paid > 0 && (
+                            <div className={styles.amountPaid}>
+                              Paid: KES {formatCurrency(sale.amount_paid)}
+                            </div>
+                          )}
+                          {sale.outstanding_balance > 0 && (
+                            <div className={styles.outstandingBalance}>
+                              Balance: KES {formatCurrency(sale.outstanding_balance)}
+                            </div>
+                          )}
+                          {parseFloat(sale.outstanding_balance) === 0 &&
+                            parseFloat(sale.amount_paid) > 0 && (
+                              <div
+                                className="badge badge-success"
+                                style={{ marginTop: '4px' }}
+                              >
+                                ✓ Fully Paid
+                              </div>
+                            )}
+                        </div>
+                      </td>
+                      <td>{sale.lpo_quotation_number || '-'}</td>
+                      <td>{sale.delivery_number || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sales History Table */}
       <div className="card">
         <div className="card-body">
-          <h2 className={styles.sectionTitle}>Purchase History</h2>
+          <h2 className={styles.sectionTitle}>Complete Purchase History</h2>
           {filteredSales.length === 0 ? (
             <p className={styles.noData}>
               {searchTerm || dateRange.start_date || dateRange.end_date
@@ -214,7 +436,6 @@ const CustomerHistory = () => {
                       <td className={styles.saleNumber}>{sale.sale_number}</td>
                       <td>{new Date(sale.created_at).toLocaleDateString()}</td>
                       <td>
-                        {/* Screen version: Collapsible */}
                         <div
                           className={styles.productsSummary}
                           onClick={() =>
@@ -240,8 +461,6 @@ const CustomerHistory = () => {
                             ))}
                           </div>
                         )}
-
-                        {/* Print version: Always show all products */}
                         <div className={styles.printOnlyProducts}>
                           {sale.line_items.map((item, idx) => (
                             <div key={idx} className={styles.printProductItem}>
@@ -307,6 +526,15 @@ const CustomerHistory = () => {
           </p>
           <p className={styles.printContact}>
             <strong>Email:</strong> info@edgesystems.co.ke | <strong>Tel:</strong> 0721247366 / 0117320000
+          </p>
+          <p className={styles.printGenerated}>
+            Generated on: {new Date().toLocaleDateString('en-KE', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
           </p>
         </div>
       </div>

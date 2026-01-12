@@ -1,12 +1,13 @@
 // src/components/Layout/Layout.jsx
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import Header from '../Header/Header';
 import Sidebar from '../Sidebar/Sidebar';
 import styles from './Layout.module.css';
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -16,9 +17,22 @@ const Layout = () => {
     setSidebarOpen(false);
   };
 
+  const handleOpenProductModal = () => {
+    navigate('/products?action=add');
+  };
+
+  const handleOpenSaleModal = () => {
+    navigate('/sales?action=new');
+  };
+
   return (
     <div className={styles.layout}>
-      <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={closeSidebar}
+        onOpenProductModal={handleOpenProductModal}
+        onOpenSaleModal={handleOpenSaleModal}
+      />
       <div className={styles.mainContainer}>
         <Header onMenuToggle={toggleSidebar} />
         <main className={styles.content}>

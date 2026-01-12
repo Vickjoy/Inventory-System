@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import CompanyLogo from '../../assets/CompanyIcon.png';
 import styles from './Sidebar.module.css';
 
-const Sidebar = ({ isOpen, onClose }) => {
+const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal }) => {
   const { isAdmin } = useAuth();
 
   const navigation = [
@@ -64,6 +64,14 @@ const Sidebar = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleActionClick = (callback) => {
+    callback();
+    // Close sidebar on mobile when clicking action button
+    if (window.innerWidth <= 768) {
+      onClose();
+    }
+  };
+
   return (
     <>
       {/* Overlay for mobile */}
@@ -101,6 +109,25 @@ const Sidebar = ({ isOpen, onClose }) => {
             </NavLink>
           ))}
         </nav>
+
+        {/* Action Buttons Section */}
+        <div className={styles.actionSection}>
+          <button 
+            className={styles.actionButton}
+            onClick={() => handleActionClick(onOpenProductModal)}
+          >
+            <span className={styles.actionIcon}>+</span>
+            <span className={styles.actionLabel}>Add Product</span>
+          </button>
+
+          <button 
+            className={styles.actionButton}
+            onClick={() => handleActionClick(onOpenSaleModal)}
+          >
+            <span className={styles.actionIcon}>+</span>
+            <span className={styles.actionLabel}>New Sale</span>
+          </button>
+        </div>
       </aside>
     </>
   );

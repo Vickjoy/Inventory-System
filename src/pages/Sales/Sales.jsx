@@ -1,6 +1,6 @@
 // src/pages/Sales/Sales.jsx
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../utils/api';
 import SaleModal from './SaleModal';
 import styles from './Sales.module.css';
@@ -18,10 +18,20 @@ const Sales = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedSaleId, setExpandedSaleId] = useState(null);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     loadSales();
   }, []);
+
+  // Handle sidebar action to open New Sale modal
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'new') {
+      setShowModal(true);
+      setSearchParams({});
+    }
+  }, [searchParams]);
 
   const loadSales = async () => {
     try {
