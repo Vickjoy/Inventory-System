@@ -1,6 +1,6 @@
-// src/pages/Login/Login.jsx
+// src/pages/Login/Login.jsx - Refined version
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import styles from './Login.module.css';
 import companyLogo from '../../assets/CompanyIcon.png';
@@ -12,6 +12,11 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Auto-focus username field on mount
+  useEffect(() => {
+    document.getElementById('username')?.focus();
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -39,6 +44,12 @@ const Login = () => {
     }
   };
 
+  // Clear error when user starts typing
+  const handleInputChange = (setter) => (e) => {
+    setError('');
+    setter(e.target.value);
+  };
+
   return (
     <div className={styles.loginContainer}>
       <div className={styles.loginCard}>
@@ -57,7 +68,7 @@ const Login = () => {
         {/* Form Section */}
         <form onSubmit={handleSubmit} className={styles.loginForm}>
           {error && (
-            <div className={styles.errorAlert}>
+            <div className={styles.errorAlert} role="alert" aria-live="polite">
               <span>⚠️</span>
               <span>{error}</span>
             </div>
@@ -71,11 +82,12 @@ const Login = () => {
               type="text"
               id="username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={handleInputChange(setUsername)}
               className={styles.formInput}
               placeholder="Enter your username"
               required
               autoComplete="username"
+              disabled={loading}
             />
           </div>
 
@@ -87,12 +99,20 @@ const Login = () => {
               type="password"
               id="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={handleInputChange(setPassword)}
               className={styles.formInput}
               placeholder="Enter your password"
               required
               autoComplete="current-password"
+              disabled={loading}
             />
+          </div>
+
+          {/* Forgot Password Link */}
+          <div className={styles.forgotPasswordContainer}>
+            <Link to="/forgot-password" className={styles.forgotPasswordLink}>
+              Forgot Password?
+            </Link>
           </div>
 
           <button 
@@ -114,7 +134,7 @@ const Login = () => {
         {/* Footer */}
         <div className={styles.loginFooter}>
           <p className={styles.footerText}>
-            © Edgesystems 2025. All rights reserved.
+            © Edge Systems 2025. All rights reserved.
           </p>
         </div>
       </div>

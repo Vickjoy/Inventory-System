@@ -1,4 +1,4 @@
-/* src/pages/Login/Login.module.css */
+/* src/pages/Login/Login.module.css - Updated with Forgot Password styles */
 
 .loginContainer {
   min-height: 100vh;
@@ -95,6 +95,26 @@
 
 .formInput::placeholder {
   color: #9ca3af;
+}
+
+/* Forgot Password Link */
+.forgotPasswordContainer {
+  text-align: right;
+  margin-bottom: 1.5rem;
+  margin-top: -0.5rem;
+}
+
+.forgotPasswordLink {
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.forgotPasswordLink:hover {
+  color: #1e40af;
+  text-decoration: underline;
 }
 
 .loginButton {
