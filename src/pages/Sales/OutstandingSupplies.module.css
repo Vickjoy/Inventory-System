@@ -1,227 +1,453 @@
-/* src/pages/Sales/OutstandingSupplies.module.css */
+/* src/pages/Sales/OutstandingSupplies.module.css - Enhanced Professional */
+
 .outstandingPage {
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: 2rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+/* Bold, Visible Scrollbar */
+.outstandingPage ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.outstandingPage ::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 6px;
+}
+
+.outstandingPage ::-webkit-scrollbar-thumb {
+  background: #f59e0b;
+  border-radius: 6px;
+  border: 2px solid #e2e8f0;
+}
+
+.outstandingPage ::-webkit-scrollbar-thumb:hover {
+  background: #d97706;
+}
+
+/* Page Header */
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 3px solid #f59e0b;
+}
+
+.pageTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #d97706;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.5px;
+  text-transform: capitalize;
+}
+
+.pageSubtitle {
+  font-size: 1rem;
+  color: #64748b;
+  margin: 0;
+  font-weight: 500;
+}
+
+.btnBack {
+  white-space: nowrap;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(100, 116, 139, 0.3) !important;
+  transition: all 0.2s ease !important;
+}
+
+.btnBack:hover {
+  background: linear-gradient(135deg, #475569 0%, #334155 100%) !important;
+  box-shadow: 0 6px 16px rgba(100, 116, 139, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 1.25rem;
+}
+
+.loadingContainer .spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e2e8f0;
+  border-radius: 50%;
+  border-top-color: #f59e0b;
+  animation: spin 0.8s linear infinite;
+}
+
+.loadingContainer p {
+  color: #64748b;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Search Box */
+.searchBox {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 1.5rem;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.searchIcon {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.1rem;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+/* Card Styles */
+.outstandingPage .card {
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  background: white;
+}
+
+.outstandingPage .card-body {
+  padding: 0;
+}
+
+/* Table Container */
+.outstandingPage .table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1.5rem 1.75rem;
+}
+
+/* Table Styles - WITH VISIBLE BORDERS */
+.outstandingPage table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  border: 2px solid #cbd5e1;
+  margin: 0;
+}
+
+.outstandingPage table thead {
+  background: linear-gradient(to right, #fffbeb 0%, #fef3c7 100%);
+}
+
+.outstandingPage table th {
+  padding: 1rem 1.25rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 2px solid #cbd5e1;
+  white-space: nowrap;
+  background: #fffbeb;
+}
+
+.outstandingPage table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.outstandingPage table tbody tr:hover {
+  background-color: #fffbeb;
+}
+
+.outstandingPage table td {
+  padding: 1rem 1.25rem;
+  color: #334155;
+  font-size: 0.875rem;
+  vertical-align: middle;
+  border: 2px solid #cbd5e1;
+  font-weight: 500;
+}
+
+/* Table Cell Styles */
+.saleNumber {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: #2563eb;
+  font-size: 0.8125rem;
+}
+
+.customerName {
+  font-weight: 700;
+  color: #1e40af;
+}
+
+.productName {
+  font-weight: 700;
+  color: #374151;
+}
+
+.quantityOrdered {
+  font-weight: 700;
+  color: #2563eb;
+  text-align: center;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #93c5fd;
+}
+
+.quantitySupplied {
+  font-weight: 700;
+  color: #059669;
+  text-align: center;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #6ee7b7;
+}
+
+.quantityOutstanding {
+  font-weight: 700;
+  color: #dc2626;
+  text-align: center;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  border: 1px solid #fca5a5;
+}
+
+.unitPrice {
+  font-weight: 700;
+  color: #64748b;
+  text-align: right;
+}
+
+.totalValue {
+  font-weight: 700;
+  color: #d97706;
+  text-align: right;
+  font-size: 0.9375rem;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #fbbf24;
+}
+
+/* Status Badges */
+.outstandingPage .badge {
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.outstandingPage .badge-success {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+.outstandingPage .badge-warning {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.outstandingPage .badge-danger {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.outstandingPage .badge-secondary {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+.noData {
+  text-align: center;
+  color: #64748b;
+  padding: 3rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+/* Mobile Responsive - Tablets */
+@media (max-width: 1024px) {
+  .outstandingPage { 
+    padding: 1rem; 
   }
   
+  .pageTitle { 
+    font-size: 1.75rem; 
+  }
+}
+
+/* Mobile Responsive - Medium Phones */
+@media (max-width: 768px) {
+  .outstandingPage {
+    padding: 1rem 0.75rem;
+  }
+
   .pageHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 2px solid #e5e7eb;
-  }
-  
-  .pageTitle {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #d97706;
-    margin: 0 0 0.5rem 0;
-  }
-  
-  .pageSubtitle {
-    font-size: 1rem;
-    color: #64748b;
-    margin: 0;
-  }
-  
-  .btnBack {
-    white-space: nowrap;
-    padding: 0.75rem 1.5rem;
-    font-weight: 600;
-  }
-  
-  .loadingContainer {
-    display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 200px;
+    align-items: stretch;
     gap: 1rem;
-  }
-  
-  /* Search Box */
-  .searchBox {
-    position: relative;
-    width: 100%;
-    max-width: 600px;
+    padding-bottom: 1rem;
     margin-bottom: 1.5rem;
   }
-  
+
+  .pageTitle { 
+    font-size: 1.5rem;
+  }
+
+  .pageSubtitle {
+    font-size: 0.875rem;
+  }
+
+  .btnBack {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    justify-content: center;
+  }
+
+  .searchBox { 
+    max-width: 100%;
+    margin-bottom: 1rem;
+  }
+
   .searchInput {
     width: 100%;
-    padding: 0.65rem 2.5rem 0.65rem 1rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    transition: all 0.2s ease;
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    font-size: 0.9375rem;
   }
-  
-  .searchInput:focus {
-    outline: none;
-    border-color: #f59e0b;
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
-  }
-  
+
   .searchIcon {
-    position: absolute;
-    right: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 1.1rem;
-    color: #94a3b8;
-    pointer-events: none;
+    right: 1rem;
+    font-size: 1.2rem;
   }
-  
-  /* Table Styles */
-  .saleNumber {
-    font-family: 'Courier New', monospace;
-    font-weight: 600;
-    color: #2563eb;
+
+  .outstandingPage .table-container {
+    padding: 1rem;
+    overflow-x: auto;
   }
-  
-  .customerName {
-    font-weight: 600;
-    color: #1e40af;
+
+  .outstandingPage table {
+    min-width: 1200px;
   }
-  
-  .productName {
-    font-weight: 600;
-    color: #374151;
+
+  .outstandingPage table th,
+  .outstandingPage table td {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.8125rem;
+    border-width: 1px;
   }
-  
-  .quantityOrdered {
-    font-weight: 600;
-    color: #2563eb;
-    text-align: center;
+}
+
+/* Mobile Responsive - Small Phones */
+@media (max-width: 480px) {
+  .outstandingPage { 
+    padding: 0.75rem 0.5rem; 
   }
-  
-  .quantitySupplied {
-    font-weight: 600;
-    color: #059669;
-    text-align: center;
+
+  .pageHeader {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
   }
-  
-  .quantityOutstanding {
-    font-weight: 700;
-    color: #dc2626;
-    text-align: center;
-    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-    padding: 0.5rem;
-    border-radius: 0.375rem;
+
+  .pageTitle { 
+    font-size: 1.375rem;
   }
-  
-  .unitPrice {
-    font-weight: 600;
-    color: #64748b;
-    text-align: right;
+
+  .pageSubtitle {
+    font-size: 0.8125rem;
   }
-  
+
+  .btnBack {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9375rem;
+  }
+
+  .searchInput {
+    padding: 0.65rem 2.25rem 0.65rem 0.875rem;
+    font-size: 0.875rem;
+  }
+
+  .outstandingPage table {
+    min-width: 1100px;
+  }
+
+  .outstandingPage table th,
+  .outstandingPage table td {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .outstandingPage .badge {
+    font-size: 0.6875rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .quantityOrdered,
+  .quantitySupplied,
+  .quantityOutstanding,
   .totalValue {
-    font-weight: 700;
-    color: #d97706;
-    text-align: right;
-    font-size: 1.0625rem;
+    padding: 0.375rem;
+    font-size: 0.8125rem;
   }
-  
-  .noData {
-    text-align: center;
-    color: #64748b;
-    padding: 3rem;
-    font-size: 1rem;
+}
+
+/* Extra Small Screens */
+@media (max-width: 360px) {
+  .outstandingPage { 
+    padding: 0.5rem; 
   }
-  
-  /* Responsive - Tablet */
-  @media (max-width: 1024px) {
-    .outstandingPage { 
-      padding: 1rem; 
-    }
-    
-    .pageTitle { 
-      font-size: 1.75rem; 
-    }
+
+  .pageTitle { 
+    font-size: 1.25rem;
   }
-  
-  /* Responsive - Mobile */
-  @media (max-width: 768px) {
-    .outstandingPage {
-      padding: 1rem 0.75rem;
-    }
-  
-    .pageHeader {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 1rem;
-      padding-bottom: 1rem;
-      margin-bottom: 1.5rem;
-    }
-  
-    .pageTitle { 
-      font-size: 1.5rem;
-    }
-  
-    .pageSubtitle {
-      font-size: 0.875rem;
-    }
-  
-    .btnBack {
-      width: 100%;
-      padding: 0.875rem 1.5rem;
-      font-size: 1rem;
-      justify-content: center;
-    }
-  
-    .searchBox { 
-      max-width: 100%;
-      margin-bottom: 1rem;
-    }
-  
-    .searchInput {
-      width: 100%;
-      padding: 0.75rem 2.5rem 0.75rem 1rem;
-      font-size: 0.9375rem;
-    }
-  
-    .searchIcon {
-      right: 1rem;
-      font-size: 1.2rem;
-    }
-  
-    /* Make table scrollable on mobile */
-    .tableContainer {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
+
+  .outstandingPage table {
+    min-width: 1000px;
   }
-  
-  /* Responsive - Small Mobile */
-  @media (max-width: 480px) {
-    .outstandingPage { 
-      padding: 0.75rem 0.5rem; 
-    }
-  
-    .pageHeader {
-      margin-bottom: 1rem;
-      padding-bottom: 0.75rem;
-    }
-  
-    .pageTitle { 
-      font-size: 1.375rem;
-    }
-  
-    .pageSubtitle {
-      font-size: 0.8125rem;
-    }
-  
-    .btnBack {
-      padding: 0.75rem 1.25rem;
-      font-size: 0.9375rem;
-    }
-  
-    .searchInput {
-      padding: 0.65rem 2.25rem 0.65rem 0.875rem;
-      font-size: 0.875rem;
-    }
+
+  .outstandingPage table th,
+  .outstandingPage table td {
+    padding: 0.5rem;
+    font-size: 0.6875rem;
   }
+}

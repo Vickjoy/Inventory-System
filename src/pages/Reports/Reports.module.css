@@ -8,6 +8,27 @@
   min-height: 100vh;
 }
 
+/* Bold, Visible Scrollbar */
+.reportsPage ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.reportsPage ::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 6px;
+}
+
+.reportsPage ::-webkit-scrollbar-thumb {
+  background: #2563eb;
+  border-radius: 6px;
+  border: 2px solid #e2e8f0;
+}
+
+.reportsPage ::-webkit-scrollbar-thumb:hover {
+  background: #1e40af;
+}
+
 /* Page Header */
 .pageHeader {
   margin-bottom: 2rem;
@@ -153,6 +174,52 @@
   to { transform: rotate(360deg); }
 }
 
+/* Category Filter Bar - Matching Products Page Style */
+.categoryFilterBar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  padding: 1rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.categoryButton,
+.categoryActive {
+  padding: 0.75rem 1.75rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.categoryButton {
+  background: white;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.categoryButton:hover {
+  background: #f8fafc;
+  border-color: #2563eb;
+  color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.categoryActive {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  color: white;
+  border-color: #1e40af;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
 /* Stats Grid */
 .statsGrid {
   display: grid;
@@ -218,7 +285,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 1.75rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 2px solid #e2e8f0;
   background: linear-gradient(to right, #f8fafc 0%, #ffffff 100%);
 }
 
@@ -307,12 +374,12 @@
   padding: 1.5rem 1.75rem;
 }
 
-/* Table Styles */
+/* Table Styles - WITH VISIBLE BORDERS */
 .table {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+  border-collapse: collapse;
   font-size: 0.875rem;
+  border: 2px solid #cbd5e1;
 }
 
 .table thead tr {
@@ -327,37 +394,25 @@
   color: #334155;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 2px solid #cbd5e1;
+  border: 2px solid #cbd5e1;
   white-space: nowrap;
-  position: sticky;
-  top: 0;
   background: #f8fafc;
-  z-index: 10;
 }
 
 .table tbody tr {
   transition: background-color 0.15s ease;
-  border-bottom: 1px solid #f1f5f9;
 }
 
 .table tbody tr:hover {
-  background-color: #fafbfc;
-}
-
-.table tbody tr:last-child {
-  border-bottom: none;
+  background-color: #f8fafc;
 }
 
 .table td {
   padding: 1rem 1.25rem;
   color: #334155;
   font-size: 0.875rem;
-  vertical-align: top;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.table tbody tr:last-child td {
-  border-bottom: none;
+  vertical-align: middle;
+  border: 2px solid #cbd5e1;
 }
 
 /* Table Cell Styles */
@@ -404,8 +459,7 @@
   font-size: 0.9375rem;
 }
 
-.productList,
-.quantityList {
+.productList {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
@@ -414,13 +468,6 @@
 .productItem {
   padding: 0.25rem 0;
   line-height: 1.4;
-}
-
-.quantityItem {
-  padding: 0.25rem 0;
-  line-height: 1.4;
-  font-weight: 600;
-  color: #475569;
 }
 
 .textDanger {
@@ -463,13 +510,18 @@
   border: 1px solid #fecaca;
 }
 
-/* Stock Report Specific Styles */
+/* Stock Report Specific Styles - Matching Overall Theme */
 .stockReport {
   padding: 1.5rem 1.75rem;
 }
 
 .categorySection {
   margin-bottom: 2.5rem;
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 2px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .categorySection:last-child {
@@ -479,15 +531,16 @@
 .categoryHeader {
   margin-bottom: 1.5rem;
   padding-bottom: 0.75rem;
-  border-bottom: 3px solid #6366f1;
+  border-bottom: 3px solid #2563eb;
 }
 
 .categoryTitle {
   font-size: 1.375rem;
   font-weight: 700;
-  color: #4f46e5;
+  color: #1e40af;
   margin: 0;
   letter-spacing: -0.3px;
+  text-transform: uppercase;
 }
 
 .subcategorySection {
@@ -502,25 +555,26 @@
 .subcategoryHeader {
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #a78bfa;
+  border-bottom: 2px solid #cbd5e1;
 }
 
 .subcategoryTitle {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #7c3aed;
+  color: #475569;
   margin: 0;
   letter-spacing: -0.2px;
+  text-transform: uppercase;
 }
 
 .groupSection {
   margin-bottom: 1.5rem;
   padding-left: 1rem;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-radius: 10px;
   padding: 1.25rem;
-  border: 2px solid #fbbf24;
-  box-shadow: 0 2px 4px rgba(251, 191, 36, 0.1);
+  border: 2px solid #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .groupSection:last-child {
@@ -533,24 +587,25 @@
   align-items: center;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #f59e0b;
+  border-bottom: 2px solid #2563eb;
 }
 
 .groupTitle {
   font-size: 1rem;
   font-weight: 700;
-  color: #92400e;
+  color: #1e40af;
   margin: 0;
+  text-transform: capitalize;
 }
 
 .groupCount {
   font-size: 0.8125rem;
   font-weight: 700;
   color: white;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
   padding: 0.375rem 0.75rem;
   border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
 }
 
 .groupSection .tableWrapper {
@@ -559,11 +614,15 @@
   background: white;
   border-radius: 8px;
   overflow: hidden;
-  border: 2px solid #fbbf24;
+  border: 2px solid #cbd5e1;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
-/* Mobile Responsive */
+.groupSection .table {
+  border: none;
+}
+
+/* Mobile Responsive - Tablets */
 @media (max-width: 1200px) {
   .filtersRow {
     grid-template-columns: 1fr;
@@ -585,8 +644,16 @@
   .statsGrid {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
+
+  .categoryFilterBar {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 1rem;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
+/* Mobile Responsive - Medium Phones */
 @media (max-width: 768px) {
   .reportsPage {
     padding: 1rem;
@@ -604,6 +671,16 @@
     padding: 1.25rem;
   }
 
+  .categoryFilterBar {
+    padding: 0.75rem;
+  }
+
+  .categoryButton,
+  .categoryActive {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+  }
+
   .reportHeader {
     flex-direction: column;
     align-items: flex-start;
@@ -612,19 +689,23 @@
 
   .tableWrapper {
     padding: 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .table {
     font-size: 0.8125rem;
+    min-width: 800px;
   }
 
   .table th,
   .table td {
     padding: 0.75rem 0.875rem;
+    border-width: 1px;
   }
 
   .statValue {
-    font-size: 1.25rem;
+    font-size: 1.5rem;
   }
 
   .categoryTitle {
@@ -643,12 +724,17 @@
     padding: 1rem;
   }
 
+  .categorySection {
+    padding: 1rem;
+  }
+
   .subcategorySection,
   .groupSection {
     padding-left: 0.5rem;
   }
 }
 
+/* Mobile Responsive - Small Phones */
 @media (max-width: 480px) {
   .reportsPage {
     padding: 0.75rem;
@@ -662,24 +748,84 @@
     padding: 1rem;
   }
 
+  .categoryFilterBar {
+    padding: 0.5rem;
+  }
+
+  .categoryButton,
+  .categoryActive {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.6875rem;
+  }
+
   .statsGrid {
     grid-template-columns: 1fr;
   }
 
   .table {
     font-size: 0.75rem;
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
+    min-width: 700px;
   }
 
   .table th,
   .table td {
     padding: 0.625rem 0.75rem;
+    font-size: 0.75rem;
   }
 
   .badge {
     font-size: 0.6875rem;
     padding: 0.25rem 0.5rem;
+  }
+
+  .statValue {
+    font-size: 1.25rem;
+  }
+
+  .categoryTitle {
+    font-size: 1rem;
+  }
+
+  .subcategoryTitle {
+    font-size: 0.9375rem;
+  }
+
+  .groupTitle {
+    font-size: 0.875rem;
+  }
+
+  .groupCount {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .categorySection {
+    padding: 0.75rem;
+  }
+}
+
+/* Extra Small Screens */
+@media (max-width: 360px) {
+  .reportsPage {
+    padding: 0.5rem;
+  }
+
+  .pageTitle {
+    font-size: 1.125rem;
+  }
+
+  .controlPanel,
+  .categoryFilterBar {
+    padding: 0.75rem;
+  }
+
+  .table {
+    min-width: 650px;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem;
+    font-size: 0.6875rem;
   }
 }

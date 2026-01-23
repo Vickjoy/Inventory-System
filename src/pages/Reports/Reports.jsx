@@ -11,6 +11,8 @@ const Reports = () => {
     start_date: '',
     end_date: ''
   });
+  const [categories, setCategories] = useState([]);
+  const [stockCategoryFilter, setStockCategoryFilter] = useState('all');
 
   const formatCurrency = (amount) => {
     const num = parseFloat(amount) || 0;
@@ -19,6 +21,19 @@ const Reports = () => {
       maximumFractionDigits: 2 
     });
   };
+
+  // Load categories
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const catData = await api.getCategories();
+        setCategories(catData?.results || catData || []);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+    loadCategories();
+  }, []);
 
   const handleDateChange = (e) => {
     const { name, value } = e.target;
@@ -95,11 +110,16 @@ const Reports = () => {
     generateReport();
   }, [reportType]);
 
-  // Group stock products hierarchically
+  // Group stock products hierarchically with category filter
   const groupStockProducts = (products) => {
     const grouped = {};
     
-    products.forEach(product => {
+    // Apply stock category filter
+    const filteredProducts = stockCategoryFilter === 'all' 
+      ? products 
+      : products.filter(p => p.category === parseInt(stockCategoryFilter));
+    
+    filteredProducts.forEach(product => {
       const catName = product.category_name || 'Uncategorized';
       const subcatName = product.subcategory_name || 'Uncategorized';
       const groupName = product.subsubcategory_name || 'Ungrouped';
@@ -134,8 +154,12 @@ const Reports = () => {
 
     // Only show stats for stock report
     if (reportType === 'stock') {
-      const totalProducts = reportData.length;
-      const lowStock = reportData.filter(p => (p.current_stock || 0) <= (p.minimum_stock || 0)).length;
+      const filteredProducts = stockCategoryFilter === 'all'
+        ? reportData
+        : reportData.filter(p => p.category === parseInt(stockCategoryFilter));
+      
+      const totalProducts = filteredProducts.length;
+      const lowStock = filteredProducts.filter(p => (p.current_stock || 0) <= (p.minimum_stock || 0)).length;
       const inStock = totalProducts - lowStock;
       return {
         'Total Products': totalProducts,
@@ -164,7 +188,10 @@ const Reports = () => {
             <label className={styles.label}>Report Type</label>
             <select
               value={reportType}
-              onChange={(e) => setReportType(e.target.value)}
+              onChange={(e) => {
+                setReportType(e.target.value);
+                setStockCategoryFilter('all'); // Reset filter when changing report type
+              }}
               className={styles.select}
             >
               <option value="sales">Sales Report</option>
@@ -219,6 +246,27 @@ const Reports = () => {
         </div>
       </div>
 
+      {/* Stock Category Filter - Only show for stock report */}
+      {reportType === 'stock' && (
+        <div className={styles.categoryFilterBar}>
+          <button
+            onClick={() => setStockCategoryFilter('all')}
+            className={stockCategoryFilter === 'all' ? styles.categoryActive : styles.categoryButton}
+          >
+            ALL CATEGORIES
+          </button>
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setStockCategoryFilter(cat.id.toString())}
+              className={stockCategoryFilter === cat.id.toString() ? styles.categoryActive : styles.categoryButton}
+            >
+              {cat.name.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      )}
+
       {stats && (
         <div className={styles.statsGrid}>
           {Object.entries(stats).map(([label, value]) => (
@@ -235,7 +283,9 @@ const Reports = () => {
           <h2 className={styles.reportTitle}>{getReportTitle()}</h2>
           {reportData && reportData.length > 0 && (
             <div className={styles.recordCount}>
-              {reportData.length} {reportData.length === 1 ? 'record' : 'records'}
+              {reportType === 'stock' && stockCategoryFilter !== 'all'
+                ? `${(stockCategoryFilter === 'all' ? reportData : reportData.filter(p => p.category === parseInt(stockCategoryFilter))).length} records`
+                : `${reportData.length} ${reportData.length === 1 ? 'record' : 'records'}`}
             </div>
           )}
         </div>
@@ -273,42 +323,38 @@ const Reports = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {reportData.map(sale => (
-                        <tr key={sale.id}>
-                          <td>{new Date(sale.created_at).toLocaleDateString()}</td>
-                          <td className={styles.saleNumber}>{sale.sale_number}</td>
-                          <td>{sale.customer_name}</td>
-                          <td>{sale.lpo_quotation_number || '-'}</td>
-                          <td>
-                            <div className={styles.productList}>
-                              {(sale.line_items || []).map((item, idx) => (
-                                <div key={idx} className={styles.productItem}>{item.product_name}</div>
-                              ))}
-                            </div>
-                          </td>
-                          <td>
-                            <div className={styles.quantityList}>
-                              {(sale.line_items || []).map((item, idx) => (
-                                <div key={idx} className={styles.quantityItem}>
-                                  {item.quantity_supplied}/{item.quantity_ordered}
-                                </div>
-                              ))}
-                            </div>
-                          </td>
-                          <td className={styles.amount}>KES {formatCurrency(sale.total_amount)}</td>
-                          <td className={styles.amount}>KES {formatCurrency(sale.amount_paid)}</td>
-                          <td>
-                            <span className={parseFloat(sale.outstanding_balance) > 0 ? styles.textDanger : styles.textSuccess}>
-                              KES {formatCurrency(sale.outstanding_balance)}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={`${styles.badge} ${sale.mode_of_payment === 'Not Paid' ? styles.badgeWarning : styles.badgeSuccess}`}>
-                              {sale.mode_of_payment}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
+                      {reportData.flatMap(sale => 
+                        (sale.line_items || []).map((item, idx) => (
+                          <tr key={`${sale.id}-${idx}`}>
+                            {idx === 0 && (
+                              <>
+                                <td rowSpan={sale.line_items.length}>{new Date(sale.created_at).toLocaleDateString()}</td>
+                                <td rowSpan={sale.line_items.length} className={styles.saleNumber}>{sale.sale_number}</td>
+                                <td rowSpan={sale.line_items.length}>{sale.customer_name}</td>
+                                <td rowSpan={sale.line_items.length}>{sale.lpo_quotation_number || '-'}</td>
+                              </>
+                            )}
+                            <td className={styles.productName}>{item.product_name}</td>
+                            <td className={styles.stockQuantity}>{item.quantity_supplied}</td>
+                            {idx === 0 && (
+                              <>
+                                <td rowSpan={sale.line_items.length} className={styles.amount}>KES {formatCurrency(sale.total_amount)}</td>
+                                <td rowSpan={sale.line_items.length} className={styles.amount}>KES {formatCurrency(sale.amount_paid)}</td>
+                                <td rowSpan={sale.line_items.length}>
+                                  <span className={parseFloat(sale.outstanding_balance) > 0 ? styles.textDanger : styles.textSuccess}>
+                                    KES {formatCurrency(sale.outstanding_balance)}
+                                  </span>
+                                </td>
+                                <td rowSpan={sale.line_items.length}>
+                                  <span className={`${styles.badge} ${sale.mode_of_payment === 'Not Paid' ? styles.badgeWarning : styles.badgeSuccess}`}>
+                                    {sale.mode_of_payment}
+                                  </span>
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>

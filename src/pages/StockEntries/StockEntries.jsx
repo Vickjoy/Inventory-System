@@ -5,8 +5,8 @@ import api from '../../utils/api';
 import styles from './StockEntries.module.css';
 
 const StockEntries = () => {
-  const [stockEntries, setStockEntries] = useState([]);
-  const [salesData, setSalesData] = useState([]);
+  const [stockInData, setStockInData] = useState([]);
+  const [stockOutData, setStockOutData] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('stock-in');
@@ -38,51 +38,42 @@ const StockEntries = () => {
         setLoading(true);
         
         if (activeTab === 'stock-in') {
-          // Load stock entries
-          let allEntries = [];
+          // Load Stock IN movements (direction=IN, reasons: RESTOCK, ADJUSTMENT, INITIAL, RETURN)
+          let allMovements = [];
           let nextUrl = null;
 
-          const response = await api.getStockEntries();
-          allEntries = response.results || response;
+          const response = await api.request('/stock-movements/?direction=IN');
+          allMovements = response.results || response;
           nextUrl = response.next;
 
           while (nextUrl) {
-            const nextResponse = await api.getStockEntries(nextUrl);
-            allEntries = [...allEntries, ...(nextResponse.results || [])];
+            const nextResponse = await api.request(nextUrl);
+            allMovements = [...allMovements, ...(nextResponse.results || [])];
             nextUrl = nextResponse.next;
           }
 
-          setStockEntries(allEntries);
+          setStockInData(allMovements);
         } else {
-          // Load sales data for Stock Out
-          const salesResponse = await api.request('/sales/');
-          const sales = Array.isArray(salesResponse) ? salesResponse : (salesResponse?.results || []);
-          
-          // Flatten sales into individual line items with sale details
-          const flattenedSales = [];
-          sales.forEach(sale => {
-            sale.line_items.forEach(item => {
-              flattenedSales.push({
-                id: `${sale.id}-${item.id}`,
-                date: sale.created_at,
-                product_code: item.product_code,
-                product_name: item.product_name,
-                sale_number: sale.sale_number,
-                customer_name: sale.customer_name,
-                quantity: item.quantity_supplied,
-                supply_status: item.supply_status,
-                lpo_quotation_number: sale.lpo_quotation_number,
-                delivery_number: sale.delivery_number
-              });
-            });
-          });
-          
-          setSalesData(flattenedSales);
+          // Load Stock OUT movements (direction=OUT, reasons: SALE, DAMAGE, TRANSFER)
+          let allMovements = [];
+          let nextUrl = null;
+
+          const response = await api.request('/stock-movements/?direction=OUT');
+          allMovements = response.results || response;
+          nextUrl = response.next;
+
+          while (nextUrl) {
+            const nextResponse = await api.request(nextUrl);
+            allMovements = [...allMovements, ...(nextResponse.results || [])];
+            nextUrl = nextResponse.next;
+          }
+
+          setStockOutData(allMovements);
         }
       } catch (error) {
         console.error('Error loading data:', error);
-        setStockEntries([]);
-        setSalesData([]);
+        setStockInData([]);
+        setStockOutData([]);
       } finally {
         setLoading(false);
       }
@@ -91,81 +82,90 @@ const StockEntries = () => {
     loadData();
   }, [activeTab]);
 
-  // Filter stock entries (Stock In)
-  const filteredStockIn = stockEntries.filter(entry => {
+  // Filter stock IN movements
+  const filteredStockIn = stockInData.filter(movement => {
     const search = searchTerm.toLowerCase();
     const matchesSearch = 
-      entry.product_code?.toLowerCase().includes(search) ||
-      entry.product_name?.toLowerCase().includes(search);
+      movement.product_code?.toLowerCase().includes(search) ||
+      movement.product_name?.toLowerCase().includes(search) ||
+      movement.supplier_name?.toLowerCase().includes(search);
 
     if (!matchesSearch) return false;
-    if (categoryFilter !== 'all' && entry.category_name !== categoryFilter) return false;
-    if (subcategoryFilter !== 'all' && entry.subcategory_name !== subcategoryFilter) return false;
-    if (subsubcategoryFilter !== 'all' && entry.subsubcategory_name !== subsubcategoryFilter) return false;
+    if (categoryFilter !== 'all' && movement.category_name !== categoryFilter) return false;
+    if (subcategoryFilter !== 'all' && movement.subcategory_name !== subcategoryFilter) return false;
+    if (subsubcategoryFilter !== 'all' && movement.subsubcategory_name !== subsubcategoryFilter) return false;
     return true;
   });
 
-  // Filter sales data (Stock Out)
-  const filteredStockOut = salesData.filter(item => {
+  // Filter stock OUT movements
+  const filteredStockOut = stockOutData.filter(movement => {
     const search = searchTerm.toLowerCase();
     return (
-      item.product_code?.toLowerCase().includes(search) ||
-      item.product_name?.toLowerCase().includes(search) ||
-      item.sale_number?.toLowerCase().includes(search) ||
-      item.customer_name?.toLowerCase().includes(search)
+      movement.product_code?.toLowerCase().includes(search) ||
+      movement.product_name?.toLowerCase().includes(search) ||
+      movement.sale_number?.toLowerCase().includes(search) ||
+      movement.customer_name?.toLowerCase().includes(search) ||
+      movement.reason_display?.toLowerCase().includes(search)
     );
   });
 
   // Group Stock In entries by category → subcategory → subsubcategory
   const groupedStockIn = {};
-  filteredStockIn.forEach(entry => {
-    const cat = entry.category_name || 'Uncategorized';
-    const subcat = entry.subcategory_name || 'Uncategorized';
-    const subsub = entry.subsubcategory_name || 'Ungrouped';
+  filteredStockIn.forEach(movement => {
+    const cat = movement.category_name || 'Uncategorized';
+    const subcat = movement.subcategory_name || 'Uncategorized';
+    const subsub = movement.subsubcategory_name || 'Ungrouped';
 
     if (!groupedStockIn[cat]) groupedStockIn[cat] = {};
     if (!groupedStockIn[cat][subcat]) groupedStockIn[cat][subcat] = {};
     if (!groupedStockIn[cat][subcat][subsub]) groupedStockIn[cat][subcat][subsub] = [];
 
-    groupedStockIn[cat][subcat][subsub].push(entry);
+    groupedStockIn[cat][subcat][subsub].push(movement);
   });
 
-  const renderStockInRows = (entries) =>
-    entries.map(entry => (
-      <tr key={entry.id}>
-        <td>{new Date(entry.created_at).toLocaleString()}</td>
-        <td className={styles.productCode}>{entry.product_code}</td>
-        <td>{entry.product_name}</td>
-        <td className={styles.quantity}>{entry.quantity}</td>
+  const renderStockInRows = (movements) =>
+    movements.map(movement => (
+      <tr key={movement.id}>
+        <td>{new Date(movement.created_at).toLocaleString()}</td>
+        <td className={styles.productCode}>{movement.product_code}</td>
+        <td>{movement.product_name}</td>
+        <td className={styles.quantity}>{movement.quantity}</td>
         <td>
-          <span className={`badge ${entry.entry_type === 'stocked' ? 'badge-success' : 'badge-warning'}`}>
-            {entry.entry_type === 'stocked' ? 'Stocked' : 'Manual Adjustment'}
+          <span className={`badge ${
+            movement.reason === 'RESTOCK' ? 'badge-success' : 
+            movement.reason === 'ADJUSTMENT' ? 'badge-warning' :
+            movement.reason === 'INITIAL' ? 'badge-info' :
+            'badge-primary'
+          }`}>
+            {movement.reason_display}
           </span>
         </td>
-        <td>{entry.recorded_by_name || 'N/A'}</td>
+        <td>{movement.supplier_name || 'N/A'}</td>
+        <td>{movement.recorded_by_name || 'N/A'}</td>
+        <td className={styles.notes}>{movement.notes || '-'}</td>
       </tr>
     ));
 
-  const renderStockOutRows = (items) =>
-    items.map(item => (
-      <tr key={item.id}>
-        <td>{new Date(item.date).toLocaleString()}</td>
-        <td className={styles.productCode}>{item.product_code}</td>
-        <td>{item.product_name}</td>
-        <td className={styles.saleNumber}>{item.sale_number}</td>
-        <td>{item.customer_name}</td>
-        <td className={styles.quantity}>{item.quantity}</td>
+  const renderStockOutRows = (movements) =>
+    movements.map(movement => (
+      <tr key={movement.id}>
+        <td>{new Date(movement.created_at).toLocaleString()}</td>
+        <td className={styles.productCode}>{movement.product_code}</td>
+        <td>{movement.product_name}</td>
+        <td className={styles.quantity}>{movement.quantity}</td>
         <td>
           <span className={`badge ${
-            item.supply_status === 'Supplied' ? 'badge-success' : 
-            item.supply_status === 'Partially Supplied' ? 'badge-warning' : 
-            'badge-danger'
+            movement.reason === 'SALE' ? 'badge-success' : 
+            movement.reason === 'DAMAGE' ? 'badge-danger' :
+            'badge-warning'
           }`}>
-            {item.supply_status}
+            {movement.reason_display}
           </span>
         </td>
-        <td>{item.lpo_quotation_number || '-'}</td>
-        <td>{item.delivery_number || '-'}</td>
+        <td className={styles.saleNumber}>{movement.sale_number || '-'}</td>
+        <td>{movement.customer_name || '-'}</td>
+        <td>{movement.recorded_by_name || 'N/A'}</td>
+        <td className={styles.notes}>{movement.notes || '-'}</td>
       </tr>
     ));
 
@@ -173,7 +173,7 @@ const StockEntries = () => {
     return (
       <div className={styles.loadingContainer}>
         <div className="spinner"></div>
-        <p>Loading stock entries...</p>
+        <p>Loading stock movements...</p>
       </div>
     );
   }
@@ -182,7 +182,12 @@ const StockEntries = () => {
     <div className={styles.stockEntriesPage}>
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={styles.pageTitle}>Stock Entries</h1>
+          <h1 className={styles.pageTitle}>Stock Movements</h1>
+          <p className={styles.pageSubtitle}>
+            {activeTab === 'stock-in' 
+              ? 'Track inventory increases: restocking, adjustments, returns' 
+              : 'Track inventory decreases: sales, damages, transfers'}
+          </p>
         </div>
       </div>
 
@@ -198,7 +203,7 @@ const StockEntries = () => {
           }}
           className={activeTab === 'stock-in' ? styles.tabActive : styles.tab}
         >
-          Stock In
+          📥 Stock In
         </button>
         <button
           onClick={() => {
@@ -207,7 +212,7 @@ const StockEntries = () => {
           }}
           className={activeTab === 'stock-out' ? styles.tabActive : styles.tab}
         >
-          Stock Out
+          📤 Stock Out
         </button>
       </div>
 
@@ -215,7 +220,11 @@ const StockEntries = () => {
       <div className={styles.searchBox}>
         <input
           type="text"
-          placeholder={activeTab === 'stock-in' ? 'Search by product code or name...' : 'Search by product, sale number, or customer...'}
+          placeholder={
+            activeTab === 'stock-in' 
+              ? 'Search by product code, name, or supplier...' 
+              : 'Search by product, sale number, customer, or reason...'
+          }
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className={styles.searchInput}
@@ -300,7 +309,7 @@ const StockEntries = () => {
           Object.keys(groupedStockIn).length === 0 ? (
             <div className="card">
               <div className="card-body">
-                <p className={styles.noData}>No stock in entries found</p>
+                <p className={styles.noData}>No stock in movements found</p>
               </div>
             </div>
           ) : (
@@ -310,7 +319,7 @@ const StockEntries = () => {
                 {Object.entries(subcats).map(([subcatName, subsubs]) => (
                   <div key={subcatName} className={styles.subcategorySection}>
                     <h3 className={styles.subcategoryHeader}>{subcatName}</h3>
-                    {Object.entries(subsubs).map(([subsubName, entries]) => (
+                    {Object.entries(subsubs).map(([subsubName, movements]) => (
                       <div key={subsubName} className={styles.subsubcategorySection}>
                         <h4 className={styles.subsubcategoryHeader}>{subsubName}</h4>
                         <div className="card">
@@ -323,11 +332,13 @@ const StockEntries = () => {
                                     <th>Product Code</th>
                                     <th>Product Name</th>
                                     <th>Quantity</th>
-                                    <th>Status</th>
+                                    <th>Reason</th>
+                                    <th>Supplier</th>
                                     <th>Recorded By</th>
+                                    <th>Notes</th>
                                   </tr>
                                 </thead>
-                                <tbody>{renderStockInRows(entries)}</tbody>
+                                <tbody>{renderStockInRows(movements)}</tbody>
                               </table>
                             </div>
                           </div>
@@ -344,7 +355,7 @@ const StockEntries = () => {
           <div className="card">
             <div className="card-body">
               {filteredStockOut.length === 0 ? (
-                <p className={styles.noData}>No stock out entries found</p>
+                <p className={styles.noData}>No stock out movements found</p>
               ) : (
                 <div className="table-container">
                   <table className="table">
@@ -353,12 +364,12 @@ const StockEntries = () => {
                         <th>Date</th>
                         <th>Product Code</th>
                         <th>Product Name</th>
+                        <th>Quantity</th>
+                        <th>Reason</th>
                         <th>Sale Number</th>
                         <th>Customer</th>
-                        <th>Quantity</th>
-                        <th>Supply Status</th>
-                        <th>LPO/Quote</th>
-                        <th>Delivery #</th>
+                        <th>Recorded By</th>
+                        <th>Notes</th>
                       </tr>
                     </thead>
                     <tbody>{renderStockOutRows(filteredStockOut)}</tbody>
