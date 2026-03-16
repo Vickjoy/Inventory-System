@@ -829,3 +829,60 @@
     font-size: 0.6875rem;
   }
 }
+
+/* ── Export PDF Button ──────────────────────────────────────────────────── */
+.exportBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25);
+  white-space: nowrap;
+  margin-left: 0.75rem;
+}
+
+.exportBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.35);
+  transform: translateY(-1px);
+}
+
+.exportBtn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25);
+}
+
+.exportBtn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Make the action wrapper flex so buttons sit side-by-side */
+.actionButtonWrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;               /* gap handled by margin-left on exportBtn */
+}
+
+/* On mobile, stack the buttons */
+@media (max-width: 1200px) {
+  .actionButtonWrapper {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .exportBtn {
+    margin-left: 0;
+    width: 100%;
+  }
+}

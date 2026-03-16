@@ -1,5 +1,7 @@
 // src/pages/Reports/Reports.jsx
 import { useState, useEffect } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import api from '../../utils/api';
 import styles from './Reports.module.css';
 
@@ -16,13 +18,413 @@ const Reports = () => {
 
   const formatCurrency = (amount) => {
     const num = parseFloat(amount) || 0;
-    return num.toLocaleString('en-KE', { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
+    return num.toLocaleString('en-KE', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     });
   };
 
-  // Load categories
+  // ─────────────────────────────────────────────────────────────────────────────
+  // PDF EXPORT
+  // ─────────────────────────────────────────────────────────────────────────────
+  const exportToPDF = () => {
+    if (!reportData || reportData.length === 0) {
+      alert('No data to export.');
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+
+    const pageWidth  = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    // ── Colours ───────────────────────────────────────────────────────────────
+    const BLUE_DARK    = [30,  64,  175];
+    const BLUE_MID     = [37,  99,  235];
+    const SLATE_800    = [30,  41,  59 ];
+    const SLATE_600    = [71,  85,  105];
+    const SLATE_300    = [203, 213, 225];
+    const SLATE_50     = [248, 250, 252];
+    const WHITE        = [255, 255, 255];
+    const RED          = [220, 38,  38 ];
+    const GREEN_DARK   = [21,  128, 61 ];
+    const GREEN_BG     = [220, 252, 231];
+    const AMBER_DARK   = [180, 83,  9  ];
+    const AMBER_BG     = [254, 243, 199];
+    const RED_BG       = [254, 226, 226];
+    const SALE_BG_EVEN = [255, 255, 255];
+    const SALE_BG_ODD  = [241, 245, 249];
+    const DIVIDER      = [30,  64,  175];
+
+    const title      = getReportTitle();
+    const exportDate = new Date().toLocaleDateString('en-KE', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    // ── Page header ───────────────────────────────────────────────────────────
+    const drawPageHeader = (pageNum, totalPages) => {
+      doc.setFillColor(...BLUE_DARK);
+      doc.rect(0, 0, pageWidth, 44, 'F');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(...WHITE);
+      doc.text(title, 40, 28);
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Generated: ${exportDate}`, pageWidth - 40, 18, { align: 'right' });
+      doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - 40, 32, { align: 'right' });
+
+      doc.setDrawColor(...SLATE_300);
+      doc.setLineWidth(0.5);
+      doc.line(0, 44, pageWidth, 44);
+    };
+
+    // ── Page footer ───────────────────────────────────────────────────────────
+    const drawPageFooter = () => {
+      doc.setFillColor(...SLATE_50);
+      doc.rect(0, pageHeight - 24, pageWidth, 24, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...SLATE_600);
+      doc.text('CONFIDENTIAL — For internal use only', 40, pageHeight - 8);
+    };
+
+    // ── Shared autoTable config ───────────────────────────────────────────────
+    const baseTableStyles = {
+      startY: 60,
+      margin: { top: 60, right: 30, bottom: 36, left: 30 },
+      tableLineColor: SLATE_300,
+      tableLineWidth: 0.75,
+      headStyles: {
+        fillColor: BLUE_DARK,
+        textColor: WHITE,
+        fontStyle: 'bold',
+        fontSize: 8,
+        cellPadding: { top: 7, right: 8, bottom: 7, left: 8 },
+        lineWidth: 0.75,
+        lineColor: SLATE_300,
+        valign: 'middle',
+      },
+      bodyStyles: {
+        fontSize: 8,
+        textColor: SLATE_800,
+        cellPadding: { top: 6, right: 8, bottom: 6, left: 8 },
+        lineWidth: 0.75,
+        lineColor: SLATE_300,
+        valign: 'middle',
+      },
+      alternateRowStyles: {
+        fillColor: SLATE_50,
+      },
+      didDrawPage: () => {
+        const { pageNumber, pageCount } = doc.internal.getCurrentPageInfo();
+        drawPageHeader(pageNumber, pageCount);
+        drawPageFooter();
+      },
+    };
+
+    // ────────────────────────────────────────────────────────────────────────
+    // SALES REPORT
+    // Sale Number & LPO/Quote excluded from PDF.
+    // Rows within the same sale share a subtle background tint.
+    // A thick blue divider separates different sales.
+    // ────────────────────────────────────────────────────────────────────────
+    if (reportType === 'sales') {
+      const rows = [];
+
+      reportData.forEach((sale, saleIdx) => {
+        const items = sale.line_items || [];
+        items.forEach((item, idx) => {
+          rows.push({
+            date:        idx === 0 ? new Date(sale.created_at).toLocaleDateString('en-KE') : '',
+            customer:    idx === 0 ? sale.customer_name                                     : '',
+            product:     item.product_name,
+            qtySupplied: item.quantity_supplied,
+            total:       idx === 0 ? `KES ${formatCurrency(sale.total_amount)}`            : '',
+            paid:        idx === 0 ? `KES ${formatCurrency(sale.amount_paid)}`             : '',
+            balance:     idx === 0 ? `KES ${formatCurrency(sale.outstanding_balance)}`     : '',
+            payment:     idx === 0 ? sale.mode_of_payment                                  : '',
+            _balance:    idx === 0 ? parseFloat(sale.outstanding_balance || 0)             : null,
+            _payment:    idx === 0 ? sale.mode_of_payment                                  : null,
+            _saleIdx:    saleIdx,
+            _isFirst:    idx === 0,
+            _isLast:     idx === items.length - 1,
+          });
+        });
+      });
+
+      const head = [[
+        'Date', 'Customer', 'Product Name', 'Qty Supplied',
+        'Total Amount', 'Amount Paid', 'Outstanding', 'Payment Mode'
+      ]];
+
+      const body = rows.map(r => [
+        r.date, r.customer, r.product, r.qtySupplied,
+        r.total, r.paid, r.balance, r.payment
+      ]);
+
+      autoTable(doc, {
+        ...baseTableStyles,
+        head,
+        body,
+        // Disable default alternating rows — we control colouring per sale group
+        alternateRowStyles: {},
+        columnStyles: {
+          0: { cellWidth: 64  },                   // Date
+          1: { cellWidth: 100 },                   // Customer
+          2: { cellWidth: 'auto' },                // Product Name
+          3: { cellWidth: 58, halign: 'center' },  // Qty Supplied
+          4: { cellWidth: 80, halign: 'right'  },  // Total Amount
+          5: { cellWidth: 80, halign: 'right'  },  // Amount Paid
+          6: { cellWidth: 80, halign: 'right'  },  // Outstanding
+          7: { cellWidth: 70, halign: 'center' },  // Payment Mode
+        },
+
+        didParseCell: (data) => {
+          if (data.section !== 'body') return;
+          const r = rows[data.row.index];
+
+          // Alternating sale-group background (white / light blue-grey)
+          data.cell.styles.fillColor = r._saleIdx % 2 === 0 ? SALE_BG_EVEN : SALE_BG_ODD;
+
+          // Hairline inner borders within the same sale group
+          data.cell.styles.lineWidth = 0.3;
+          data.cell.styles.lineColor = SLATE_300;
+
+          // Outstanding balance — red if > 0, green if cleared
+          if (data.column.index === 6 && r._balance !== null) {
+            data.cell.styles.textColor = r._balance > 0 ? RED : [22, 163, 74];
+            data.cell.styles.fontStyle = 'bold';
+          }
+
+          // Payment mode badge colours
+          if (data.column.index === 7 && r._payment !== null) {
+            if (r._payment === 'Not Paid') {
+              data.cell.styles.textColor = AMBER_DARK;
+              data.cell.styles.fillColor = AMBER_BG;
+            } else {
+              data.cell.styles.textColor = GREEN_DARK;
+              data.cell.styles.fillColor = GREEN_BG;
+            }
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.fontSize  = 7.5;
+          }
+        },
+
+        // Draw a thick blue divider on the bottom edge of each sale's last row
+        didDrawCell: (data) => {
+          if (data.section !== 'body') return;
+          const r = rows[data.row.index];
+          if (!r._isLast) return;
+          if (data.row.index === rows.length - 1) return; // skip very last row
+
+          const { x, y, width, height } = data.cell;
+          doc.setDrawColor(...DIVIDER);
+          doc.setLineWidth(1.5);
+          doc.line(x, y + height, x + width, y + height);
+        },
+      });
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // STOCK REPORT — grouped by category / subcategory / group
+    // ────────────────────────────────────────────────────────────────────────
+    else if (reportType === 'stock') {
+      const grouped = groupStockProducts(reportData);
+      let firstSection = true;
+
+      Object.entries(grouped).forEach(([catName, subcats]) => {
+        if (!firstSection) doc.addPage();
+        firstSection = false;
+
+        const currentY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 18 : 60;
+        const safeY    = currentY > pageHeight - 80 ? (doc.addPage(), 60) : currentY;
+
+        doc.setFillColor(...BLUE_DARK);
+        doc.rect(30, safeY, pageWidth - 60, 22, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(...WHITE);
+        doc.text(catName.toUpperCase(), 40, safeY + 15);
+
+        let sectionStartY = safeY + 30;
+
+        Object.entries(subcats).forEach(([subcatName, groups]) => {
+          const subY     = doc.lastAutoTable ? doc.lastAutoTable.finalY + 14 : sectionStartY;
+          const safeSubY = subY > pageHeight - 60 ? (doc.addPage(), 60) : subY;
+
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9);
+          doc.setTextColor(...SLATE_600);
+          doc.text(subcatName.toUpperCase(), 40, safeSubY);
+          doc.setDrawColor(...SLATE_300);
+          doc.setLineWidth(0.5);
+          doc.line(40, safeSubY + 3, pageWidth - 40, safeSubY + 3);
+
+          Object.entries(groups).forEach(([groupName, products]) => {
+            const grpStartY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 12 : safeSubY + 14;
+            const safeGrpY  = grpStartY > pageHeight - 60 ? (doc.addPage(), 60) : grpStartY;
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8.5);
+            doc.setTextColor(...BLUE_MID);
+            doc.text(`${groupName}  (${products.length} products)`, 50, safeGrpY);
+
+            const tableRows = products.map(p => [
+              p.code,
+              p.name,
+              p.current_stock,
+              p.minimum_stock || 0,
+              (p.current_stock || 0) <= (p.minimum_stock || 0) ? 'Low Stock' : 'In Stock',
+            ]);
+
+            autoTable(doc, {
+              ...baseTableStyles,
+              startY: safeGrpY + 8,
+              head: [['Product Code', 'Product Name', 'Current Stock', 'Min Stock', 'Status']],
+              body: tableRows,
+              columnStyles: {
+                0: { cellWidth: 80,  fontStyle: 'bold', textColor: SLATE_600, font: 'courier' },
+                1: { cellWidth: 'auto' },
+                2: { cellWidth: 72, halign: 'center' },
+                3: { cellWidth: 64, halign: 'center' },
+                4: { cellWidth: 72, halign: 'center' },
+              },
+              didParseCell: (data) => {
+                if (data.section !== 'body' || data.column.index !== 4) return;
+                const isLow = data.cell.raw === 'Low Stock';
+                data.cell.styles.textColor = isLow ? [185, 28, 28] : GREEN_DARK;
+                data.cell.styles.fillColor = isLow ? RED_BG         : GREEN_BG;
+                data.cell.styles.fontStyle = 'bold';
+                data.cell.styles.fontSize  = 7.5;
+              },
+            });
+          });
+        });
+      });
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // OUTSTANDING SUPPLIES REPORT
+    // ────────────────────────────────────────────────────────────────────────
+    else if (reportType === 'outstanding_supplies') {
+      const rows = [];
+      reportData.forEach(sale => {
+        (sale.line_items || [])
+          .filter(item =>
+            item.supply_status === 'Partially Supplied' ||
+            item.supply_status === 'Not Supplied'
+          )
+          .forEach(item => {
+            const outstanding = (item.quantity_ordered || 0) - (item.quantity_supplied || 0);
+            const payStatus   = parseFloat(sale.outstanding_balance || 0) > 0 ? 'Pending' : 'Paid';
+            rows.push([
+              new Date(sale.created_at).toLocaleDateString('en-KE'),
+              sale.sale_number,
+              sale.customer_name,
+              sale.lpo_quotation_number || '-',
+              item.product_name,
+              item.quantity_ordered,
+              item.quantity_supplied,
+              outstanding,
+              payStatus,
+            ]);
+          });
+      });
+
+      autoTable(doc, {
+        ...baseTableStyles,
+        head: [[
+          'Date', 'Sale No.', 'Customer', 'LPO / Quote',
+          'Product Name', 'Qty Ordered', 'Qty Supplied', 'Outstanding', 'Payment'
+        ]],
+        body: rows,
+        columnStyles: {
+          0: { cellWidth: 60 },
+          1: { cellWidth: 65,  fontStyle: 'bold', textColor: BLUE_MID },
+          2: { cellWidth: 90 },
+          3: { cellWidth: 72 },
+          4: { cellWidth: 'auto' },
+          5: { cellWidth: 58, halign: 'center' },
+          6: { cellWidth: 58, halign: 'center' },
+          7: { cellWidth: 58, halign: 'center', fontStyle: 'bold', textColor: RED },
+          8: { cellWidth: 58, halign: 'center' },
+        },
+        didParseCell: (data) => {
+          if (data.section !== 'body' || data.column.index !== 8) return;
+          const isPending = data.cell.raw === 'Pending';
+          data.cell.styles.textColor = isPending ? AMBER_DARK : GREEN_DARK;
+          data.cell.styles.fillColor = isPending ? AMBER_BG   : GREEN_BG;
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fontSize  = 7.5;
+        },
+      });
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // OUTSTANDING BALANCES REPORT
+    // ────────────────────────────────────────────────────────────────────────
+    else if (reportType === 'outstanding_balances') {
+      const rows = reportData.map(sale => [
+        new Date(sale.created_at).toLocaleDateString('en-KE'),
+        sale.sale_number,
+        sale.customer_name,
+        (sale.line_items || []).map(i => i.product_name).join('\n'),
+        `KES ${formatCurrency(sale.total_amount)}`,
+        `KES ${formatCurrency(sale.amount_paid)}`,
+        `KES ${formatCurrency(sale.outstanding_balance)}`,
+      ]);
+
+      const totalOutstanding = reportData.reduce(
+        (sum, s) => sum + parseFloat(s.outstanding_balance || 0), 0
+      );
+      rows.push(['', '', '', 'TOTAL', '', '', `KES ${formatCurrency(totalOutstanding)}`]);
+
+      autoTable(doc, {
+        ...baseTableStyles,
+        head: [[
+          'Date', 'Sale No.', 'Customer', 'Products',
+          'Total Amount', 'Amount Paid', 'Outstanding'
+        ]],
+        body: rows,
+        columnStyles: {
+          0: { cellWidth: 64 },
+          1: { cellWidth: 68,  fontStyle: 'bold', textColor: BLUE_MID },
+          2: { cellWidth: 90 },
+          3: { cellWidth: 'auto' },
+          4: { cellWidth: 80, halign: 'right' },
+          5: { cellWidth: 80, halign: 'right' },
+          6: { cellWidth: 80, halign: 'right', fontStyle: 'bold', textColor: RED },
+        },
+        didParseCell: (data) => {
+          if (data.section !== 'body') return;
+          if (data.row.index === rows.length - 1) {
+            data.cell.styles.fillColor = BLUE_DARK;
+            data.cell.styles.textColor = WHITE;
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.fontSize  = 9;
+          }
+        },
+      });
+    }
+
+    // ── Stamp header/footer on every page ─────────────────────────────────────
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      drawPageHeader(p, totalPages);
+      drawPageFooter();
+    }
+
+    const fileName = `${reportType}_report_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+  };
+  // ─────────────────────────────────────────────────────────────────────────────
+  // END PDF EXPORT
+  // ─────────────────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     const loadCategories = async () => {
       try {
@@ -48,7 +450,7 @@ const Reports = () => {
         case 'sales':
           data = await api.getSales();
           if (Array.isArray(data)) {
-            // Already an array
+            // already an array
           } else if (data && data.results) {
             data = data.results;
           }
@@ -57,41 +459,40 @@ const Reports = () => {
         case 'stock':
           data = await api.getProducts();
           if (Array.isArray(data)) {
-            // Already an array
+            // already an array
           } else if (data && data.results) {
             data = data.results;
           }
           break;
 
-        case 'outstanding_supplies':
+        case 'outstanding_supplies': {
           const salesData = await api.getSales();
-          let allSales = Array.isArray(salesData) ? salesData : (salesData?.results || []);
-          
-          data = allSales.filter(sale => 
-            sale.line_items && sale.line_items.some(item => 
-              item.supply_status === 'Partially Supplied' || 
+          const allSales  = Array.isArray(salesData) ? salesData : (salesData?.results || []);
+          data = allSales.filter(sale =>
+            sale.line_items && sale.line_items.some(item =>
+              item.supply_status === 'Partially Supplied' ||
               item.supply_status === 'Not Supplied'
             )
           );
           break;
+        }
 
-        case 'outstanding_balances':
+        case 'outstanding_balances': {
           const allSalesData = await api.getSales();
-          let salesList = Array.isArray(allSalesData) ? allSalesData : (allSalesData?.results || []);
-          
+          const salesList    = Array.isArray(allSalesData) ? allSalesData : (allSalesData?.results || []);
           data = salesList.filter(sale => parseFloat(sale.outstanding_balance || 0) > 0);
           break;
+        }
 
         default:
           data = [];
       }
 
-      // Apply date filters if provided
       if (dateRange.start_date || dateRange.end_date) {
         data = data.filter(item => {
           const itemDate = new Date(item.created_at);
           if (dateRange.start_date && new Date(dateRange.start_date) > itemDate) return false;
-          if (dateRange.end_date && new Date(dateRange.end_date) < itemDate) return false;
+          if (dateRange.end_date   && new Date(dateRange.end_date)   < itemDate) return false;
           return true;
         });
       }
@@ -110,64 +511,48 @@ const Reports = () => {
     generateReport();
   }, [reportType]);
 
-  // Group stock products hierarchically with category filter
   const groupStockProducts = (products) => {
     const grouped = {};
-    
-    // Apply stock category filter
-    const filteredProducts = stockCategoryFilter === 'all' 
-      ? products 
+    const filteredProducts = stockCategoryFilter === 'all'
+      ? products
       : products.filter(p => p.category === parseInt(stockCategoryFilter));
-    
+
     filteredProducts.forEach(product => {
-      const catName = product.category_name || 'Uncategorized';
-      const subcatName = product.subcategory_name || 'Uncategorized';
-      const groupName = product.subsubcategory_name || 'Ungrouped';
-      
-      if (!grouped[catName]) grouped[catName] = {};
-      if (!grouped[catName][subcatName]) grouped[catName][subcatName] = {};
+      const catName    = product.category_name        || 'Uncategorized';
+      const subcatName = product.subcategory_name     || 'Uncategorized';
+      const groupName  = product.subsubcategory_name  || 'Ungrouped';
+
+      if (!grouped[catName])                       grouped[catName]                       = {};
+      if (!grouped[catName][subcatName])            grouped[catName][subcatName]            = {};
       if (!grouped[catName][subcatName][groupName]) grouped[catName][subcatName][groupName] = [];
-      
+
       grouped[catName][subcatName][groupName].push(product);
     });
-    
+
     return grouped;
   };
 
   const getReportTitle = () => {
     switch (reportType) {
-      case 'sales':
-        return 'Sales Report';
-      case 'stock':
-        return 'Stock Report';
-      case 'outstanding_supplies':
-        return 'Outstanding Supplies';
-      case 'outstanding_balances':
-        return 'Outstanding Balances';
-      default:
-        return 'Report';
+      case 'sales':                return 'Sales Report';
+      case 'stock':                return 'Stock Report';
+      case 'outstanding_supplies': return 'Outstanding Supplies';
+      case 'outstanding_balances': return 'Outstanding Balances';
+      default:                     return 'Report';
     }
   };
 
   const getReportStats = () => {
     if (!reportData || reportData.length === 0) return null;
-
-    // Only show stats for stock report
     if (reportType === 'stock') {
       const filteredProducts = stockCategoryFilter === 'all'
         ? reportData
         : reportData.filter(p => p.category === parseInt(stockCategoryFilter));
-      
       const totalProducts = filteredProducts.length;
-      const lowStock = filteredProducts.filter(p => (p.current_stock || 0) <= (p.minimum_stock || 0)).length;
-      const inStock = totalProducts - lowStock;
-      return {
-        'Total Products': totalProducts,
-        'In Stock': inStock,
-        'Low Stock': lowStock
-      };
+      const lowStock      = filteredProducts.filter(p => (p.current_stock || 0) <= (p.minimum_stock || 0)).length;
+      const inStock       = totalProducts - lowStock;
+      return { 'Total Products': totalProducts, 'In Stock': inStock, 'Low Stock': lowStock };
     }
-    
     return null;
   };
 
@@ -190,7 +575,7 @@ const Reports = () => {
               value={reportType}
               onChange={(e) => {
                 setReportType(e.target.value);
-                setStockCategoryFilter('all'); // Reset filter when changing report type
+                setStockCategoryFilter('all');
               }}
               className={styles.select}
             >
@@ -242,11 +627,21 @@ const Reports = () => {
                 </>
               )}
             </button>
+
+            <button
+              onClick={exportToPDF}
+              className={styles.exportBtn}
+              disabled={loading || !reportData || reportData.length === 0}
+              title="Export current report to PDF"
+            >
+              <span className={styles.btnIcon}>📄</span>
+              Export PDF
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Stock Category Filter - Only show for stock report */}
+      {/* Stock Category Filter */}
       {reportType === 'stock' && (
         <div className={styles.categoryFilterBar}>
           <button
@@ -284,12 +679,12 @@ const Reports = () => {
           {reportData && reportData.length > 0 && (
             <div className={styles.recordCount}>
               {reportType === 'stock' && stockCategoryFilter !== 'all'
-                ? `${(stockCategoryFilter === 'all' ? reportData : reportData.filter(p => p.category === parseInt(stockCategoryFilter))).length} records`
+                ? `${reportData.filter(p => p.category === parseInt(stockCategoryFilter)).length} records`
                 : `${reportData.length} ${reportData.length === 1 ? 'record' : 'records'}`}
             </div>
           )}
         </div>
-        
+
         <div className={styles.reportBody}>
           {loading ? (
             <div className={styles.loadingContainer}>
@@ -304,7 +699,8 @@ const Reports = () => {
             </div>
           ) : (
             <div className={styles.reportContent}>
-              {/* SALES REPORT */}
+
+              {/* ── SALES REPORT (UI: all 10 columns) ────────────────────── */}
               {reportType === 'sales' && (
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
@@ -323,7 +719,7 @@ const Reports = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {reportData.flatMap(sale => 
+                      {reportData.flatMap(sale =>
                         (sale.line_items || []).map((item, idx) => (
                           <tr key={`${sale.id}-${idx}`}>
                             {idx === 0 && (
@@ -360,10 +756,9 @@ const Reports = () => {
                 </div>
               )}
 
-              {/* STOCK REPORT - GROUPED BY HIERARCHY */}
+              {/* ── STOCK REPORT ─────────────────────────────────────────── */}
               {reportType === 'stock' && (() => {
                 const grouped = groupStockProducts(reportData);
-                
                 return (
                   <div className={styles.stockReport}>
                     {Object.entries(grouped).map(([catName, subcats]) => (
@@ -371,20 +766,17 @@ const Reports = () => {
                         <div className={styles.categoryHeader}>
                           <h3 className={styles.categoryTitle}>{catName}</h3>
                         </div>
-                        
                         {Object.entries(subcats).map(([subcatName, groups]) => (
                           <div key={subcatName} className={styles.subcategorySection}>
                             <div className={styles.subcategoryHeader}>
                               <h4 className={styles.subcategoryTitle}>{subcatName}</h4>
                             </div>
-                            
                             {Object.entries(groups).map(([groupName, products]) => (
                               <div key={groupName} className={styles.groupSection}>
                                 <div className={styles.groupHeader}>
                                   <h5 className={styles.groupTitle}>{groupName}</h5>
                                   <span className={styles.groupCount}>{products.length} products</span>
                                 </div>
-                                
                                 <div className={styles.tableWrapper}>
                                   <table className={styles.table}>
                                     <thead>
@@ -409,9 +801,7 @@ const Reports = () => {
                                                 ? styles.badgeDanger
                                                 : styles.badgeSuccess
                                             }`}>
-                                              {(product.current_stock || 0) <= (product.minimum_stock || 0)
-                                                ? 'Low Stock' 
-                                                : 'In Stock'}
+                                              {(product.current_stock || 0) <= (product.minimum_stock || 0) ? 'Low Stock' : 'In Stock'}
                                             </span>
                                           </td>
                                         </tr>
@@ -429,7 +819,7 @@ const Reports = () => {
                 );
               })()}
 
-              {/* OUTSTANDING SUPPLIES REPORT */}
+              {/* ── OUTSTANDING SUPPLIES ─────────────────────────────────── */}
               {reportType === 'outstanding_supplies' && (
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
@@ -447,16 +837,15 @@ const Reports = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {reportData.map(sale => 
+                      {reportData.map(sale =>
                         (sale.line_items || [])
-                          .filter(item => 
-                            item.supply_status === 'Partially Supplied' || 
+                          .filter(item =>
+                            item.supply_status === 'Partially Supplied' ||
                             item.supply_status === 'Not Supplied'
                           )
                           .map((item, idx) => {
                             const outstandingQty = (item.quantity_ordered || 0) - (item.quantity_supplied || 0);
-                            const paymentStatus = parseFloat(sale.outstanding_balance || 0) > 0 ? 'Pending' : 'Paid';
-                            
+                            const paymentStatus  = parseFloat(sale.outstanding_balance || 0) > 0 ? 'Pending' : 'Paid';
                             return (
                               <tr key={`${sale.id}-${idx}`}>
                                 <td>{new Date(sale.created_at).toLocaleDateString()}</td>
@@ -466,15 +855,9 @@ const Reports = () => {
                                 <td className={styles.productName}>{item.product_name}</td>
                                 <td className={styles.stockQuantity}>{item.quantity_ordered}</td>
                                 <td className={styles.stockQuantity}>{item.quantity_supplied}</td>
-                                <td className={styles.outstandingQty}>
-                                  {outstandingQty}
-                                </td>
+                                <td className={styles.outstandingQty}>{outstandingQty}</td>
                                 <td>
-                                  <span className={`${styles.badge} ${
-                                    paymentStatus === 'Paid' 
-                                      ? styles.badgeSuccess
-                                      : styles.badgeWarning
-                                  }`}>
+                                  <span className={`${styles.badge} ${paymentStatus === 'Paid' ? styles.badgeSuccess : styles.badgeWarning}`}>
                                     {paymentStatus}
                                   </span>
                                 </td>
@@ -487,7 +870,7 @@ const Reports = () => {
                 </div>
               )}
 
-              {/* OUTSTANDING BALANCES REPORT */}
+              {/* ── OUTSTANDING BALANCES ─────────────────────────────────── */}
               {reportType === 'outstanding_balances' && (
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
@@ -517,15 +900,14 @@ const Reports = () => {
                           </td>
                           <td className={styles.amount}>KES {formatCurrency(sale.total_amount)}</td>
                           <td className={styles.amount}>KES {formatCurrency(sale.amount_paid)}</td>
-                          <td className={styles.outstandingAmount}>
-                            KES {formatCurrency(sale.outstanding_balance)}
-                          </td>
+                          <td className={styles.outstandingAmount}>KES {formatCurrency(sale.outstanding_balance)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               )}
+
             </div>
           )}
         </div>
