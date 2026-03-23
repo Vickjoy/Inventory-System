@@ -1,4 +1,4 @@
-// src/pages/Login/Login.jsx - Refined version
+// src/pages/Login/Login.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -8,6 +8,7 @@ import companyLogo from '../../assets/CompanyIcon.png';
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, isAuthenticated } = useAuth();
@@ -18,6 +19,7 @@ const Login = () => {
     document.getElementById('username')?.focus();
   }, []);
 
+  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard');
@@ -31,7 +33,7 @@ const Login = () => {
 
     try {
       const result = await login(username, password);
-      
+
       if (result.success) {
         navigate('/dashboard');
       } else {
@@ -53,18 +55,19 @@ const Login = () => {
   return (
     <div className={styles.loginContainer}>
       <div className={styles.loginCard}>
+
         {/* Logo and Title Section */}
         <div className={styles.loginHeader}>
           <div className={styles.logoContainer}>
-            <img 
-              src={companyLogo} 
-              alt="Edge Systems Logo" 
+            <img
+              src={companyLogo}
+              alt="Edge Systems Logo"
               className={styles.companyLogo}
             />
           </div>
           <h1 className={styles.loginTitle}>EDGE SYSTEMS INVENTORY</h1>
         </div>
-        
+
         {/* Form Section */}
         <form onSubmit={handleSubmit} className={styles.loginForm}>
           {error && (
@@ -73,7 +76,7 @@ const Login = () => {
               <span>{error}</span>
             </div>
           )}
-          
+
           <div className={styles.formGroup}>
             <label htmlFor="username" className={styles.formLabel}>
               Username
@@ -95,17 +98,28 @@ const Login = () => {
             <label htmlFor="password" className={styles.formLabel}>
               Password
             </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={handleInputChange(setPassword)}
-              className={styles.formInput}
-              placeholder="Enter your password"
-              required
-              autoComplete="current-password"
-              disabled={loading}
-            />
+            <div className={styles.passwordWrapper}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                value={password}
+                onChange={handleInputChange(setPassword)}
+                className={styles.formInput}
+                placeholder="Enter your password"
+                required
+                autoComplete="current-password"
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className={styles.passwordToggle}
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                tabIndex={-1}
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
           </div>
 
           {/* Forgot Password Link */}
@@ -115,8 +129,8 @@ const Login = () => {
             </Link>
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className={styles.loginButton}
             disabled={loading}
           >
@@ -137,6 +151,7 @@ const Login = () => {
             © Edge Systems 2025. All rights reserved.
           </p>
         </div>
+
       </div>
     </div>
   );

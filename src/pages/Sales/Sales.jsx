@@ -20,11 +20,8 @@ const Sales = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  useEffect(() => {
-    loadSales();
-  }, []);
+  useEffect(() => { loadSales(); }, []);
 
-  // Handle sidebar action to open New Sale modal
   useEffect(() => {
     const action = searchParams.get('action');
     if (action === 'new') {
@@ -54,13 +51,25 @@ const Sales = () => {
     sale.lpo_quotation_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusBadge = (status) => {
+  const getSupplyStatusBadge = (status) => {
     const badges = {
       'Supplied': 'badge-success',
       'Partially Supplied': 'badge-warning',
-      'Not Supplied': 'badge-danger'
+      'Not Supplied': 'badge-danger',
     };
     return badges[status] || 'badge-secondary';
+  };
+
+  // ========================
+  // Sale approval status badge
+  // ========================
+  const getApprovalBadge = (status) => {
+    const map = {
+      pending: { className: styles.badgePending, label: '⏳ Pending' },
+      approved: { className: styles.badgeApproved, label: '✅ Approved' },
+      rejected: { className: styles.badgeRejected, label: '❌ Rejected' },
+    };
+    return map[status] || { className: styles.badgePending, label: status };
   };
 
   return (
@@ -71,30 +80,24 @@ const Sales = () => {
           <p className={styles.pageSubtitle}>Record and manage daily sales</p>
         </div>
         <div className={styles.headerButtons}>
-          <button onClick={() => setShowModal(true)} className={`btn btn-primary ${styles.btnNewSale}`}>
+          <button
+            onClick={() => setShowModal(true)}
+            className={`btn btn-primary ${styles.btnNewSale}`}
+          >
             ➕ New Sale
           </button>
         </div>
       </div>
 
       {showModal && (
-        <SaleModal
-          onClose={() => setShowModal(false)}
-          onSuccess={loadSales}
-        />
+        <SaleModal onClose={() => setShowModal(false)} onSuccess={loadSales} />
       )}
 
       <div className={styles.actionBar}>
-        <button
-          onClick={() => navigate('/sales')}
-          className={styles.btnAllSales}
-        >
+        <button onClick={() => navigate('/sales')} className={styles.btnAllSales}>
           📊 All Sales
         </button>
-        <button
-          onClick={() => navigate('/outstanding-supplies')}
-          className={styles.btnOutstanding}
-        >
+        <button onClick={() => navigate('/outstanding-supplies')} className={styles.btnOutstanding}>
           📦 Outstanding Supplies
         </button>
       </div>
@@ -119,7 +122,9 @@ const Sales = () => {
             </div>
           ) : filteredSales.length === 0 ? (
             <p className={styles.noData}>
-              {searchTerm ? 'No sales found matching your search.' : 'No sales found. Click "New Sale" to record your first sale.'}
+              {searchTerm
+                ? 'No sales found matching your search.'
+                : 'No sales found. Click "New Sale" to record your first sale.'}
             </p>
           ) : (
             <div className="table-container">
@@ -131,61 +136,94 @@ const Sales = () => {
                     <th>Customer</th>
                     <th>Products</th>
                     <th>Total Amount</th>
-                    <th>Payment Status</th>
+                    <th>Approval</th>
+                    <th>Payment</th>
                     <th>LPO/Quote</th>
                     <th>Delivery #</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredSales.map(sale => (
-                    <tr key={sale.id}>
-                      <td className={styles.saleNumber}>{sale.sale_number}</td>
-                      <td>{new Date(sale.created_at).toLocaleDateString()}</td>
-                      <td className={styles.customerName}>{sale.customer_name}</td>
-                      <td>
-                        <div
-                          className={styles.productsSummary}
-                          onClick={() => setExpandedSaleId(expandedSaleId === sale.id ? null : sale.id)}
-                        >
-                          {sale.line_items[0]?.product_name}
-                          {sale.line_items.length > 1 && (
-                            <span className={styles.moreProducts}>+{sale.line_items.length - 1} more</span>
-                          )}
-                        </div>
-                        {expandedSaleId === sale.id && (
-                          <div className={styles.expandedProducts}>
-                            {sale.line_items.map((item, idx) => (
-                              <div key={idx} className={styles.expandedProductItem}>
-                                <strong>{item.product_name}</strong> ({item.quantity_supplied}/{item.quantity_ordered})
-                                <span className={`badge ${getStatusBadge(item.supply_status)}`}>
-                                  {item.supply_status}
-                                </span>
-                              </div>
-                            ))}
+                  {filteredSales.map(sale => {
+                    const approval = getApprovalBadge(sale.status);
+                    return (
+                      <tr key={sale.id}>
+                        <td className={styles.saleNumber}>{sale.sale_number}</td>
+                        <td>{new Date(sale.created_at).toLocaleDateString()}</td>
+                        <td className={styles.customerName}>{sale.customer_name}</td>
+                        <td>
+                          <div
+                            className={styles.productsSummary}
+                            onClick={() => setExpandedSaleId(expandedSaleId === sale.id ? null : sale.id)}
+                          >
+                            {sale.line_items[0]?.product_name}
+                            {sale.line_items.length > 1 && (
+                              <span className={styles.moreProducts}>
+                                +{sale.line_items.length - 1} more
+                              </span>
+                            )}
                           </div>
-                        )}
-                      </td>
-                      <td className={styles.totalAmount}>KES {formatCurrency(sale.total_amount)}</td>
-                      <td>
-                        <div className={styles.paymentStatusContainer}>
-                          <span className={`badge ${sale.mode_of_payment === 'Not Paid' ? 'badge-warning' : 'badge-success'}`}>
-                            {sale.mode_of_payment}
-                          </span>
-                          {sale.amount_paid > 0 && (
-                            <div className={styles.amountPaid}>Paid: KES {formatCurrency(sale.amount_paid)}</div>
+                          {expandedSaleId === sale.id && (
+                            <div className={styles.expandedProducts}>
+                              {sale.line_items.map((item, idx) => (
+                                <div key={idx} className={styles.expandedProductItem}>
+                                  <strong>{item.product_name}</strong>
+                                  ({item.quantity_supplied}/{item.quantity_ordered})
+                                  <span className={`badge ${getSupplyStatusBadge(item.supply_status)}`}>
+                                    {item.supply_status}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           )}
-                          {sale.outstanding_balance > 0 && (
-                            <div className={styles.outstandingBalance}>Balance: KES {formatCurrency(sale.outstanding_balance)}</div>
+                        </td>
+                        <td className={styles.totalAmount}>
+                          KES {formatCurrency(sale.total_amount)}
+                        </td>
+
+                        {/* Approval status column */}
+                        <td>
+                          <span className={approval.className}>{approval.label}</span>
+                          {sale.status === 'rejected' && sale.rejection_reason && (
+                            <div className={styles.rejectionReason}>
+                              {sale.rejection_reason}
+                            </div>
                           )}
-                          {parseFloat(sale.outstanding_balance) === 0 && parseFloat(sale.amount_paid) > 0 && (
-                            <div className="badge badge-success" style={{ marginTop: '4px' }}>✓ Fully Paid</div>
+                          {sale.status === 'approved' && sale.approved_by_name && (
+                            <div className={styles.approvedBy}>
+                              by {sale.approved_by_name}
+                            </div>
                           )}
-                        </div>
-                      </td>
-                      <td>{sale.lpo_quotation_number || '-'}</td>
-                      <td>{sale.delivery_number || '-'}</td>
-                    </tr>
-                  ))}
+                        </td>
+
+                        {/* Payment column */}
+                        <td>
+                          <div className={styles.paymentStatusContainer}>
+                            <span className={`badge ${sale.mode_of_payment === 'Not Paid' ? 'badge-warning' : 'badge-success'}`}>
+                              {sale.mode_of_payment}
+                            </span>
+                            {sale.amount_paid > 0 && (
+                              <div className={styles.amountPaid}>
+                                Paid: KES {formatCurrency(sale.amount_paid)}
+                              </div>
+                            )}
+                            {sale.outstanding_balance > 0 && (
+                              <div className={styles.outstandingBalance}>
+                                Balance: KES {formatCurrency(sale.outstanding_balance)}
+                              </div>
+                            )}
+                            {parseFloat(sale.outstanding_balance) === 0 &&
+                              parseFloat(sale.amount_paid) > 0 && (
+                                <div className="badge badge-success" style={{ marginTop: '4px' }}>
+                                  ✓ Fully Paid
+                                </div>
+                              )}
+                          </div>
+                        </td>
+                        <td>{sale.lpo_quotation_number || '-'}</td>
+                        <td>{sale.delivery_number || '-'}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

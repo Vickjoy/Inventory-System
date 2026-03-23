@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import styles from './Header.module.css';
 
 const Header = ({ onMenuToggle }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
@@ -15,7 +15,7 @@ const Header = ({ onMenuToggle }) => {
     <header className={styles.header}>
       <div className={styles.headerContent}>
         <div className={styles.headerLeft}>
-          <button 
+          <button
             className={styles.hamburgerButton}
             onClick={onMenuToggle}
             aria-label="Toggle menu"
@@ -26,20 +26,25 @@ const Header = ({ onMenuToggle }) => {
           </button>
           <h1 className={styles.companyName}>EDGE SYSTEMS INVENTORY</h1>
         </div>
-        
+
         <div className={styles.headerRight}>
           <div className={styles.userInfo}>
             <div className={styles.userDetails}>
-              <span className={styles.userName}>@EdgeSystems</span>
+              <span className={styles.userName}>
+                {user?.first_name
+                  ? `${user.first_name} ${user.last_name || ''}`.trim()
+                  : `@${user?.username || 'User'}`}
+              </span>
+              {/* Now reads from role field, not is_superuser */}
               <span className={styles.userRole}>
-                {user?.is_superuser ? 'Admin' : 'Staff'}
+                {isAdmin ? 'Admin' : 'Staff'}
               </span>
             </div>
             <div className={styles.userAvatar}>
               {user?.username?.charAt(0).toUpperCase()}
             </div>
           </div>
-          
+
           <button onClick={handleLogout} className={styles.logoutButton}>
             Logout
           </button>

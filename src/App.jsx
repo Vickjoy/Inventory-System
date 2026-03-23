@@ -13,8 +13,10 @@ import CustomerHistory from './pages/Customers/CustomerHistory';
 import Suppliers from './pages/Suppliers/Suppliers';
 import StockEntries from './pages/StockEntries/StockEntries';
 import Reports from './pages/Reports/Reports';
+import PendingApprovals from './pages/PendingApprovals/PendingApprovals';  // NEW
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
+import AdminRoute from './components/AdminRoute/AdminRoute';                // NEW
 import './App.css';
 
 function App() {
@@ -31,21 +33,33 @@ function App() {
 
   return (
     <Routes>
+      {/* Public routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
-      
+
+      {/* Protected routes — all logged-in users */}
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/products" element={<Products />} />
         <Route path="/sales" element={<Sales />} />
         <Route path="/outstanding-supplies" element={<OutstandingSupplies />} />
-        <Route path="/customers" element={<Customers />} /> 
+        <Route path="/customers" element={<Customers />} />
         <Route path="/customers/:customerId/history" element={<CustomerHistory />} />
-        <Route path="/suppliers" element={<Suppliers />} /> 
+        <Route path="/suppliers" element={<Suppliers />} />
         <Route path="/stock-entries" element={<StockEntries />} />
-        <Route path="/reports" element={<Reports />} /> 
+        <Route path="/reports" element={<Reports />} />
+
+        {/* Admin-only route — staff gets redirected to /dashboard */}
+        <Route
+          path="/pending-approvals"
+          element={
+            <AdminRoute>
+              <PendingApprovals />
+            </AdminRoute>
+          }
+        />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

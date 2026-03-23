@@ -5,87 +5,108 @@ import CompanyLogo from '../../assets/CompanyIcon.png';
 import styles from './Sidebar.module.css';
 
 const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal }) => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isStaff } = useAuth();
 
+  // ========================
+  // Navigation items
+  // role: 'all'   — visible to everyone
+  // role: 'admin' — visible to admin only
+  // role: 'staff' — visible to staff only
+  // ========================
   const navigation = [
-    { 
-      id: 'dashboard', 
-      label: 'Dashboard', 
-      icon: '📊', 
-      path: '/dashboard' 
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: '📊',
+      path: '/dashboard',
+      role: 'all',
     },
-    { 
-      id: 'products', 
-      label: 'Products & Stock', 
-      icon: '📦', 
-      path: '/products' 
+    {
+      id: 'products',
+      label: 'Products & Stock',
+      icon: '📦',
+      path: '/products',
+      role: 'all',
     },
-    { 
-      id: 'sales', 
-      label: 'Sales Entry', 
-      icon: '💰', 
-      path: '/sales' 
+    {
+      id: 'sales',
+      label: 'Sales Entry',
+      icon: '💰',
+      path: '/sales',
+      role: 'all',
     },
-    { 
-      id: 'suppliers', 
-      label: 'Suppliers', 
-      icon: '🏢', 
+    {
+      id: 'stock-entries',
+      label: 'Stock Entries',
+      icon: '📝',
+      path: '/stock-entries',
+      role: 'admin',
+    },
+    {
+      id: 'suppliers',
+      label: 'Suppliers',
+      icon: '🏢',
       path: '/suppliers',
-      adminOnly: true 
+      role: 'all',
     },
-    { 
-      id: 'customers', 
-      label: 'Customers', 
-      icon: '👥', 
-      path: '/customers' 
+    {
+      id: 'customers',
+      label: 'Customers',
+      icon: '👥',
+      path: '/customers',
+      role: 'staff',
     },
-    { 
-      id: 'stock-entries', 
-      label: 'Stock Entries', 
-      icon: '📝', 
-      path: '/stock-entries' 
+    {
+      id: 'reports',
+      label: 'Reports',
+      icon: '📈',
+      path: '/reports',
+      role: 'all',
     },
-    { 
-      id: 'reports', 
-      label: 'Reports', 
-      icon: '📈', 
-      path: '/reports' 
-    }
+    {
+      id: 'pending-approvals',
+      label: 'Pending Approvals',
+      icon: '✅',
+      path: '/pending-approvals',
+      role: 'admin',
+    },
   ];
 
-  const filteredNav = navigation.filter(item => 
-    !item.adminOnly || (item.adminOnly && isAdmin)
-  );
+  // ========================
+  // Filter nav based on role
+  // ========================
+  const filteredNav = navigation.filter((item) => {
+    if (item.role === 'all') return true;
+    if (item.role === 'admin') return isAdmin;
+    if (item.role === 'staff') return isStaff;
+    return false;
+  });
 
   const handleNavClick = () => {
-    // Close sidebar on mobile when clicking a nav item
-    if (window.innerWidth <= 768) {
-      onClose();
-    }
+    if (window.innerWidth <= 768) onClose();
   };
 
   const handleActionClick = (callback) => {
     callback();
-    // Close sidebar on mobile when clicking action button
-    if (window.innerWidth <= 768) {
-      onClose();
-    }
+    if (window.innerWidth <= 768) onClose();
   };
 
   return (
     <>
       {/* Overlay for mobile */}
       {isOpen && (
-        <div 
-          className={styles.overlay} 
+        <div
+          className={styles.overlay}
           onClick={onClose}
-        ></div>
+        />
       )}
-      
+
       <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
+
+        {/* Header — Logo */}
         <div className={styles.sidebarHeader}>
           <img src={CompanyLogo} alt="Edge Systems" className={styles.logo} />
-          <button 
+          <button
             className={styles.closeButton}
             onClick={onClose}
             aria-label="Close menu"
@@ -93,15 +114,18 @@ const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal }) => {
             ✕
           </button>
         </div>
-        
+
+        {/* Navigation */}
         <nav className={styles.navigation}>
-          {filteredNav.map(item => (
+          {filteredNav.map((item) => (
             <NavLink
               key={item.id}
               to={item.path}
               onClick={handleNavClick}
-              className={({ isActive }) => 
-                isActive ? `${styles.navItem} ${styles.navItemActive}` : styles.navItem
+              className={({ isActive }) =>
+                isActive
+                  ? `${styles.navItem} ${styles.navItemActive}`
+                  : styles.navItem
               }
             >
               <span className={styles.navIcon}>{item.icon}</span>
@@ -110,9 +134,9 @@ const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal }) => {
           ))}
         </nav>
 
-        {/* Action Buttons Section */}
+        {/* Action Buttons */}
         <div className={styles.actionSection}>
-          <button 
+          <button
             className={styles.actionButton}
             onClick={() => handleActionClick(onOpenProductModal)}
           >
@@ -120,7 +144,7 @@ const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal }) => {
             <span className={styles.actionLabel}>Add Product</span>
           </button>
 
-          <button 
+          <button
             className={styles.actionButton}
             onClick={() => handleActionClick(onOpenSaleModal)}
           >
@@ -128,6 +152,7 @@ const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal }) => {
             <span className={styles.actionLabel}>New Sale</span>
           </button>
         </div>
+
       </aside>
     </>
   );
