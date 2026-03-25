@@ -4,15 +4,9 @@ import { useAuth } from '../../context/AuthContext';
 import CompanyLogo from '../../assets/CompanyIcon.png';
 import styles from './Sidebar.module.css';
 
-const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal }) => {
+const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal, pendingCount = 0 }) => {
   const { isAdmin, isStaff } = useAuth();
 
-  // ========================
-  // Navigation items
-  // role: 'all'   — visible to everyone
-  // role: 'admin' — visible to admin only
-  // role: 'staff' — visible to staff only
-  // ========================
   const navigation = [
     {
       id: 'dashboard',
@@ -72,9 +66,6 @@ const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal }) => {
     },
   ];
 
-  // ========================
-  // Filter nav based on role
-  // ========================
   const filteredNav = navigation.filter((item) => {
     if (item.role === 'all') return true;
     if (item.role === 'admin') return isAdmin;
@@ -93,12 +84,8 @@ const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal }) => {
 
   return (
     <>
-      {/* Overlay for mobile */}
       {isOpen && (
-        <div
-          className={styles.overlay}
-          onClick={onClose}
-        />
+        <div className={styles.overlay} onClick={onClose} />
       )}
 
       <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
@@ -130,6 +117,13 @@ const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal }) => {
             >
               <span className={styles.navIcon}>{item.icon}</span>
               <span className={styles.navLabel}>{item.label}</span>
+
+              {/* Pending approvals badge */}
+              {item.id === 'pending-approvals' && pendingCount > 0 && (
+                <span className={styles.pendingBadge}>
+                  {pendingCount > 99 ? '99+' : pendingCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

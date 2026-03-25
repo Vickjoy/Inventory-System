@@ -13,10 +13,20 @@ const formatCurrency = (amount) => {
   });
 };
 
+// Returns today's date as a YYYY-MM-DD string in local time
+const getTodayLocal = () => {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 const SaleModal = ({ onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     customer: '',
+    sale_date: getTodayLocal(),       // ← new field, defaults to today
     lpo_quotation_number: '',
     delivery_number: '',
     mode_of_payment: 'Not Paid',
@@ -138,6 +148,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.customer) return alert('Please select a customer');
+    if (!formData.sale_date) return alert('Please enter a sale date');
 
     for (let i = 0; i < lineItems.length; i++) {
       const item = lineItems[i];
@@ -181,10 +192,10 @@ const SaleModal = ({ onClose, onSuccess }) => {
 
       const result = await api.request('/sales/', { method: 'POST', body: JSON.stringify(payload) });
 
-      // Updated success message — sale is now pending approval
       alert(
         `✅ Sale submitted successfully!\n\n` +
         `Sale #: ${result.sale_number}\n` +
+        `Date: ${formData.sale_date}\n` +
         `Total: KES ${formatCurrency(result.total_amount)}\n\n` +
         `⏳ Status: Pending Admin Approval\n` +
         `Stock will be deducted once an admin approves this sale.`
@@ -236,6 +247,20 @@ const SaleModal = ({ onClose, onSuccess }) => {
                   </div>
                 )}
               </div>
+
+              {/* ← New sale date field */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Sale Date <span className={styles.required}>*</span></label>
+                <input
+                  type="date"
+                  name="sale_date"
+                  value={formData.sale_date}
+                  onChange={handleInputChange}
+                  className={styles.formInput}
+                  max={getTodayLocal()}
+                />
+              </div>
+
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>LPO/Quotation #</label>
                 <input type="text" name="lpo_quotation_number" value={formData.lpo_quotation_number}

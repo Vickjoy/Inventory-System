@@ -5,7 +5,7 @@ import Header from '../Header/Header';
 import Sidebar from '../Sidebar/Sidebar';
 import styles from './Layout.module.css';
 
-const Layout = () => {
+const Layout = ({ pendingCount = 0 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -32,6 +32,7 @@ const Layout = () => {
         onClose={closeSidebar}
         onOpenProductModal={handleOpenProductModal}
         onOpenSaleModal={handleOpenSaleModal}
+        pendingCount={pendingCount}
       />
       <div className={styles.mainContainer}>
         <Header onMenuToggle={toggleSidebar} />

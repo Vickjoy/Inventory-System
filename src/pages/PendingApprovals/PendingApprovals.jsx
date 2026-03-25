@@ -9,7 +9,7 @@ const formatCurrency = (amount) => {
     .toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-const PendingApprovals = () => {
+const PendingApprovals = ({ onCountChange }) => {
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
@@ -23,12 +23,13 @@ const PendingApprovals = () => {
     try {
       setLoading(true);
       const data = await api.getPendingSales();
-      if (Array.isArray(data)) setSales(data);
-      else if (data?.results) setSales(data.results);
-      else setSales([]);
+      const list = Array.isArray(data) ? data : (data?.results ?? []);
+      setSales(list);
+      onCountChange?.(list.length);   // ← notify parent of the current count
     } catch (error) {
       console.error('Error loading pending sales:', error);
       setSales([]);
+      onCountChange?.(0);
     } finally {
       setLoading(false);
     }
@@ -79,9 +80,6 @@ const PendingApprovals = () => {
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Pending Approvals</h1>
-          <p className={styles.pageSubtitle}>
-            Review and approve sales submitted by staff. Stock is only deducted after approval.
-          </p>
         </div>
         <div className={styles.headerBadge}>
           {sales.length > 0 && (
@@ -152,8 +150,10 @@ const PendingApprovals = () => {
               </div>
 
               {/* Products toggle */}
-              <div className={styles.productsToggle}
-                onClick={() => setExpandedSaleId(expandedSaleId === sale.id ? null : sale.id)}>
+              <div
+                className={styles.productsToggle}
+                onClick={() => setExpandedSaleId(expandedSaleId === sale.id ? null : sale.id)}
+              >
                 <span>📦 {sale.line_items?.length || 0} product(s)</span>
                 <span>{expandedSaleId === sale.id ? '▲ Hide' : '▼ View'}</span>
               </div>
@@ -248,15 +248,20 @@ const PendingApprovals = () => {
 
       {/* Rejection Modal */}
       {rejectModal && (
-        <div className={styles.modalOverlay} onClick={(e) => e.target === e.currentTarget && setRejectModal(null)}>
+        <div
+          className={styles.modalOverlay}
+          onClick={(e) => e.target === e.currentTarget && setRejectModal(null)}
+        >
           <div className={styles.rejectModal}>
             <div className={styles.rejectModalHeader}>
               <h3>Reject Sale {rejectModal.sale_number}</h3>
               <button onClick={() => setRejectModal(null)} className={styles.modalClose}>×</button>
             </div>
             <div className={styles.rejectModalBody}>
-              <p>Please provide a reason for rejecting this sale. The staff member will be able to see this reason.</p>
-              <label className={styles.rejectLabel}>Rejection Reason <span className={styles.required}>*</span></label>
+              <p>Please provide a reason for rejecting this sale.</p>
+              <label className={styles.rejectLabel}>
+                Rejection Reason <span className={styles.required}>*</span>
+              </label>
               <textarea
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}

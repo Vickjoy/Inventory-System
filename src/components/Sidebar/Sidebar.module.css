@@ -167,6 +167,11 @@
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
 }
 
+/* Hide active dot when pending badge is visible */
+.navItemActive:has(.pendingBadge)::after {
+  display: none;
+}
+
 .navIcon {
   font-size: 1.25rem;
   flex-shrink: 0;
@@ -177,6 +182,36 @@
 
 .navLabel {
   flex: 1;
+}
+
+/* ========================
+   Pending Approvals Badge
+======================== */
+.pendingBadge {
+  position: absolute;
+  right: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.5);
+  animation: badgePop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  letter-spacing: 0;
+}
+
+@keyframes badgePop {
+  0%   { transform: translateY(-50%) scale(0); }
+  100% { transform: translateY(-50%) scale(1); }
 }
 
 /* ========================
