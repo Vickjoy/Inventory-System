@@ -1,6 +1,7 @@
 // src/pages/Sales/Sales.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import SaleModal from './SaleModal';
 import styles from './Sales.module.css';
@@ -17,8 +18,15 @@ const Sales = () => {
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedSaleId, setExpandedSaleId] = useState(null);
+
+  // Delivery history modal
+  const [historyModal, setHistoryModal] = useState(null);   // holds sale object
+  const [historyData, setHistoryData] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { isAdmin } = useAuth();
 
   useEffect(() => { loadSales(); }, []);
 
@@ -45,6 +53,21 @@ const Sales = () => {
     }
   };
 
+  const openHistoryModal = async (sale) => {
+    setHistoryModal(sale);
+    setHistoryData([]);
+    setHistoryLoading(true);
+    try {
+      const data = await api.getDeliveryHistory(sale.id);
+      setHistoryData(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error loading delivery history:', error);
+      setHistoryData([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
   const filteredSales = sales.filter(sale =>
     sale.sale_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     sale.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -60,9 +83,6 @@ const Sales = () => {
     return badges[status] || 'badge-secondary';
   };
 
-  // ========================
-  // Sale approval status badge
-  // ========================
   const getApprovalBadge = (status) => {
     const map = {
       pending: { className: styles.badgePending, label: '⏳ Pending' },
@@ -140,6 +160,8 @@ const Sales = () => {
                     <th>Payment</th>
                     <th>LPO/Quote</th>
                     <th>Delivery #</th>
+                    <th>History</th>
+                    {isAdmin && <th>Salesperson</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -179,8 +201,6 @@ const Sales = () => {
                         <td className={styles.totalAmount}>
                           KES {formatCurrency(sale.total_amount)}
                         </td>
-
-                        {/* Approval status column */}
                         <td>
                           <span className={approval.className}>{approval.label}</span>
                           {sale.status === 'rejected' && sale.rejection_reason && (
@@ -194,8 +214,6 @@ const Sales = () => {
                             </div>
                           )}
                         </td>
-
-                        {/* Payment column */}
                         <td>
                           <div className={styles.paymentStatusContainer}>
                             <span className={`badge ${sale.mode_of_payment === 'Not Paid' ? 'badge-warning' : 'badge-success'}`}>
@@ -221,6 +239,26 @@ const Sales = () => {
                         </td>
                         <td>{sale.lpo_quotation_number || '-'}</td>
                         <td>{sale.delivery_number || '-'}</td>
+
+                        {/* Delivery history link */}
+                        <td>
+                          {sale.status === 'approved' ? (
+                            <button
+                              className={styles.btnViewHistory}
+                              onClick={() => openHistoryModal(sale)}
+                            >
+                              📋 View
+                            </button>
+                          ) : (
+                            <span className={styles.noHistory}>—</span>
+                          )}
+                        </td>
+
+                        {isAdmin && (
+                          <td className={styles.salespersonCell}>
+                            {sale.salesperson || <span className={styles.noSalesperson}>—</span>}
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -230,6 +268,90 @@ const Sales = () => {
           )}
         </div>
       </div>
+
+      {/* ========================
+          Delivery History Modal
+      ======================== */}
+      {historyModal && (
+        <div
+          className={styles.historyOverlay}
+          onClick={(e) => e.target === e.currentTarget && setHistoryModal(null)}
+        >
+          <div className={styles.historyModal}>
+            <div className={styles.historyModalHeader}>
+              <div>
+                <h2 className={styles.historyModalTitle}>Delivery History</h2>
+                <span className={styles.historyModalSale}>
+                  {historyModal.sale_number} — {historyModal.customer_name}
+                </span>
+              </div>
+              <button
+                className={styles.historyModalClose}
+                onClick={() => setHistoryModal(null)}
+              >×</button>
+            </div>
+
+            <div className={styles.historyModalBody}>
+              {historyLoading ? (
+                <div className={styles.historyLoading}>
+                  <div className={styles.historySpinner}></div>
+                  <p>Loading delivery history...</p>
+                </div>
+              ) : historyData.length === 0 ? (
+                <div className={styles.historyEmpty}>
+                  <div className={styles.historyEmptyIcon}>📦</div>
+                  <p>No deliveries have been recorded for this sale yet.</p>
+                </div>
+              ) : (
+                <div className={styles.historyList}>
+                  {historyData.map((delivery, idx) => (
+                    <div key={delivery.id} className={styles.historyEntry}>
+                      <div className={styles.historyEntryHeader}>
+                        <span className={styles.historyEntryNum}>Delivery {idx + 1}</span>
+                        <span className={styles.historyEntryDate}>
+                          📅 {new Date(delivery.delivery_date).toLocaleDateString('en-KE', {
+                            day: 'numeric', month: 'long', year: 'numeric'
+                          })}
+                        </span>
+                        <span className={styles.historyEntryBy}>
+                          👤 {delivery.recorded_by_name || 'Unknown'}
+                        </span>
+                      </div>
+
+                      <div className={styles.historyEntryItems}>
+                        {(delivery.delivery_items || []).map((item, i) => (
+                          <div key={i} className={styles.historyEntryItem}>
+                            <span className={styles.historyItemCode}>{item.product_code}</span>
+                            <span className={styles.historyItemName}>{item.product_name}</span>
+                            <span className={styles.historyItemQty}>
+                              {item.quantity_delivered} units delivered
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {delivery.notes && (
+                        <div className={styles.historyEntryNotes}>
+                          📝 {delivery.notes}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className={styles.historyModalFooter}>
+              <button
+                className={styles.btnCloseHistory}
+                onClick={() => setHistoryModal(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -343,6 +343,18 @@ const api = {
       body: JSON.stringify({ action: 'reject', rejection_reason: rejectionReason }),
     }),
 
+// ========================
+// Delivery Records
+// ========================
+  recordDelivery: (saleId, data) =>
+    api.request(`/sales/${saleId}/record_delivery/`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+   }),
+
+  getDeliveryHistory: (saleId) =>
+  api.request(`/sales/${saleId}/delivery_history/`),
+
   // ========================
   // Stock Entries (Legacy)
   // ========================
@@ -493,7 +505,7 @@ const api = {
     a.click();
     window.URL.revokeObjectURL(url);
   },
-};
+  };
 
 // ========================
 // CSV Helper Functions

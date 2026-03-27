@@ -13,7 +13,6 @@ const formatCurrency = (amount) => {
   });
 };
 
-// Returns today's date as a YYYY-MM-DD string in local time
 const getTodayLocal = () => {
   const now = new Date();
   const yyyy = now.getFullYear();
@@ -22,11 +21,24 @@ const getTodayLocal = () => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
+// Only allow digits for integer fields
+const handleIntegerInput = (value) => value.replace(/[^0-9]/g, '');
+
+// Only allow digits and a single decimal point for currency fields
+const handleDecimalInput = (value) => {
+  const cleaned = value.replace(/[^0-9.]/g, '');
+  const parts = cleaned.split('.');
+  if (parts.length > 2) return parts[0] + '.' + parts.slice(1).join('');
+  if (parts[1]?.length > 2) return parts[0] + '.' + parts[1].slice(0, 2);
+  return cleaned;
+};
+
 const SaleModal = ({ onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     customer: '',
-    sale_date: getTodayLocal(),       // ← new field, defaults to today
+    sale_date: getTodayLocal(),
+    salesperson: '',
     lpo_quotation_number: '',
     delivery_number: '',
     mode_of_payment: 'Not Paid',
@@ -34,8 +46,11 @@ const SaleModal = ({ onClose, onSuccess }) => {
   });
 
   const [lineItems, setLineItems] = useState([{
-    product: '', quantity_ordered: '', supply_status: 'Supplied',
-    quantity_supplied: '', unit_price: '',
+    product: '',
+    quantity_ordered: '',
+    supply_status: 'Supplied',
+    quantity_supplied: '',
+    unit_price: '',
   }]);
 
   const [productSearch, setProductSearch] = useState(['']);
@@ -71,7 +86,11 @@ const SaleModal = ({ onClose, onSuccess }) => {
 
   const selectProduct = (product, index) => {
     const newItems = [...lineItems];
-    newItems[index] = { ...newItems[index], product: product.id, unit_price: String(product.unit_price) };
+    newItems[index] = {
+      ...newItems[index],
+      product: product.id,
+      unit_price: String(product.unit_price),
+    };
     setLineItems(newItems);
     const newSearch = [...productSearch];
     newSearch[index] = `${product.code} - ${product.name}`;
@@ -96,16 +115,32 @@ const SaleModal = ({ onClose, onSuccess }) => {
 
   const handleLineItemChange = (index, field, value) => {
     const newItems = [...lineItems];
-    if (field === 'supply_status') {
-      newItems[index].supply_status = value;
-      if (value === 'Supplied') newItems[index].quantity_supplied = newItems[index].quantity_ordered || '';
-      else if (value === 'Not Supplied') newItems[index].quantity_supplied = '0';
+
+    if (field === 'unit_price') {
+      newItems[index].unit_price = handleDecimalInput(value);
     } else if (field === 'quantity_ordered') {
-      newItems[index].quantity_ordered = value;
-      if (newItems[index].supply_status === 'Supplied') newItems[index].quantity_supplied = value;
+      const cleaned = handleIntegerInput(value);
+      newItems[index].quantity_ordered = cleaned;
+      // Auto-fill quantity_supplied only for Supplied status
+      if (newItems[index].supply_status === 'Supplied') {
+        newItems[index].quantity_supplied = cleaned;
+      }
+    } else if (field === 'quantity_supplied') {
+      newItems[index].quantity_supplied = handleIntegerInput(value);
+    } else if (field === 'supply_status') {
+      newItems[index].supply_status = value;
+      if (value === 'Supplied') {
+        newItems[index].quantity_supplied = newItems[index].quantity_ordered || '';
+      } else if (value === 'Not Supplied') {
+        newItems[index].quantity_supplied = '0';
+      } else {
+        // Partially Supplied — clear so staff must enter manually
+        newItems[index].quantity_supplied = '';
+      }
     } else {
       newItems[index][field] = value;
     }
+
     setLineItems(newItems);
   };
 
@@ -128,6 +163,10 @@ const SaleModal = ({ onClose, onSuccess }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'amount_paid') {
+      setFormData(prev => ({ ...prev, amount_paid: handleDecimalInput(value) }));
+      return;
+    }
     setFormData(prev => {
       const updated = { ...prev, [name]: value };
       if (name === 'mode_of_payment' && value === 'Not Paid') updated.amount_paid = '';
@@ -176,10 +215,13 @@ const SaleModal = ({ onClose, onSuccess }) => {
       setLoading(true);
       const payload = {
         ...formData,
+        salesperson: formData.salesperson.trim() || null,
         line_items: lineItems.map(item => ({
           product: item.product,
           quantity_ordered: parseInt(item.quantity_ordered),
-          quantity_supplied: item.supply_status === 'Not Supplied' ? 0 : parseInt(item.quantity_supplied),
+          quantity_supplied: item.supply_status === 'Not Supplied' ? 0
+            : item.supply_status === 'Supplied' ? parseInt(item.quantity_ordered)
+            : parseInt(item.quantity_supplied),
           supply_status: item.supply_status,
           unit_price: roundToTwoDecimals(parseFloat(item.unit_price)),
         })),
@@ -226,6 +268,8 @@ const SaleModal = ({ onClose, onSuccess }) => {
           <div className={styles.section}>
             <h3 className={styles.sectionTitle}><span>👤</span> Customer Details</h3>
             <div className={styles.formGrid}>
+
+              {/* Customer search */}
               <div className={`${styles.formGroup} ${styles.autocompleteGroup}`}>
                 <label className={styles.formLabel}>Customer <span className={styles.required}>*</span></label>
                 <input
@@ -248,7 +292,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
                 )}
               </div>
 
-              {/* ← New sale date field */}
+              {/* Sale date */}
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Sale Date <span className={styles.required}>*</span></label>
                 <input
@@ -261,16 +305,42 @@ const SaleModal = ({ onClose, onSuccess }) => {
                 />
               </div>
 
+              {/* Salesperson — optional */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Salesperson</label>
+                <input
+                  type="text"
+                  name="salesperson"
+                  value={formData.salesperson}
+                  onChange={handleInputChange}
+                  className={styles.formInput}
+                  placeholder="e.g. Mary Oketch"
+                />
+              </div>
+
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>LPO/Quotation #</label>
-                <input type="text" name="lpo_quotation_number" value={formData.lpo_quotation_number}
-                  onChange={handleInputChange} className={styles.formInput} placeholder="LPO-2024-001" />
+                <input
+                  type="text"
+                  name="lpo_quotation_number"
+                  value={formData.lpo_quotation_number}
+                  onChange={handleInputChange}
+                  className={styles.formInput}
+                />
               </div>
+
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Delivery #</label>
-                <input type="text" name="delivery_number" value={formData.delivery_number}
-                  onChange={handleInputChange} className={styles.formInput} placeholder="DEL-001" />
+                <input
+                  type="text"
+                  name="delivery_number"
+                  value={formData.delivery_number}
+                  onChange={handleInputChange}
+                  className={styles.formInput}
+                  
+                />
               </div>
+
             </div>
           </div>
 
@@ -290,6 +360,8 @@ const SaleModal = ({ onClose, onSuccess }) => {
                     )}
                   </div>
                   <div className={styles.formGrid}>
+
+                    {/* Product search */}
                     <div className={`${styles.formGroup} ${styles.autocompleteGroup} ${styles.fullWidth}`}>
                       <label className={styles.formLabel}>Product <span className={styles.required}>*</span></label>
                       <input
@@ -312,37 +384,66 @@ const SaleModal = ({ onClose, onSuccess }) => {
                         </div>
                       )}
                     </div>
+
+                    {/* Unit price — text input, no spinners */}
                     <div className={styles.formGroup}>
                       <label className={styles.formLabel}>Unit Price (KES) <span className={styles.required}>*</span></label>
-                      <input type="number" value={item.unit_price}
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={item.unit_price}
                         onChange={(e) => handleLineItemChange(index, 'unit_price', e.target.value)}
-                        className={styles.formInput} min="0" step="0.01" placeholder="0.00" />
+                        className={styles.formInput}
+                        placeholder="0.00"
+                      />
                     </div>
+
+                    {/* Quantity ordered — text input, no spinners */}
                     <div className={styles.formGroup}>
                       <label className={styles.formLabel}>Qty Ordered <span className={styles.required}>*</span></label>
-                      <input type="number" value={item.quantity_ordered}
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={item.quantity_ordered}
                         onChange={(e) => handleLineItemChange(index, 'quantity_ordered', e.target.value)}
-                        className={styles.formInput} min="1" placeholder="0" />
+                        className={styles.formInput}
+                        placeholder="0"
+                      />
                     </div>
+
+                    {/* Supply status */}
                     <div className={styles.formGroup}>
                       <label className={styles.formLabel}>Supply Status <span className={styles.required}>*</span></label>
-                      <select value={item.supply_status}
+                      <select
+                        value={item.supply_status}
                         onChange={(e) => handleLineItemChange(index, 'supply_status', e.target.value)}
-                        className={styles.formSelect}>
+                        className={styles.formSelect}
+                      >
                         <option value="Supplied">Fully Supplied</option>
                         <option value="Partially Supplied">Partially Supplied</option>
                         <option value="Not Supplied">Not Supplied</option>
                       </select>
                     </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Qty Supplied <span className={styles.required}>*</span></label>
-                      <input type="number" value={item.quantity_supplied}
-                        onChange={(e) => handleLineItemChange(index, 'quantity_supplied', e.target.value)}
-                        className={styles.formInput} min="0" max={item.quantity_ordered} placeholder="0" />
-                      {item.supply_status === 'Partially Supplied' && (
-                        <span className={styles.hint}>Must be less than {item.quantity_ordered || 'ordered'}</span>
-                      )}
-                    </div>
+
+                    {/* Qty supplied — only visible when Partially Supplied AND qty ordered is filled */}
+                    {item.supply_status === 'Partially Supplied' && item.quantity_ordered && (
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>
+                          Qty Supplied <span className={styles.required}>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={item.quantity_supplied}
+                          onChange={(e) => handleLineItemChange(index, 'quantity_supplied', e.target.value)}
+                          className={styles.formInput}
+                          placeholder="0"
+                        />
+                        <span className={styles.hint}>Must be less than {item.quantity_ordered}</span>
+                      </div>
+                    )}
+
+                    {/* Item subtotal display */}
                     {item.quantity_ordered && item.unit_price && (
                       <div className={styles.subtotal}>
                         <label>Item Subtotal</label>
@@ -351,6 +452,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
                         )}</span>
                       </div>
                     )}
+
                   </div>
                 </div>
               ))}
@@ -363,8 +465,12 @@ const SaleModal = ({ onClose, onSuccess }) => {
             <div className={styles.formGrid}>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Payment Mode <span className={styles.required}>*</span></label>
-                <select name="mode_of_payment" value={formData.mode_of_payment}
-                  onChange={handleInputChange} className={styles.formSelect}>
+                <select
+                  name="mode_of_payment"
+                  value={formData.mode_of_payment}
+                  onChange={handleInputChange}
+                  className={styles.formSelect}
+                >
                   <option value="Cash">Cash</option>
                   <option value="Cheque">Cheque</option>
                   <option value="Mpesa">M-Pesa</option>
@@ -376,9 +482,16 @@ const SaleModal = ({ onClose, onSuccess }) => {
                   Amount Paid (KES)
                   {formData.mode_of_payment !== 'Not Paid' && <span className={styles.required}>*</span>}
                 </label>
-                <input type="number" name="amount_paid" value={formData.amount_paid}
-                  onChange={handleInputChange} className={styles.formInput} min="0" step="0.01"
-                  placeholder="0.00" disabled={formData.mode_of_payment === 'Not Paid'} />
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  name="amount_paid"
+                  value={formData.amount_paid}
+                  onChange={handleInputChange}
+                  className={styles.formInput}
+                  placeholder="0.00"
+                  disabled={formData.mode_of_payment === 'Not Paid'}
+                />
               </div>
             </div>
 
