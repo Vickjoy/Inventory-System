@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext'; // 👈 added
 import api from '../../utils/api';
 import styles from './Dashboard.module.css';
 import DashboardBanner from '../../assets/banner.jpg';
@@ -16,8 +17,8 @@ const Dashboard = () => {
   const [errorType, setErrorType] = useState(null);
 
   const navigate = useNavigate();
+  const { isAdmin } = useAuth(); // 👈 added
 
-  // Guards
   const isFetchingRef = useRef(false);
   const hasMountedRef = useRef(false);
 
@@ -60,7 +61,6 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    // Prevent StrictMode double-fetch in development
     if (!hasMountedRef.current) {
       hasMountedRef.current = true;
       loadDashboardData(false);
@@ -123,7 +123,7 @@ const Dashboard = () => {
     );
   }
 
-  const quickLinks = quickLinksConfig(stats, navigate);
+  const quickLinks = quickLinksConfig(stats, navigate, isAdmin); // 👈 added isAdmin
 
   return (
     <div className={styles.dashboard}>
@@ -134,10 +134,8 @@ const Dashboard = () => {
         </p>
       </div>
 
-      {/* Stats Cards */}
       <DashboardStats quickLinks={quickLinks} />
 
-      {/* Banner */}
       <div className={styles.bannerContainer}>
         <img
           src={DashboardBanner}
@@ -147,7 +145,6 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* Charts */}
       <div className={styles.chartsGrid}>
         <SalesLineChart salesData={stats?.monthly_sales} />
         <TopProductsPie productsData={stats?.top_products} />

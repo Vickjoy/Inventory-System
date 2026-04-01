@@ -1,8 +1,8 @@
 // Quick Links Configuration
 // Centralized configuration for dashboard stat cards
-// Can be customized based on user role or permissions
 
-export const quickLinksConfig = (stats, navigate) => [
+export const quickLinksConfig = (stats, navigate, isAdmin) => {
+  const allLinks = [
     {
       title: 'Total Products',
       value: stats?.total_products || 0,
@@ -35,7 +35,8 @@ export const quickLinksConfig = (stats, navigate) => [
       title: 'Stock In/Out',
       hasValue: false,
       onClick: () => navigate('/stock-entries'),
-      ariaLabel: 'Go to stock entries page'
+      ariaLabel: 'Go to stock entries page',
+      adminOnly: true,  // 👈 only admins see this card
     },
     {
       title: 'Reports & Analytics',
@@ -44,17 +45,19 @@ export const quickLinksConfig = (stats, navigate) => [
       ariaLabel: 'Go to reports and analytics page'
     }
   ];
-  
-  // Role-based configuration (example for future use)
-  export const getRoleBasedQuickLinks = (role, stats, navigate) => {
-    const allLinks = quickLinksConfig(stats, navigate);
-    
-    // Example: Filter links based on role
-    if (role === 'viewer') {
-      return allLinks.filter(link => 
-        !['Outstanding Supplies', 'Stock In/Out'].includes(link.title)
-      );
-    }
-    
-    return allLinks;
-  };
+
+  return allLinks.filter(link => !link.adminOnly || isAdmin);
+};
+
+// Role-based configuration (example for future use)
+export const getRoleBasedQuickLinks = (role, stats, navigate) => {
+  const allLinks = quickLinksConfig(stats, navigate);
+
+  if (role === 'viewer') {
+    return allLinks.filter(link =>
+      !['Outstanding Supplies', 'Stock In/Out'].includes(link.title)
+    );
+  }
+
+  return allLinks;
+};

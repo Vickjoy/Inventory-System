@@ -6,7 +6,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -17,12 +17,32 @@
 
 .modal {
   background: white;
-  border-radius: 0.75rem;
+  border-radius: 12px;
   width: 100%;
   max-width: 800px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+}
+
+/* Bold, Visible Scrollbar */
+.modal::-webkit-scrollbar {
+  width: 12px;
+}
+
+.modal::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 6px;
+}
+
+.modal::-webkit-scrollbar-thumb {
+  background: #2563eb;
+  border-radius: 6px;
+  border: 2px solid #e2e8f0;
+}
+
+.modal::-webkit-scrollbar-thumb:hover {
+  background: #1e40af;
 }
 
 .modalHeader {
@@ -31,7 +51,7 @@
   align-items: center;
   padding: 1.5rem 2rem;
   background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-  border-radius: 0.75rem 0.75rem 0 0;
+  border-radius: 12px 12px 0 0;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -45,6 +65,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  letter-spacing: -0.3px;
 }
 
 .modalClose {
@@ -54,7 +75,7 @@
   font-size: 1.5rem;
   width: 40px;
   height: 40px;
-  border-radius: 0.5rem;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -81,7 +102,7 @@
   padding: 1.5rem 2rem;
   border-top: 2px solid #e2e8f0;
   background: white;
-  border-radius: 0 0 0.75rem 0.75rem;
+  border-radius: 0 0 12px 12px;
   position: sticky;
   bottom: 0;
   z-index: 10;
@@ -104,12 +125,14 @@
 
 .formLabel {
   font-weight: 600;
-  font-size: 0.875rem;
-  color: #1e293b;
+  font-size: 0.8125rem;
+  color: #334155;
   margin: 0;
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .required {
@@ -124,10 +147,18 @@
   width: 100%;
   padding: 0.75rem 1rem;
   border: 2px solid #e2e8f0;
-  border-radius: 0.5rem;
+  border-radius: 8px;
   font-size: 0.875rem;
+  font-weight: 500;
+  color: #1e293b;
   transition: all 0.2s ease;
   background-color: white;
+}
+
+.formInput:hover,
+.formSelect:hover,
+.formTextarea:hover {
+  border-color: #cbd5e1;
 }
 
 .formInput:focus,
@@ -175,17 +206,18 @@
 /* Alerts */
 .alertDanger {
   padding: 1rem;
-  border-radius: 0.5rem;
+  border-radius: 8px;
   font-size: 0.875rem;
   background-color: #fee2e2;
   border: 2px solid #fca5a5;
   color: #991b1b;
+  font-weight: 500;
 }
 
 /* Buttons */
 .btn {
   padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
@@ -200,6 +232,8 @@
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .btnOutline {
@@ -217,12 +251,17 @@
   background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
   color: white;
   border-color: #1e40af;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
 }
 
 .btnPrimary:hover:not(:disabled) {
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.35);
   transform: translateY(-1px);
+}
+
+.btnPrimary:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 /* Spinner */
@@ -244,12 +283,13 @@
 .categorySection {
   background: white;
   padding: 1.25rem;
-  border-radius: 0.5rem;
-  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .categoryTitle {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   color: #1e40af;
   margin: 0 0 1rem 0;
@@ -258,6 +298,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e2e8f0;
 }
 
 /* Responsive */
@@ -276,7 +318,7 @@
 
   .modalTitle { font-size: 1.25rem; }
 
-  .modalBody { padding: 1.25rem; }
+  .modalBody { padding: 1.25rem; gap: 1rem; }
 
   .modalFooter {
     border-radius: 0;
