@@ -36,7 +36,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     customer: '',
     sale_date: getTodayLocal(),
-    salesperson: '',
+    salesperson: '',       // stores the name string sent to backend
     lpo_quotation_number: '',
     delivery_number: '',
     mode_of_payment: 'Not Paid',
@@ -53,15 +53,24 @@ const SaleModal = ({ onClose, onSuccess }) => {
 
   const [productSearch, setProductSearch] = useState(['']);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [salespersonSearch, setSalespersonSearch] = useState('');       // ← NEW
   const [productSuggestions, setProductSuggestions] = useState([]);
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
+  const [salespersonSuggestions, setSalespersonSuggestions] = useState([]); // ← NEW
   const [showProductDropdown, setShowProductDropdown] = useState([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [showSalespersonDropdown, setShowSalespersonDropdown] = useState(false); // ← NEW
 
   useEffect(() => {
     if (customerSearch.length >= 2) searchCustomers(customerSearch);
     else setCustomerSuggestions([]);
   }, [customerSearch]);
+
+  // ── NEW: trigger salesperson search on keystroke ─────────────────────────
+  useEffect(() => {
+    if (salespersonSearch.length >= 2) searchSalespersons(salespersonSearch);
+    else setSalespersonSuggestions([]);
+  }, [salespersonSearch]);
 
   const searchProducts = async (query, index) => {
     if (query.length < 2) return;
@@ -81,6 +90,31 @@ const SaleModal = ({ onClose, onSuccess }) => {
       setShowCustomerDropdown(true);
     } catch (e) { console.error('Error searching customers:', e); }
   };
+
+  // ── NEW ──────────────────────────────────────────────────────────────────
+  const searchSalespersons = async (query) => {
+    try {
+      const data = await api.request(`/sales/search_salespersons/?q=${query}`);
+      setSalespersonSuggestions(Array.isArray(data) ? data : []);
+      setShowSalespersonDropdown(true);
+    } catch (e) { console.error('Error searching salespersons:', e); }
+  };
+
+  const selectSalesperson = (sp) => {
+    setFormData(prev => ({ ...prev, salesperson: sp.name }));
+    setSalespersonSearch(sp.name);
+    setShowSalespersonDropdown(false);
+  };
+
+  const handleSalespersonSearchChange = (e) => {
+    const value = e.target.value;
+    setSalespersonSearch(value);
+    // Keep the free-text value in formData too (field is optional)
+    setFormData(prev => ({ ...prev, salesperson: value }));
+    if (value.length >= 2) searchSalespersons(value);
+    else setSalespersonSuggestions([]);
+  };
+  // ─────────────────────────────────────────────────────────────────────────
 
   const selectProduct = (product, index) => {
     const newItems = [...lineItems];
@@ -121,7 +155,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
 
   const handleLineItemChange = (index, field, value) => {
     const newItems = [...lineItems];
-
     if (field === 'unit_price') {
       newItems[index].unit_price = handleDecimalInput(value);
     } else if (field === 'quantity_ordered') {
@@ -144,7 +177,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
     } else {
       newItems[index][field] = value;
     }
-
     setLineItems(newItems);
   };
 
@@ -183,38 +215,29 @@ const SaleModal = ({ onClose, onSuccess }) => {
       return sum + ((parseFloat(item.quantity_ordered) || 0) * (parseFloat(item.unit_price) || 0));
     }, 0);
 
-  const calculateVAT = () => roundToTwoDecimals(calculateSubtotal() * 0.16);
-  const calculateTotal = () => roundToTwoDecimals(calculateSubtotal() + calculateVAT());
+  const calculateVAT    = () => roundToTwoDecimals(calculateSubtotal() * 0.16);
+  const calculateTotal  = () => roundToTwoDecimals(calculateSubtotal() + calculateVAT());
   const calculateBalance = () =>
     roundToTwoDecimals(calculateTotal() - (parseFloat(formData.amount_paid) || 0));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!customerSearch.trim()) {
-      return alert('Please enter or select a customer');
-    }
-
-    if (!formData.sale_date) return alert('Please enter a sale date');
+    if (!customerSearch.trim()) return alert('Please enter or select a customer');
+    if (!formData.sale_date)    return alert('Please enter a sale date');
 
     for (let i = 0; i < lineItems.length; i++) {
       const item = lineItems[i];
-
-      // product and quantity_ordered are still required; unit_price is now optional
       if (!item.product || !item.quantity_ordered)
         return alert(`Please select a product and enter a quantity for item ${i + 1}`);
-
       const qty = parseFloat(item.quantity_ordered);
       if (isNaN(qty) || qty <= 0)
         return alert(`Invalid quantity for product ${i + 1}`);
-
-      // unit_price: only validate format if something was entered
       if (item.unit_price !== '' && item.unit_price != null) {
         const price = parseFloat(item.unit_price);
         if (isNaN(price) || price < 0)
           return alert(`Invalid unit price for product ${i + 1}`);
       }
-
       if (item.supply_status === 'Partially Supplied') {
         const qtySupplied = parseFloat(item.quantity_supplied);
         if (!item.quantity_supplied || item.quantity_supplied === '0')
@@ -225,7 +248,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
     }
 
     if (formData.mode_of_payment !== 'Not Paid' &&
-      (!formData.amount_paid || parseFloat(formData.amount_paid) <= 0)) {
+        (!formData.amount_paid || parseFloat(formData.amount_paid) <= 0)) {
       return alert('Please enter the amount paid');
     }
 
@@ -237,6 +260,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
           : { customer_name: customerSearch.trim() }
         ),
         sale_date: formData.sale_date,
+        // Send the name string (trimmed). Empty string → null so backend stores blank cleanly.
         salesperson: formData.salesperson.trim() || null,
         lpo_quotation_number: formData.lpo_quotation_number,
         delivery_number: formData.delivery_number,
@@ -248,16 +272,15 @@ const SaleModal = ({ onClose, onSuccess }) => {
             : item.supply_status === 'Supplied' ? parseInt(item.quantity_ordered)
             : parseInt(item.quantity_supplied),
           supply_status: item.supply_status,
-          // send null if unit_price is blank, otherwise send the parsed value
           unit_price: item.unit_price === '' || item.unit_price == null
             ? null
             : roundToTwoDecimals(parseFloat(item.unit_price)),
         })),
         amount_paid: formData.mode_of_payment === 'Not Paid'
           ? 0 : roundToTwoDecimals(parseFloat(formData.amount_paid)),
-        subtotal: roundToTwoDecimals(calculateSubtotal()),
-        vat_amount: calculateVAT(),
-        total_amount: calculateTotal(),
+        subtotal:      roundToTwoDecimals(calculateSubtotal()),
+        vat_amount:    calculateVAT(),
+        total_amount:  calculateTotal(),
       };
 
       const result = await api.request('/sales/', { method: 'POST', body: JSON.stringify(payload) });
@@ -297,6 +320,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
             <h3 className={styles.sectionTitle}><span>👤</span> Customer Details</h3>
             <div className={styles.formGrid}>
 
+              {/* Customer autocomplete */}
               <div className={`${styles.formGroup} ${styles.autocompleteGroup}`}>
                 <label className={styles.formLabel}>
                   Customer <span className={styles.required}>*</span>
@@ -328,6 +352,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
                 }
               </div>
 
+              {/* Sale Date */}
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Sale Date <span className={styles.required}>*</span></label>
                 <input
@@ -340,18 +365,32 @@ const SaleModal = ({ onClose, onSuccess }) => {
                 />
               </div>
 
-              <div className={styles.formGroup}>
+              {/* ── Salesperson autocomplete (NEW) ───────────────────────── */}
+              <div className={`${styles.formGroup} ${styles.autocompleteGroup}`}>
                 <label className={styles.formLabel}>Salesperson</label>
                 <input
                   type="text"
-                  name="salesperson"
-                  value={formData.salesperson}
-                  onChange={handleInputChange}
+                  value={salespersonSearch}
+                  onChange={handleSalespersonSearchChange}
+                  onFocus={() => salespersonSearch.length >= 2 && setShowSalespersonDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowSalespersonDropdown(false), 150)}
                   className={styles.formInput}
-                  placeholder="e.g. Mary Oketch"
+                  placeholder="Type to search salesperson..."
                 />
+                {showSalespersonDropdown && salespersonSuggestions.length > 0 && (
+                  <div className={styles.dropdown}>
+                    {salespersonSuggestions.map(sp => (
+                      <div key={sp.id} className={styles.dropdownItem} onClick={() => selectSalesperson(sp)}>
+                        <strong>{sp.name}</strong>
+                        {sp.phone && <span>{sp.phone}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+              {/* ─────────────────────────────────────────────────────────── */}
 
+              {/* LPO / Quotation # */}
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>LPO/Quotation #</label>
                 <input
@@ -363,6 +402,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
                 />
               </div>
 
+              {/* Delivery # */}
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Delivery #</label>
                 <input
@@ -393,7 +433,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
                     )}
                   </div>
                   <div className={styles.formGrid}>
-
                     <div className={`${styles.formGroup} ${styles.autocompleteGroup} ${styles.fullWidth}`}>
                       <label className={styles.formLabel}>Product <span className={styles.required}>*</span></label>
                       <input
@@ -417,7 +456,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
                       )}
                     </div>
 
-                    {/* Unit price — now optional */}
                     <div className={styles.formGroup}>
                       <label className={styles.formLabel}>Unit Price (KES)</label>
                       <input
@@ -480,7 +518,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
                         )}</span>
                       </div>
                     )}
-
                   </div>
                 </div>
               ))}

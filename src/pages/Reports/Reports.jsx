@@ -138,31 +138,32 @@ const Reports = () => {
         const items = sale.line_items || [];
         items.forEach((item, idx) => {
           rows.push({
-            date:        idx === 0 ? new Date(sale.created_at).toLocaleDateString('en-KE') : '',
-            customer:    idx === 0 ? sale.customer_name                                     : '',
-            product:     item.product_name,
-            qtySupplied: item.quantity_supplied,
-            total:       idx === 0 ? `KES ${formatCurrency(sale.total_amount)}`            : '',
-            paid:        idx === 0 ? `KES ${formatCurrency(sale.amount_paid)}`             : '',
-            balance:     idx === 0 ? `KES ${formatCurrency(sale.outstanding_balance)}`     : '',
-            payment:     idx === 0 ? sale.mode_of_payment                                  : '',
-            _balance:    idx === 0 ? parseFloat(sale.outstanding_balance || 0)             : null,
-            _payment:    idx === 0 ? sale.mode_of_payment                                  : null,
-            _saleIdx:    saleIdx,
-            _isFirst:    idx === 0,
-            _isLast:     idx === items.length - 1,
+            date:         idx === 0 ? new Date(sale.created_at).toLocaleDateString('en-KE') : '',
+            customer:     idx === 0 ? sale.customer_name                                     : '',
+            product:      item.product_name,
+            qtySupplied:  item.quantity_supplied,
+            total:        idx === 0 ? `KES ${formatCurrency(sale.total_amount)}`             : '',
+            paid:         idx === 0 ? `KES ${formatCurrency(sale.amount_paid)}`              : '',
+            balance:      idx === 0 ? `KES ${formatCurrency(sale.outstanding_balance)}`      : '',
+            salesperson:  idx === 0 ? (sale.salesperson || '—')                              : '',  // ← NEW
+            payment:      idx === 0 ? sale.mode_of_payment                                   : '',
+            _balance:     idx === 0 ? parseFloat(sale.outstanding_balance || 0)              : null,
+            _payment:     idx === 0 ? sale.mode_of_payment                                   : null,
+            _saleIdx:     saleIdx,
+            _isFirst:     idx === 0,
+            _isLast:      idx === items.length - 1,
           });
         });
       });
 
       const head = [[
         'Date', 'Customer', 'Product Name', 'Qty Supplied',
-        'Total Amount', 'Amount Paid', 'Outstanding', 'Payment Mode'
+        'Total Amount', 'Amount Paid', 'Outstanding', 'Salesperson', 'Payment Mode'
       ]];
 
       const body = rows.map(r => [
         r.date, r.customer, r.product, r.qtySupplied,
-        r.total, r.paid, r.balance, r.payment
+        r.total, r.paid, r.balance, r.salesperson, r.payment
       ]);
 
       autoTable(doc, {
@@ -172,35 +173,33 @@ const Reports = () => {
         // Disable default alternating rows — we control colouring per sale group
         alternateRowStyles: {},
         columnStyles: {
-          0: { cellWidth: 64  },                   // Date
-          1: { cellWidth: 100 },                   // Customer
-          2: { cellWidth: 'auto' },                // Product Name
-          3: { cellWidth: 58, halign: 'center' },  // Qty Supplied
-          4: { cellWidth: 80, halign: 'right'  },  // Total Amount
-          5: { cellWidth: 80, halign: 'right'  },  // Amount Paid
-          6: { cellWidth: 80, halign: 'right'  },  // Outstanding
-          7: { cellWidth: 70, halign: 'center' },  // Payment Mode
+          0: { cellWidth: 58  },                   // Date
+          1: { cellWidth: 90  },                   // Customer
+          2: { cellWidth: 'auto' },               // Product Name
+          3: { cellWidth: 50, halign: 'center' }, // Qty Supplied
+          4: { cellWidth: 72, halign: 'right'  }, // Total Amount
+          5: { cellWidth: 72, halign: 'right'  }, // Amount Paid
+          6: { cellWidth: 72, halign: 'right'  }, // Outstanding
+          7: { cellWidth: 70  },                  // Salesperson  ← NEW
+          8: { cellWidth: 62, halign: 'center' }, // Payment Mode
         },
 
         didParseCell: (data) => {
           if (data.section !== 'body') return;
           const r = rows[data.row.index];
 
-          // Alternating sale-group background (white / light blue-grey)
           data.cell.styles.fillColor = r._saleIdx % 2 === 0 ? SALE_BG_EVEN : SALE_BG_ODD;
-
-          // Hairline inner borders within the same sale group
           data.cell.styles.lineWidth = 0.3;
           data.cell.styles.lineColor = SLATE_300;
 
-          // Outstanding balance — red if > 0, green if cleared
+          // Outstanding balance — column 6
           if (data.column.index === 6 && r._balance !== null) {
             data.cell.styles.textColor = r._balance > 0 ? RED : [22, 163, 74];
             data.cell.styles.fontStyle = 'bold';
           }
 
-          // Payment mode badge colours
-          if (data.column.index === 7 && r._payment !== null) {
+          // Payment mode badge — column 8 (was 7)
+          if (data.column.index === 8 && r._payment !== null) {
             if (r._payment === 'Not Paid') {
               data.cell.styles.textColor = AMBER_DARK;
               data.cell.styles.fillColor = AMBER_BG;
@@ -700,7 +699,7 @@ const Reports = () => {
           ) : (
             <div className={styles.reportContent}>
 
-              {/* ── SALES REPORT (UI: all 10 columns) ────────────────────── */}
+              {/* ── SALES REPORT (UI: all 11 columns) ────────────────────── */}
               {reportType === 'sales' && (
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
@@ -715,6 +714,7 @@ const Reports = () => {
                         <th>Total Amount</th>
                         <th>Amount Paid</th>
                         <th>Outstanding Balance</th>
+                        <th>Salesperson</th>
                         <th>Mode of Payment</th>
                       </tr>
                     </thead>
@@ -740,6 +740,9 @@ const Reports = () => {
                                   <span className={parseFloat(sale.outstanding_balance) > 0 ? styles.textDanger : styles.textSuccess}>
                                     KES {formatCurrency(sale.outstanding_balance)}
                                   </span>
+                                </td>
+                                <td rowSpan={sale.line_items.length}>
+                                  {sale.salesperson || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>—</span>}
                                 </td>
                                 <td rowSpan={sale.line_items.length}>
                                   <span className={`${styles.badge} ${sale.mode_of_payment === 'Not Paid' ? styles.badgeWarning : styles.badgeSuccess}`}>
