@@ -23,21 +23,16 @@ const Products = () => {
   const { user } = useAuth();
   const isStaffOrAdmin = user?.is_staff || user?.is_superuser;
 
-  // Get filter from URL or default to 'all'
   const urlFilter = searchParams.get('filter');
   const initialFilter = urlFilter === 'low' ? 'low' : 'all';
   const [filter, setFilter] = useState(initialFilter);
-  
-  // Use ref to track if we've initialized from URL
+
   const hasInitialized = useRef(false);
 
-  // Sync filter with URL parameter
   useEffect(() => {
     const urlFilter = searchParams.get('filter');
-    
-    // On first mount, set filter from URL
+
     if (!hasInitialized.current) {
-      console.log('Initial URL filter:', urlFilter);
       if (urlFilter === 'low') {
         setFilter('low');
         setCategoryFilter('all');
@@ -48,20 +43,16 @@ const Products = () => {
       return;
     }
 
-    // On subsequent changes, update filter if URL changes
     if (urlFilter === 'low' && filter !== 'low') {
-      console.log('URL changed to low, updating filter');
       setFilter('low');
       setCategoryFilter('all');
       setSubcategoryFilter('all');
       setSearchTerm('');
     } else if (!urlFilter && filter === 'low') {
-      console.log('URL changed to normal, updating filter');
       setFilter('all');
     }
   }, [searchParams]);
 
-  // Handle sidebar action to open Add Product modal
   useEffect(() => {
     const action = searchParams.get('action');
     if (action === 'add') {
@@ -70,7 +61,6 @@ const Products = () => {
     }
   }, [searchParams]);
 
-  // Load categories with full hierarchy
   useEffect(() => {
     const loadMeta = async () => {
       try {
@@ -78,11 +68,8 @@ const Products = () => {
           api.getCategories(),
           api.getSuppliers(),
         ]);
-        console.log('Loaded categories:', catData);
-
         setCategories(catData?.results || catData || []);
         setSuppliers(suppliersData?.results || suppliersData || []);
-
       } catch (error) {
         console.error('Error loading meta data:', error);
       }
@@ -90,9 +77,7 @@ const Products = () => {
     loadMeta();
   }, []);
 
-  // Load ALL products when filter changes
   useEffect(() => {
-    console.log('Loading products with filter:', filter);
     loadAllProducts();
   }, [filter]);
 
@@ -102,7 +87,6 @@ const Products = () => {
       let allLoadedProducts = [];
       let nextUrl = null;
 
-      console.log(`Fetching ${filter} products...`);
       const response = filter === 'low'
         ? await api.getLowStock()
         : await api.getProducts();
@@ -115,7 +99,7 @@ const Products = () => {
           const nextResponse = filter === 'low'
             ? await api.getLowStock(nextUrl)
             : await api.getProducts(nextUrl);
-          
+
           if (nextResponse && nextResponse.results) {
             allLoadedProducts = [...allLoadedProducts, ...nextResponse.results];
             nextUrl = nextResponse.next;
@@ -127,7 +111,6 @@ const Products = () => {
         allLoadedProducts = Array.isArray(response) ? response : [];
       }
 
-      console.log(`✅ Total ${filter} products loaded:`, allLoadedProducts.length);
       setAllProducts(allLoadedProducts);
     } catch (error) {
       console.error('Error loading products:', error);
@@ -137,26 +120,9 @@ const Products = () => {
     }
   };
 
-  // Modal handlers
   const handleAddProduct = () => {
     setSelectedProduct(null);
     setShowProductModal(true);
-  };
-
-  const handleEditProduct = (product) => {
-    setSelectedProduct(product);
-    setShowProductModal(true);
-  };
-
-  const handleDeleteProduct = async (id) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await api.deleteProduct(id);
-        loadAllProducts();
-      } catch (error) {
-        alert('Error deleting product: ' + error.message);
-      }
-    }
   };
 
   const handleStockAdjust = (product = null) => {
@@ -171,10 +137,8 @@ const Products = () => {
     loadAllProducts();
   };
 
-  // Handle filter button clicks - Reset category filters
   const handleFilterChange = (newFilter) => {
     if (newFilter !== filter) {
-      console.log('Manual filter change to:', newFilter);
       setFilter(newFilter);
       setCategoryFilter('all');
       setSubcategoryFilter('all');
@@ -182,69 +146,59 @@ const Products = () => {
     }
   };
 
-  // Get current category object
-  const currentCategory = categories.find(cat => 
+  const currentCategory = categories.find(cat =>
     categoryFilter !== 'all' && cat.id === parseInt(categoryFilter)
   );
 
-  // Get subcategories for current category
   const currentSubcategories = currentCategory?.subcategories || [];
 
-  // Filter products
   const filteredProducts = Array.isArray(allProducts)
     ? allProducts.filter((product) => {
         const search = searchTerm.toLowerCase();
         const matchesSearch =
           product.name.toLowerCase().includes(search) ||
           product.code.toLowerCase().includes(search);
-        
-        // Category filter
+
         if (categoryFilter !== 'all') {
-          if (product.category !== parseInt(categoryFilter)) {
-            return false;
-          }
+          if (product.category !== parseInt(categoryFilter)) return false;
         }
 
-        // Subcategory filter
         if (subcategoryFilter !== 'all') {
-          if (product.subcategory !== parseInt(subcategoryFilter)) {
-            return false;
-          }
+          if (product.subcategory !== parseInt(subcategoryFilter)) return false;
         }
 
         return matchesSearch;
       })
     : [];
 
-  // Group products by subcategory and subsubcategory
   const groupedProducts = {};
-  
+
   if (categoryFilter === 'all') {
     filteredProducts.forEach(product => {
       const catName = product.category_name || 'Uncategorized';
       const subcatName = product.subcategory_name || 'Uncategorized';
       const groupName = product.subsubcategory_name || 'Ungrouped';
-      
+
       if (!groupedProducts[catName]) groupedProducts[catName] = {};
       if (!groupedProducts[catName][subcatName]) groupedProducts[catName][subcatName] = {};
       if (!groupedProducts[catName][subcatName][groupName]) groupedProducts[catName][subcatName][groupName] = [];
-      
+
       groupedProducts[catName][subcatName][groupName].push(product);
     });
   } else if (subcategoryFilter === 'all') {
     filteredProducts.forEach(product => {
       const subcatName = product.subcategory_name || 'Uncategorized';
       const groupName = product.subsubcategory_name || 'Ungrouped';
-      
+
       if (!groupedProducts[subcatName]) groupedProducts[subcatName] = {};
       if (!groupedProducts[subcatName][groupName]) groupedProducts[subcatName][groupName] = [];
-      
+
       groupedProducts[subcatName][groupName].push(product);
     });
   } else {
     filteredProducts.forEach(product => {
       const groupName = product.subsubcategory_name || 'Ungrouped';
-      
+
       if (!groupedProducts[groupName]) groupedProducts[groupName] = [];
       groupedProducts[groupName].push(product);
     });
@@ -252,7 +206,6 @@ const Products = () => {
 
   const renderProductRows = (products) =>
     products.map((product) => {
-      // Updated: Low stock is when current_stock is 0 or less
       const isLowStock = product.current_stock <= 0;
       return (
         <tr key={product.id}>
@@ -273,16 +226,6 @@ const Products = () => {
               {isStaffOrAdmin && (
                 <button onClick={() => handleStockAdjust(product)} className="btn btn-sm btn-outline">
                   📊 Restock
-                </button>
-              )}
-              {isStaffOrAdmin && (
-                <button onClick={() => handleEditProduct(product)} className="btn btn-sm btn-primary">
-                  ✏️
-                </button>
-              )}
-              {user?.is_superuser && (
-                <button onClick={() => handleDeleteProduct(product.id)} className="btn btn-sm btn-danger">
-                  🗑️
                 </button>
               )}
             </div>
@@ -307,7 +250,7 @@ const Products = () => {
         <div>
           <h1 className={styles.pageTitle}>Products & Stock</h1>
           {filter === 'low' && (
-            <p className={styles.pageSubtitle} style={{color: '#ef4444', fontWeight: 600}}>
+            <p className={styles.pageSubtitle} style={{ color: '#ef4444', fontWeight: 600 }}>
               Showing Out of Stock Items ({filteredProducts.length})
             </p>
           )}
@@ -350,14 +293,14 @@ const Products = () => {
 
       {/* Category Navigation */}
       <div className={styles.categoryNav}>
-        <button 
+        <button
           onClick={() => { setCategoryFilter('all'); setSubcategoryFilter('all'); }}
           className={categoryFilter === 'all' ? styles.categoryActive : styles.categoryButton}
         >
           ALL CATEGORIES
         </button>
         {categories.map(cat => (
-          <button 
+          <button
             key={cat.id}
             onClick={() => { setCategoryFilter(cat.id.toString()); setSubcategoryFilter('all'); }}
             className={categoryFilter === cat.id.toString() ? styles.categoryActive : styles.categoryButton}
@@ -510,11 +453,11 @@ const Products = () => {
       )}
 
       {showStockModal && (
-        <StockAdjustModal 
+        <StockAdjustModal
           product={selectedProduct}
           allProducts={allProducts}
           suppliers={suppliers}
-          onClose={handleModalClose} 
+          onClose={handleModalClose}
         />
       )}
     </div>

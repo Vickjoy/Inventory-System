@@ -21,10 +21,8 @@ const getTodayLocal = () => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
-// Only allow digits for integer fields
 const handleIntegerInput = (value) => value.replace(/[^0-9]/g, '');
 
-// Only allow digits and a single decimal point for currency fields
 const handleDecimalInput = (value) => {
   const cleaned = value.replace(/[^0-9.]/g, '');
   const parts = cleaned.split('.');
@@ -89,7 +87,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
     newItems[index] = {
       ...newItems[index],
       product: product.id,
-      unit_price: String(product.unit_price),
+      unit_price: product.unit_price != null ? String(product.unit_price) : '',
     };
     setLineItems(newItems);
     const newSearch = [...productSearch];
@@ -104,6 +102,14 @@ const SaleModal = ({ onClose, onSuccess }) => {
     setFormData(prev => ({ ...prev, customer: customer.id }));
     setCustomerSearch(customer.company_name);
     setShowCustomerDropdown(false);
+  };
+
+  const handleCustomerSearchChange = (e) => {
+    const value = e.target.value;
+    setCustomerSearch(value);
+    setFormData(prev => ({ ...prev, customer: '' }));
+    if (value.length >= 2) searchCustomers(value);
+    else setCustomerSuggestions([]);
   };
 
   const handleProductSearchChange = (value, index) => {
@@ -121,7 +127,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
     } else if (field === 'quantity_ordered') {
       const cleaned = handleIntegerInput(value);
       newItems[index].quantity_ordered = cleaned;
-      // Auto-fill quantity_supplied only for Supplied status
       if (newItems[index].supply_status === 'Supplied') {
         newItems[index].quantity_supplied = cleaned;
       }
@@ -134,7 +139,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
       } else if (value === 'Not Supplied') {
         newItems[index].quantity_supplied = '0';
       } else {
-        // Partially Supplied — clear so staff must enter manually
         newItems[index].quantity_supplied = '';
       }
     } else {
@@ -186,17 +190,31 @@ const SaleModal = ({ onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.customer) return alert('Please select a customer');
+
+    if (!customerSearch.trim()) {
+      return alert('Please enter or select a customer');
+    }
+
     if (!formData.sale_date) return alert('Please enter a sale date');
 
     for (let i = 0; i < lineItems.length; i++) {
       const item = lineItems[i];
-      if (!item.product || !item.quantity_ordered || !item.unit_price)
-        return alert(`Complete all fields for product ${i + 1}`);
+
+      // product and quantity_ordered are still required; unit_price is now optional
+      if (!item.product || !item.quantity_ordered)
+        return alert(`Please select a product and enter a quantity for item ${i + 1}`);
+
       const qty = parseFloat(item.quantity_ordered);
-      const price = parseFloat(item.unit_price);
-      if (isNaN(qty) || qty <= 0) return alert(`Invalid quantity for product ${i + 1}`);
-      if (isNaN(price) || price <= 0) return alert(`Invalid unit price for product ${i + 1}`);
+      if (isNaN(qty) || qty <= 0)
+        return alert(`Invalid quantity for product ${i + 1}`);
+
+      // unit_price: only validate format if something was entered
+      if (item.unit_price !== '' && item.unit_price != null) {
+        const price = parseFloat(item.unit_price);
+        if (isNaN(price) || price < 0)
+          return alert(`Invalid unit price for product ${i + 1}`);
+      }
+
       if (item.supply_status === 'Partially Supplied') {
         const qtySupplied = parseFloat(item.quantity_supplied);
         if (!item.quantity_supplied || item.quantity_supplied === '0')
@@ -214,8 +232,15 @@ const SaleModal = ({ onClose, onSuccess }) => {
     try {
       setLoading(true);
       const payload = {
-        ...formData,
+        ...(formData.customer
+          ? { customer: formData.customer }
+          : { customer_name: customerSearch.trim() }
+        ),
+        sale_date: formData.sale_date,
         salesperson: formData.salesperson.trim() || null,
+        lpo_quotation_number: formData.lpo_quotation_number,
+        delivery_number: formData.delivery_number,
+        mode_of_payment: formData.mode_of_payment,
         line_items: lineItems.map(item => ({
           product: item.product,
           quantity_ordered: parseInt(item.quantity_ordered),
@@ -223,7 +248,10 @@ const SaleModal = ({ onClose, onSuccess }) => {
             : item.supply_status === 'Supplied' ? parseInt(item.quantity_ordered)
             : parseInt(item.quantity_supplied),
           supply_status: item.supply_status,
-          unit_price: roundToTwoDecimals(parseFloat(item.unit_price)),
+          // send null if unit_price is blank, otherwise send the parsed value
+          unit_price: item.unit_price === '' || item.unit_price == null
+            ? null
+            : roundToTwoDecimals(parseFloat(item.unit_price)),
         })),
         amount_paid: formData.mode_of_payment === 'Not Paid'
           ? 0 : roundToTwoDecimals(parseFloat(formData.amount_paid)),
@@ -269,16 +297,18 @@ const SaleModal = ({ onClose, onSuccess }) => {
             <h3 className={styles.sectionTitle}><span>👤</span> Customer Details</h3>
             <div className={styles.formGrid}>
 
-              {/* Customer search */}
               <div className={`${styles.formGroup} ${styles.autocompleteGroup}`}>
-                <label className={styles.formLabel}>Customer <span className={styles.required}>*</span></label>
+                <label className={styles.formLabel}>
+                  Customer <span className={styles.required}>*</span>
+                </label>
                 <input
                   type="text"
                   value={customerSearch}
-                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  onChange={handleCustomerSearchChange}
                   onFocus={() => customerSearch.length >= 2 && setShowCustomerDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 150)}
                   className={styles.formInput}
-                  placeholder="Search customers..."
+                  placeholder="Type customer name..."
                 />
                 {showCustomerDropdown && customerSuggestions.length > 0 && (
                   <div className={styles.dropdown}>
@@ -290,9 +320,14 @@ const SaleModal = ({ onClose, onSuccess }) => {
                     ))}
                   </div>
                 )}
+                {formData.customer
+                  ? <span className={styles.customerSelected}>✓ Existing customer selected</span>
+                  : customerSearch.trim()
+                    ? <span className={styles.manualHint}>Will be saved as a new customer name</span>
+                    : null
+                }
               </div>
 
-              {/* Sale date */}
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Sale Date <span className={styles.required}>*</span></label>
                 <input
@@ -305,7 +340,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
                 />
               </div>
 
-              {/* Salesperson — optional */}
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Salesperson</label>
                 <input
@@ -337,7 +371,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
                   value={formData.delivery_number}
                   onChange={handleInputChange}
                   className={styles.formInput}
-                  
                 />
               </div>
 
@@ -361,7 +394,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
                   </div>
                   <div className={styles.formGrid}>
 
-                    {/* Product search */}
                     <div className={`${styles.formGroup} ${styles.autocompleteGroup} ${styles.fullWidth}`}>
                       <label className={styles.formLabel}>Product <span className={styles.required}>*</span></label>
                       <input
@@ -378,27 +410,26 @@ const SaleModal = ({ onClose, onSuccess }) => {
                           {productSuggestions.map(p => (
                             <div key={p.id} className={styles.dropdownItem} onClick={() => selectProduct(p, index)}>
                               <strong>{p.code}</strong> - {p.name}
-                              <span>Stock: {p.current_stock} | KES {p.unit_price}</span>
+                              <span>Stock: {p.current_stock} | KES {p.unit_price ?? '—'}</span>
                             </div>
                           ))}
                         </div>
                       )}
                     </div>
 
-                    {/* Unit price — text input, no spinners */}
+                    {/* Unit price — now optional */}
                     <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Unit Price (KES) <span className={styles.required}>*</span></label>
+                      <label className={styles.formLabel}>Unit Price (KES)</label>
                       <input
                         type="text"
                         inputMode="decimal"
                         value={item.unit_price}
                         onChange={(e) => handleLineItemChange(index, 'unit_price', e.target.value)}
                         className={styles.formInput}
-                        placeholder="0.00"
+                        placeholder="0.00 (optional)"
                       />
                     </div>
 
-                    {/* Quantity ordered — text input, no spinners */}
                     <div className={styles.formGroup}>
                       <label className={styles.formLabel}>Qty Ordered <span className={styles.required}>*</span></label>
                       <input
@@ -411,7 +442,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
                       />
                     </div>
 
-                    {/* Supply status */}
                     <div className={styles.formGroup}>
                       <label className={styles.formLabel}>Supply Status <span className={styles.required}>*</span></label>
                       <select
@@ -425,7 +455,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
                       </select>
                     </div>
 
-                    {/* Qty supplied — only visible when Partially Supplied AND qty ordered is filled */}
                     {item.supply_status === 'Partially Supplied' && item.quantity_ordered && (
                       <div className={styles.formGroup}>
                         <label className={styles.formLabel}>
@@ -443,7 +472,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
                       </div>
                     )}
 
-                    {/* Item subtotal display */}
                     {item.quantity_ordered && item.unit_price && (
                       <div className={styles.subtotal}>
                         <label>Item Subtotal</label>

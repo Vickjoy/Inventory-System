@@ -82,7 +82,6 @@
   gap: 1.5rem;
 }
 
-/* Bold, Visible Scrollbar */
 .modalBody::-webkit-scrollbar {
   width: 12px;
 }
@@ -518,6 +517,22 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+/* Status hints below customer input */
+.customerSelected {
+  font-size: 0.75rem;
+  color: #16a34a;
+  font-weight: 600;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.manualHint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+  display: block;
 }
 
 /* Responsive */
