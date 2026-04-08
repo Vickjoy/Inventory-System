@@ -12,6 +12,21 @@ const formatCurrency = (amount) => {
     .toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+// ─── Helper: resolve the display date for a sale ────────────────────────────
+// Prefer the staff-entered sale_date; fall back to created_at only if absent.
+const getSaleDisplayDate = (sale) => {
+  const raw = sale.sale_date || sale.created_at;
+  if (!raw) return '—';
+  // sale_date is a plain date string (YYYY-MM-DD); parse it as local time so
+  // it doesn't shift back a day due to UTC midnight conversion.
+  if (sale.sale_date) {
+    const [y, m, d] = sale.sale_date.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-KE');
+  }
+  return new Date(sale.created_at).toLocaleDateString('en-KE');
+};
+// ────────────────────────────────────────────────────────────────────────────
+
 const Sales = () => {
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -170,7 +185,10 @@ const Sales = () => {
                     return (
                       <tr key={sale.id}>
                         <td className={styles.saleNumber}>{sale.sale_number}</td>
-                        <td>{new Date(sale.created_at).toLocaleDateString()}</td>
+
+                        {/* ── FIX: display sale_date (staff-entered), not created_at ── */}
+                        <td>{getSaleDisplayDate(sale)}</td>
+
                         <td className={styles.customerName}>{sale.customer_name}</td>
                         <td>
                           <div

@@ -5,6 +5,33 @@ import autoTable from 'jspdf-autotable';
 import api from '../../utils/api';
 import styles from './Reports.module.css';
 
+// ─── Helper: resolve the display date string for a sale ─────────────────────
+// Prefer sale_date (staff-entered, plain YYYY-MM-DD); fall back to created_at.
+const getSaleDate = (sale) => {
+  return sale.sale_date || sale.created_at;
+};
+
+// Parse a sale's date into a plain local Date (no UTC shift for date-only strings).
+const parseSaleDate = (sale) => {
+  const raw = getSaleDate(sale);
+  if (!raw) return null;
+  // Plain date string YYYY-MM-DD — parse as local midnight to avoid UTC offset.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [y, m, d] = raw.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  // Full ISO timestamp — rely on built-in parsing.
+  return new Date(raw);
+};
+
+// Format a sale date for display in the UI table.
+const formatSaleDate = (sale) => {
+  const d = parseSaleDate(sale);
+  if (!d) return '—';
+  return d.toLocaleDateString('en-KE');
+};
+// ────────────────────────────────────────────────────────────────────────────
+
 const Reports = () => {
   const [reportType, setReportType] = useState('sales');
   const [loading, setLoading] = useState(false);
@@ -127,25 +154,24 @@ const Reports = () => {
 
     // ────────────────────────────────────────────────────────────────────────
     // SALES REPORT
-    // Sale Number & LPO/Quote excluded from PDF.
-    // Rows within the same sale share a subtle background tint.
-    // A thick blue divider separates different sales.
     // ────────────────────────────────────────────────────────────────────────
     if (reportType === 'sales') {
       const rows = [];
 
       reportData.forEach((sale, saleIdx) => {
         const items = sale.line_items || [];
+        // ── FIX: use sale_date for PDF output too ──────────────────────────
+        const displayDate = formatSaleDate(sale);
         items.forEach((item, idx) => {
           rows.push({
-            date:         idx === 0 ? new Date(sale.created_at).toLocaleDateString('en-KE') : '',
+            date:         idx === 0 ? displayDate                                            : '',
             customer:     idx === 0 ? sale.customer_name                                     : '',
             product:      item.product_name,
             qtySupplied:  item.quantity_supplied,
             total:        idx === 0 ? `KES ${formatCurrency(sale.total_amount)}`             : '',
             paid:         idx === 0 ? `KES ${formatCurrency(sale.amount_paid)}`              : '',
             balance:      idx === 0 ? `KES ${formatCurrency(sale.outstanding_balance)}`      : '',
-            salesperson:  idx === 0 ? (sale.salesperson || '—')                              : '',  // ← NEW
+            salesperson:  idx === 0 ? (sale.salesperson || '—')                              : '',
             payment:      idx === 0 ? sale.mode_of_payment                                   : '',
             _balance:     idx === 0 ? parseFloat(sale.outstanding_balance || 0)              : null,
             _payment:     idx === 0 ? sale.mode_of_payment                                   : null,
@@ -170,18 +196,17 @@ const Reports = () => {
         ...baseTableStyles,
         head,
         body,
-        // Disable default alternating rows — we control colouring per sale group
         alternateRowStyles: {},
         columnStyles: {
-          0: { cellWidth: 58  },                   // Date
-          1: { cellWidth: 90  },                   // Customer
-          2: { cellWidth: 'auto' },               // Product Name
-          3: { cellWidth: 50, halign: 'center' }, // Qty Supplied
-          4: { cellWidth: 72, halign: 'right'  }, // Total Amount
-          5: { cellWidth: 72, halign: 'right'  }, // Amount Paid
-          6: { cellWidth: 72, halign: 'right'  }, // Outstanding
-          7: { cellWidth: 70  },                  // Salesperson  ← NEW
-          8: { cellWidth: 62, halign: 'center' }, // Payment Mode
+          0: { cellWidth: 58  },
+          1: { cellWidth: 90  },
+          2: { cellWidth: 'auto' },
+          3: { cellWidth: 50, halign: 'center' },
+          4: { cellWidth: 72, halign: 'right'  },
+          5: { cellWidth: 72, halign: 'right'  },
+          6: { cellWidth: 72, halign: 'right'  },
+          7: { cellWidth: 70  },
+          8: { cellWidth: 62, halign: 'center' },
         },
 
         didParseCell: (data) => {
@@ -192,13 +217,11 @@ const Reports = () => {
           data.cell.styles.lineWidth = 0.3;
           data.cell.styles.lineColor = SLATE_300;
 
-          // Outstanding balance — column 6
           if (data.column.index === 6 && r._balance !== null) {
             data.cell.styles.textColor = r._balance > 0 ? RED : [22, 163, 74];
             data.cell.styles.fontStyle = 'bold';
           }
 
-          // Payment mode badge — column 8 (was 7)
           if (data.column.index === 8 && r._payment !== null) {
             if (r._payment === 'Not Paid') {
               data.cell.styles.textColor = AMBER_DARK;
@@ -212,12 +235,11 @@ const Reports = () => {
           }
         },
 
-        // Draw a thick blue divider on the bottom edge of each sale's last row
         didDrawCell: (data) => {
           if (data.section !== 'body') return;
           const r = rows[data.row.index];
           if (!r._isLast) return;
-          if (data.row.index === rows.length - 1) return; // skip very last row
+          if (data.row.index === rows.length - 1) return;
 
           const { x, y, width, height } = data.cell;
           doc.setDrawColor(...DIVIDER);
@@ -228,7 +250,7 @@ const Reports = () => {
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // STOCK REPORT — grouped by category / subcategory / group
+    // STOCK REPORT
     // ────────────────────────────────────────────────────────────────────────
     else if (reportType === 'stock') {
       const grouped = groupStockProducts(reportData);
@@ -319,8 +341,9 @@ const Reports = () => {
           .forEach(item => {
             const outstanding = (item.quantity_ordered || 0) - (item.quantity_supplied || 0);
             const payStatus   = parseFloat(sale.outstanding_balance || 0) > 0 ? 'Pending' : 'Paid';
+            // ── FIX: use sale_date ─────────────────────────────────────────
             rows.push([
-              new Date(sale.created_at).toLocaleDateString('en-KE'),
+              formatSaleDate(sale),
               sale.sale_number,
               sale.customer_name,
               sale.lpo_quotation_number || '-',
@@ -367,7 +390,8 @@ const Reports = () => {
     // ────────────────────────────────────────────────────────────────────────
     else if (reportType === 'outstanding_balances') {
       const rows = reportData.map(sale => [
-        new Date(sale.created_at).toLocaleDateString('en-KE'),
+        // ── FIX: use sale_date ─────────────────────────────────────────────
+        formatSaleDate(sale),
         sale.sale_number,
         sale.customer_name,
         (sale.line_items || []).map(i => i.product_name).join('\n'),
@@ -441,28 +465,55 @@ const Reports = () => {
     setDateRange(prev => ({ ...prev, [name]: value }));
   };
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // DATE FILTER — applied to all report types that have sales records.
+  // FIX 1: Compare against sale_date (staff-entered), not created_at.
+  // FIX 2: End-date comparison is inclusive (<=) instead of exclusive (<).
+  // FIX 3: Parse plain YYYY-MM-DD date strings as local time to avoid UTC shift.
+  // ─────────────────────────────────────────────────────────────────────────────
+  const applyDateFilter = (items) => {
+    if (!dateRange.start_date && !dateRange.end_date) return items;
+
+    // Parse a YYYY-MM-DD filter string as local midnight.
+    const parseFilterDate = (str) => {
+      const [y, m, d] = str.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    };
+
+    const start = dateRange.start_date ? parseFilterDate(dateRange.start_date) : null;
+    // Make end-date inclusive: set to end-of-day so sales ON that date are included.
+    const end   = dateRange.end_date   ? (() => {
+      const d = parseFilterDate(dateRange.end_date);
+      d.setHours(23, 59, 59, 999);
+      return d;
+    })() : null;
+
+    return items.filter(item => {
+      const saleDate = parseSaleDate(item);
+      if (!saleDate) return true; // keep items with no date rather than silently drop them
+      if (start && saleDate < start) return false;
+      if (end   && saleDate > end)   return false;
+      return true;
+    });
+  };
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const generateReport = async () => {
     setLoading(true);
     try {
       let data;
       switch (reportType) {
-        case 'sales':
-          data = await api.getSales();
-          if (Array.isArray(data)) {
-            // already an array
-          } else if (data && data.results) {
-            data = data.results;
-          }
+        case 'sales': {
+          const raw = await api.getSales();
+          data = Array.isArray(raw) ? raw : (raw?.results || []);
           break;
+        }
 
-        case 'stock':
-          data = await api.getProducts();
-          if (Array.isArray(data)) {
-            // already an array
-          } else if (data && data.results) {
-            data = data.results;
-          }
+        case 'stock': {
+          const raw = await api.getProducts();
+          data = Array.isArray(raw) ? raw : (raw?.results || []);
           break;
+        }
 
         case 'outstanding_supplies': {
           const salesData = await api.getSales();
@@ -487,13 +538,9 @@ const Reports = () => {
           data = [];
       }
 
-      if (dateRange.start_date || dateRange.end_date) {
-        data = data.filter(item => {
-          const itemDate = new Date(item.created_at);
-          if (dateRange.start_date && new Date(dateRange.start_date) > itemDate) return false;
-          if (dateRange.end_date   && new Date(dateRange.end_date)   < itemDate) return false;
-          return true;
-        });
+      // Apply date filter (stock report has no date field, skip it).
+      if (reportType !== 'stock') {
+        data = applyDateFilter(data);
       }
 
       setReportData(Array.isArray(data) ? data : []);
@@ -694,12 +741,16 @@ const Reports = () => {
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}>📊</div>
               <p className={styles.emptyText}>No data available for this report</p>
-              <p className={styles.emptySubtext}>Try adjusting your filters or date range</p>
+              <p className={styles.emptySubtext}>
+                {(dateRange.start_date || dateRange.end_date)
+                  ? 'No records found in the selected date range. Try adjusting your dates.'
+                  : 'Try adjusting your filters or date range'}
+              </p>
             </div>
           ) : (
             <div className={styles.reportContent}>
 
-              {/* ── SALES REPORT (UI: all 11 columns) ────────────────────── */}
+              {/* ── SALES REPORT ────────────────────────────────────────── */}
               {reportType === 'sales' && (
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
@@ -724,7 +775,8 @@ const Reports = () => {
                           <tr key={`${sale.id}-${idx}`}>
                             {idx === 0 && (
                               <>
-                                <td rowSpan={sale.line_items.length}>{new Date(sale.created_at).toLocaleDateString()}</td>
+                                {/* ── FIX: use sale_date for UI table ──────── */}
+                                <td rowSpan={sale.line_items.length}>{formatSaleDate(sale)}</td>
                                 <td rowSpan={sale.line_items.length} className={styles.saleNumber}>{sale.sale_number}</td>
                                 <td rowSpan={sale.line_items.length}>{sale.customer_name}</td>
                                 <td rowSpan={sale.line_items.length}>{sale.lpo_quotation_number || '-'}</td>
@@ -851,7 +903,8 @@ const Reports = () => {
                             const paymentStatus  = parseFloat(sale.outstanding_balance || 0) > 0 ? 'Pending' : 'Paid';
                             return (
                               <tr key={`${sale.id}-${idx}`}>
-                                <td>{new Date(sale.created_at).toLocaleDateString()}</td>
+                                {/* ── FIX: use sale_date ─────────────────── */}
+                                <td>{formatSaleDate(sale)}</td>
                                 <td className={styles.saleNumber}>{sale.sale_number}</td>
                                 <td>{sale.customer_name}</td>
                                 <td>{sale.lpo_quotation_number || '-'}</td>
@@ -891,7 +944,8 @@ const Reports = () => {
                     <tbody>
                       {reportData.map(sale => (
                         <tr key={sale.id}>
-                          <td>{new Date(sale.created_at).toLocaleDateString()}</td>
+                          {/* ── FIX: use sale_date ─────────────────────── */}
+                          <td>{formatSaleDate(sale)}</td>
                           <td className={styles.saleNumber}>{sale.sale_number}</td>
                           <td>{sale.customer_name}</td>
                           <td>
