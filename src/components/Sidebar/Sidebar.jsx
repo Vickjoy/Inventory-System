@@ -41,7 +41,7 @@ const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal, pending
       label: 'Suppliers',
       icon: '🏢',
       path: '/suppliers',
-      role: 'all',
+      role: 'staff',
     },
     {
       id: 'customers',
@@ -55,7 +55,7 @@ const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal, pending
       label: 'Reports',
       icon: '📈',
       path: '/reports',
-      role: 'all',
+      role: 'admin',
     },
     {
       id: 'pending-approvals',
@@ -69,7 +69,7 @@ const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal, pending
   const filteredNav = navigation.filter((item) => {
     if (item.role === 'all') return true;
     if (item.role === 'admin') return isAdmin;
-    if (item.role === 'staff') return isStaff;
+    if (item.role === 'staff') return isStaff && !isAdmin;
     return false;
   });
 
@@ -128,7 +128,7 @@ const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal, pending
           ))}
         </nav>
 
-        {/* Action Buttons */}
+        {/* Action Buttons — visible to both admin and staff */}
         <div className={styles.actionSection}>
           <button
             className={styles.actionButton}

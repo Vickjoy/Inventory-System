@@ -8,7 +8,6 @@
   min-height: 100vh;
 }
 
-/* Bold, Visible Scrollbar */
 .page ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
@@ -366,7 +365,9 @@
   color: #dc2626;
 }
 
-/* Action Buttons */
+/* ========================
+   Action Buttons
+======================== */
 .cardActions {
   display: flex;
   gap: 0.75rem;
@@ -374,6 +375,8 @@
   background: white;
   border-top: 2px solid #e2e8f0;
   justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .btnApprove {
@@ -426,6 +429,51 @@
 .btnReject:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ========================
+   VAT Toggle Button
+======================== */
+.vatToggle {
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid;
+}
+
+.vatToggleOff {
+  background: white;
+  color: #64748b;
+  border-color: #cbd5e1;
+}
+
+.vatToggleOff:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #475569;
+}
+
+.vatToggleOn {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: white;
+  border-color: #7c3aed;
+  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.25);
+}
+
+.vatToggleOn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+  box-shadow: 0 4px 8px rgba(124, 58, 237, 0.35);
+  transform: translateY(-1px);
+}
+
+.vatToggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* ========================
@@ -628,7 +676,9 @@
     flex-direction: column-reverse;
   }
 
-  .btnApprove, .btnReject {
+  .btnApprove,
+  .btnReject,
+  .vatToggle {
     width: 100%;
   }
 

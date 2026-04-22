@@ -36,7 +36,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     customer: '',
     sale_date: getTodayLocal(),
-    salesperson: '',       // stores the name string sent to backend
+    salesperson: '',
     lpo_quotation_number: '',
     delivery_number: '',
     mode_of_payment: 'Not Paid',
@@ -53,20 +53,19 @@ const SaleModal = ({ onClose, onSuccess }) => {
 
   const [productSearch, setProductSearch] = useState(['']);
   const [customerSearch, setCustomerSearch] = useState('');
-  const [salespersonSearch, setSalespersonSearch] = useState('');       // ← NEW
+  const [salespersonSearch, setSalespersonSearch] = useState('');
   const [productSuggestions, setProductSuggestions] = useState([]);
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
-  const [salespersonSuggestions, setSalespersonSuggestions] = useState([]); // ← NEW
+  const [salespersonSuggestions, setSalespersonSuggestions] = useState([]);
   const [showProductDropdown, setShowProductDropdown] = useState([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
-  const [showSalespersonDropdown, setShowSalespersonDropdown] = useState(false); // ← NEW
+  const [showSalespersonDropdown, setShowSalespersonDropdown] = useState(false);
 
   useEffect(() => {
     if (customerSearch.length >= 2) searchCustomers(customerSearch);
     else setCustomerSuggestions([]);
   }, [customerSearch]);
 
-  // ── NEW: trigger salesperson search on keystroke ─────────────────────────
   useEffect(() => {
     if (salespersonSearch.length >= 2) searchSalespersons(salespersonSearch);
     else setSalespersonSuggestions([]);
@@ -91,7 +90,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
     } catch (e) { console.error('Error searching customers:', e); }
   };
 
-  // ── NEW ──────────────────────────────────────────────────────────────────
   const searchSalespersons = async (query) => {
     try {
       const data = await api.request(`/sales/search_salespersons/?q=${query}`);
@@ -109,12 +107,10 @@ const SaleModal = ({ onClose, onSuccess }) => {
   const handleSalespersonSearchChange = (e) => {
     const value = e.target.value;
     setSalespersonSearch(value);
-    // Keep the free-text value in formData too (field is optional)
     setFormData(prev => ({ ...prev, salesperson: value }));
     if (value.length >= 2) searchSalespersons(value);
     else setSalespersonSuggestions([]);
   };
-  // ─────────────────────────────────────────────────────────────────────────
 
   const selectProduct = (product, index) => {
     const newItems = [...lineItems];
@@ -215,8 +211,8 @@ const SaleModal = ({ onClose, onSuccess }) => {
       return sum + ((parseFloat(item.quantity_ordered) || 0) * (parseFloat(item.unit_price) || 0));
     }, 0);
 
-  const calculateVAT    = () => roundToTwoDecimals(calculateSubtotal() * 0.16);
-  const calculateTotal  = () => roundToTwoDecimals(calculateSubtotal() + calculateVAT());
+  const calculateTotal = () => roundToTwoDecimals(calculateSubtotal());
+
   const calculateBalance = () =>
     roundToTwoDecimals(calculateTotal() - (parseFloat(formData.amount_paid) || 0));
 
@@ -224,7 +220,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
     e.preventDefault();
 
     if (!customerSearch.trim()) return alert('Please enter or select a customer');
-    if (!formData.sale_date)    return alert('Please enter a sale date');
+    if (!formData.sale_date) return alert('Please enter a sale date');
 
     for (let i = 0; i < lineItems.length; i++) {
       const item = lineItems[i];
@@ -254,13 +250,13 @@ const SaleModal = ({ onClose, onSuccess }) => {
 
     try {
       setLoading(true);
+      const subtotal = roundToTwoDecimals(calculateSubtotal());
       const payload = {
         ...(formData.customer
           ? { customer: formData.customer }
           : { customer_name: customerSearch.trim() }
         ),
         sale_date: formData.sale_date,
-        // Send the name string (trimmed). Empty string → null so backend stores blank cleanly.
         salesperson: formData.salesperson.trim() || null,
         lpo_quotation_number: formData.lpo_quotation_number,
         delivery_number: formData.delivery_number,
@@ -278,9 +274,9 @@ const SaleModal = ({ onClose, onSuccess }) => {
         })),
         amount_paid: formData.mode_of_payment === 'Not Paid'
           ? 0 : roundToTwoDecimals(parseFloat(formData.amount_paid)),
-        subtotal:      roundToTwoDecimals(calculateSubtotal()),
-        vat_amount:    calculateVAT(),
-        total_amount:  calculateTotal(),
+        subtotal,
+        vat_amount: 0,
+        total_amount: subtotal,
       };
 
       const result = await api.request('/sales/', { method: 'POST', body: JSON.stringify(payload) });
@@ -365,7 +361,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
                 />
               </div>
 
-              {/* ── Salesperson autocomplete (NEW) ───────────────────────── */}
+              {/* Salesperson autocomplete */}
               <div className={`${styles.formGroup} ${styles.autocompleteGroup}`}>
                 <label className={styles.formLabel}>Salesperson</label>
                 <input
@@ -388,7 +384,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
                   </div>
                 )}
               </div>
-              {/* ─────────────────────────────────────────────────────────── */}
 
               {/* LPO / Quotation # */}
               <div className={styles.formGroup}>
@@ -561,14 +556,6 @@ const SaleModal = ({ onClose, onSuccess }) => {
             </div>
 
             <div className={styles.financialSummary}>
-              <div className={styles.summaryRow}>
-                <span className={styles.summaryLabel}>Subtotal (Products):</span>
-                <span className={styles.summaryValue}>KES {formatCurrency(calculateSubtotal())}</span>
-              </div>
-              <div className={styles.summaryRow}>
-                <span className={styles.summaryLabel}>VAT (16%):</span>
-                <span className={styles.summaryValue}>KES {formatCurrency(calculateVAT())}</span>
-              </div>
               <div className={`${styles.summaryRow} ${styles.totalRow}`}>
                 <span className={styles.totalLabel}>Total Amount:</span>
                 <span className={styles.totalValue}>KES {formatCurrency(calculateTotal())}</span>
