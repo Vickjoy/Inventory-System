@@ -1,6 +1,7 @@
 // src/pages/PendingApprovals/PendingApprovals.jsx
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
 import styles from './PendingApprovals.module.css';
 
 const formatCurrency = (amount) => {
@@ -10,6 +11,7 @@ const formatCurrency = (amount) => {
 };
 
 const PendingApprovals = ({ onCountChange }) => {
+  const { user } = useAuth();
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
@@ -36,11 +38,15 @@ const PendingApprovals = ({ onCountChange }) => {
     }
   };
 
-  const toggleVat = (saleId) => {
-    setVatChoices(prev => ({ ...prev, [saleId]: !prev[saleId] }));
+  // ── VAT helpers ──────────────────────────────────────────────────────────────
+  const setVatChoice = (saleId, value) => {
+    setVatChoices(prev => ({ ...prev, [saleId]: value }));
   };
 
-  const getApplyVat = (saleId) => vatChoices[saleId] || false;
+  // Initialise to 'exempt' if not yet set
+  const getVatChoice = (saleId) => vatChoices[saleId] ?? 'exempt';
+
+  const getApplyVat = (saleId) => getVatChoice(saleId) === 'vat';
 
   const getDisplayTotals = (sale) => {
     const subtotal = parseFloat(sale.subtotal) || 0;
@@ -55,6 +61,19 @@ const PendingApprovals = ({ onCountChange }) => {
     const balance = Math.max(0, Math.round((subtotal - amountPaid) * 100) / 100);
     return { subtotal, vat: 0, total: subtotal, balance };
   };
+  // ────────────────────────────────────────────────────────────────────────────
+
+  // ── Self-approval guard ──────────────────────────────────────────────────────
+  /**
+   * Returns true when the currently logged-in admin was the one who recorded
+   * this sale — they are NOT allowed to approve / reject their own submission.
+   */
+  const isSelfSubmitted = (sale) => {
+    if (!user?.id) return false;
+    // recorded_by is the User PK stored on the Sale model
+    return sale.recorded_by === user.id || sale.recorded_by_id === user.id;
+  };
+  // ────────────────────────────────────────────────────────────────────────────
 
   const handleApprove = async (saleId, saleNumber) => {
     if (!window.confirm(`Approve sale ${saleNumber}? Stock will be deducted immediately.`)) return;
@@ -125,6 +144,7 @@ const PendingApprovals = ({ onCountChange }) => {
           {sales.map(sale => {
             const totals = getDisplayTotals(sale);
             const applyVat = getApplyVat(sale.id);
+            const selfSubmitted = isSelfSubmitted(sale);
 
             return (
               <div key={sale.id} className={styles.saleCard}>
@@ -139,8 +159,27 @@ const PendingApprovals = ({ onCountChange }) => {
                       })}
                     </span>
                   </div>
-                  <span className={styles.badgePending}>⏳ Pending Approval</span>
+                  <div className={styles.cardHeaderRight}>
+                    {selfSubmitted && (
+                      <span className={styles.badgeSelf}>Your Submission</span>
+                    )}
+                    <span className={styles.badgePending}>Pending Approval</span>
+                  </div>
                 </div>
+
+                {/* Self-submitted notice banner */}
+                {selfSubmitted && (
+                  <div className={styles.selfSubmittedBanner}>
+                    <span className={styles.selfSubmittedIcon}>ℹ️</span>
+                    <div>
+                      <strong>You submitted this sale.</strong>
+                      <p>
+                        To maintain integrity, you cannot approve or reject your own sales.
+                        Another admin will review this submission.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Sale Info Grid */}
                 <div className={styles.infoGrid}>
@@ -152,6 +191,9 @@ const PendingApprovals = ({ onCountChange }) => {
                     <span className={styles.infoLabel}>Submitted by</span>
                     <span className={styles.infoValue}>
                       {sale.recorded_by_name || 'Unknown'}
+                      {selfSubmitted && (
+                        <span className={styles.youBadge}> (You)</span>
+                      )}
                     </span>
                   </div>
                   <div className={styles.infoItem}>
@@ -256,30 +298,93 @@ const PendingApprovals = ({ onCountChange }) => {
                   )}
                 </div>
 
+                {/* ── VAT Decision Panel ─────────────────────────────────────── */}
+                {!selfSubmitted && (
+                  <div className={styles.vatPanel}>
+                    <div className={styles.vatPanelHeader}>
+                      <span className={styles.vatPanelIcon}>🧾</span>
+                      <span className={styles.vatPanelTitle}>VAT Treatment for this Sale</span>
+                      <span className={styles.vatPanelSub}>Select before approving</span>
+                    </div>
+                    <div className={styles.vatOptions}>
+                      <label
+                        className={`${styles.vatOption} ${getVatChoice(sale.id) === 'exempt' ? styles.vatOptionSelected : ''}`}
+                      >
+                        <input
+                          type="radio"
+                          name={`vat-${sale.id}`}
+                          value="exempt"
+                          checked={getVatChoice(sale.id) === 'exempt'}
+                          onChange={() => setVatChoice(sale.id, 'exempt')}
+                          disabled={actionLoading === sale.id}
+                          className={styles.vatRadio}
+                        />
+                        <div className={styles.vatOptionContent}>
+                          <span className={styles.vatOptionLabel}>VAT Exempt</span>
+                          <span className={styles.vatOptionDesc}>
+                            No VAT added — Total stays at KES {formatCurrency(totals.subtotal)}
+                          </span>
+                        </div>
+                        <span className={styles.vatOptionCheck}>
+                          {getVatChoice(sale.id) === 'exempt' ? '✓' : ''}
+                        </span>
+                      </label>
+
+                      <label
+                        className={`${styles.vatOption} ${getVatChoice(sale.id) === 'vat' ? styles.vatOptionSelectedVat : ''}`}
+                      >
+                        <input
+                          type="radio"
+                          name={`vat-${sale.id}`}
+                          value="vat"
+                          checked={getVatChoice(sale.id) === 'vat'}
+                          onChange={() => setVatChoice(sale.id, 'vat')}
+                          disabled={actionLoading === sale.id}
+                          className={styles.vatRadio}
+                        />
+                        <div className={styles.vatOptionContent}>
+                          <span className={styles.vatOptionLabel}>Apply 16% VAT</span>
+                          <span className={styles.vatOptionDesc}>
+                            VAT: KES {formatCurrency(totals.subtotal * 0.16)} — Total becomes KES{' '}
+                            {formatCurrency(totals.subtotal * 1.16)}
+                          </span>
+                        </div>
+                        <span className={styles.vatOptionCheck}>
+                          {getVatChoice(sale.id) === 'vat' ? '✓' : ''}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+                {/* ─────────────────────────────────────────────────────────── */}
+
                 {/* Action Buttons */}
                 <div className={styles.cardActions}>
-                  <button
-                    className={styles.btnReject}
-                    onClick={() => openRejectModal(sale)}
-                    disabled={actionLoading === sale.id}
-                  >
-                    ❌ Reject
-                  </button>
-                  <button
-                    className={`${styles.vatToggle} ${applyVat ? styles.vatToggleOn : styles.vatToggleOff}`}
-                    onClick={() => toggleVat(sale.id)}
-                    disabled={actionLoading === sale.id}
-                    type="button"
-                  >
-                    {applyVat ? '🧾 +16% VAT' : '🧾 VAT Exempt'}
-                  </button>
-                  <button
-                    className={styles.btnApprove}
-                    onClick={() => handleApprove(sale.id, sale.sale_number)}
-                    disabled={actionLoading === sale.id}
-                  >
-                    {actionLoading === sale.id ? 'Processing...' : '✅ Approve & Deduct Stock'}
-                  </button>
+                  {selfSubmitted ? (
+                    /* Disabled state for self-submitted sales */
+                    <div className={styles.selfSubmittedActions}>
+                      <span className={styles.selfSubmittedNote}>
+                        Awaiting review by another admin
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        className={styles.btnReject}
+                        onClick={() => openRejectModal(sale)}
+                        disabled={actionLoading === sale.id}
+                      >
+                        ❌ Reject
+                      </button>
+                      <button
+                        className={styles.btnApprove}
+                        onClick={() => handleApprove(sale.id, sale.sale_number)}
+                        disabled={actionLoading === sale.id}
+                      >
+                        {actionLoading === sale.id ? 'Processing...' : '✅ Approve & Deduct Stock'}
+                      </button>
+                    </>
+                  )}
                 </div>
 
               </div>
