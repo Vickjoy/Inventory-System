@@ -1,4 +1,5 @@
 // src/App.jsx
+// CHANGES: imported ReceivePayments and added its route under /receive-payments (admin-only)
 import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
@@ -16,18 +17,18 @@ import Suppliers from './pages/Suppliers/Suppliers';
 import StockEntries from './pages/StockEntries/StockEntries';
 import Reports from './pages/Reports/Reports';
 import PendingApprovals from './pages/PendingApprovals/PendingApprovals';
+import ReceivePayments from './pages/ReceivePayments/ReceivePayments';
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import AdminRoute from './components/AdminRoute/AdminRoute';
 import './App.css';
 
-const POLL_INTERVAL_MS = 30000; // refresh badge every 30 seconds
+const POLL_INTERVAL_MS = 30000;
 
 function App() {
   const { loading, isAdmin } = useAuth();
   const [pendingCount, setPendingCount] = useState(0);
 
-  // Fetch the pending count silently in the background
   const fetchPendingCount = useCallback(async () => {
     if (!isAdmin) return;
     try {
@@ -35,17 +36,13 @@ function App() {
       const list = Array.isArray(data) ? data : (data?.results ?? []);
       setPendingCount(list.length);
     } catch {
-      // Silently fail — don't disrupt the UI if this background call fails
+      // Silently fail
     }
   }, [isAdmin]);
 
   useEffect(() => {
     if (!isAdmin) return;
-
-    // Fetch immediately on mount
     fetchPendingCount();
-
-    // Then poll on an interval
     const interval = setInterval(fetchPendingCount, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [isAdmin, fetchPendingCount]);
@@ -66,7 +63,7 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
 
-      {/* Protected routes — all logged-in users */}
+      {/* Protected routes */}
       <Route element={<ProtectedRoute><Layout pendingCount={pendingCount} /></ProtectedRoute>}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
@@ -79,12 +76,20 @@ function App() {
         <Route path="/stock-entries" element={<StockEntries />} />
         <Route path="/reports" element={<Reports />} />
 
-        {/* Admin-only route — staff gets redirected to /dashboard */}
+        {/* Admin-only routes */}
         <Route
           path="/pending-approvals"
           element={
             <AdminRoute>
               <PendingApprovals onCountChange={setPendingCount} />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/receive-payments"
+          element={
+            <AdminRoute>
+              <ReceivePayments />
             </AdminRoute>
           }
         />

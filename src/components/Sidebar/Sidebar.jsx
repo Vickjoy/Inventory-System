@@ -1,4 +1,5 @@
 // src/components/Sidebar/Sidebar.jsx
+// CHANGES: Added 'Receive Payments' nav item (admin-only) between Reports and Pending Approvals
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import CompanyLogo from '../../assets/CompanyIcon.png';
@@ -57,6 +58,15 @@ const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal, pending
       path: '/reports',
       role: 'admin',
     },
+    // ── NEW ─────────────────────────────────────────────────────────────────
+    {
+      id: 'receive-payments',
+      label: 'Receive Payments',
+      icon: '💳',
+      path: '/receive-payments',
+      role: 'admin',
+    },
+    // ────────────────────────────────────────────────────────────────────────
     {
       id: 'pending-approvals',
       label: 'Pending Approvals',
@@ -128,7 +138,7 @@ const Sidebar = ({ isOpen, onClose, onOpenProductModal, onOpenSaleModal, pending
           ))}
         </nav>
 
-        {/* Action Buttons — visible to both admin and staff */}
+        {/* Action Buttons */}
         <div className={styles.actionSection}>
           <button
             className={styles.actionButton}

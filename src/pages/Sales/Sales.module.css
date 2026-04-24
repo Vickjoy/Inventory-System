@@ -208,7 +208,7 @@
   padding: 1.5rem 1.75rem;
 }
 
-/* Table Styles - WITH VISIBLE BORDERS */
+/* Table Styles */
 .salesPage table {
   width: 100%;
   border-collapse: collapse;
@@ -516,9 +516,7 @@
   letter-spacing: 0.5px;
 }
 
-.sectionIcon { 
-  font-size: 1.5rem; 
-}
+.sectionIcon { font-size: 1.5rem; }
 
 .sectionHeader {
   display: flex;
@@ -534,9 +532,7 @@
   gap: 1.25rem;
 }
 
-.fullWidth { 
-  grid-column: 1 / -1; 
-}
+.fullWidth { grid-column: 1 / -1; }
 
 .formGroup {
   position: relative;
@@ -617,9 +613,7 @@
 }
 
 /* Autocomplete */
-.autocompleteGroup { 
-  position: relative; 
-}
+.autocompleteGroup { position: relative; }
 
 .autocompleteDropdown {
   position: absolute;
@@ -650,9 +644,7 @@
   background: linear-gradient(to right, #eff6ff 0%, #dbeafe 100%);
 }
 
-.autocompleteItem:last-child { 
-  border-bottom: none; 
-}
+.autocompleteItem:last-child { border-bottom: none; }
 
 .autocompleteItem strong {
   color: #1e40af;
@@ -727,212 +719,6 @@
   font-size: 1.25rem;
   font-weight: 700;
   color: #dc2626;
-}
-
-/* Mobile Responsive - Tablets */
-@media (max-width: 1024px) {
-  .salesPage { 
-    padding: 1rem; 
-  }
-  
-  .pageTitle { 
-    font-size: 1.75rem; 
-  }
-
-  .actionBar {
-    padding: 0.75rem 1rem;
-  }
-}
-
-/* Mobile Responsive - Medium Phones */
-@media (max-width: 768px) {
-  .salesPage {
-    padding: 1rem 0.75rem;
-  }
-
-  .pageHeader {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-    padding-bottom: 1rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .pageTitle { 
-    font-size: 1.5rem;
-  }
-
-  .pageSubtitle {
-    font-size: 0.875rem;
-  }
-
-  .headerButtons {
-    width: 100%;
-  }
-
-  .btnNewSale {
-    width: 100%;
-    padding: 0.875rem 1.5rem;
-    font-size: 1rem;
-    justify-content: center;
-  }
-
-  .actionBar {
-    width: 100%;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-  }
-
-  .btnAllSales,
-  .btnOutstanding {
-    width: 100%;
-    padding: 0.875rem 1.5rem;
-    font-size: 0.875rem;
-    justify-content: center;
-    text-align: center;
-  }
-
-  .searchBox { 
-    max-width: 100%;
-    margin-bottom: 1rem;
-  }
-
-  .searchInput {
-    width: 100%;
-    padding: 0.75rem 2.5rem 0.75rem 1rem;
-    font-size: 0.9375rem;
-  }
-
-  .searchIcon {
-    right: 1rem;
-    font-size: 1.2rem;
-  }
-
-  .salesPage .table-container {
-    padding: 1rem;
-    overflow-x: auto;
-  }
-
-  .salesPage table {
-    min-width: 1000px;
-  }
-
-  .salesPage table th,
-  .salesPage table td {
-    padding: 0.75rem 0.875rem;
-    font-size: 0.8125rem;
-    border-width: 1px;
-  }
-
-  .modalOverlay { 
-    padding: 1rem 0.5rem; 
-  }
-
-  .modalBody { 
-    padding: 1.5rem; 
-  }
-
-  .formGrid { 
-    grid-template-columns: 1fr; 
-  }
-
-  .totalRow {
-    flex-direction: column;
-    gap: 0.5rem;
-    text-align: center;
-    padding: 0.875rem 1rem;
-  }
-
-  .totalLabel {
-    font-size: 0.9375rem;
-  }
-
-  .totalValue {
-    font-size: 1.25rem;
-  }
-
-  .paidValue,
-  .balanceValue {
-    font-size: 1.125rem;
-  }
-}
-
-/* Mobile Responsive - Small Phones */
-@media (max-width: 480px) {
-  .salesPage { 
-    padding: 0.75rem 0.5rem; 
-  }
-
-  .pageHeader {
-    margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
-  }
-
-  .pageTitle { 
-    font-size: 1.375rem;
-  }
-
-  .pageSubtitle {
-    font-size: 0.8125rem;
-  }
-
-  .btnNewSale {
-    padding: 0.75rem 1.25rem;
-    font-size: 0.9375rem;
-  }
-
-  .actionBar {
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-  }
-
-  .btnAllSales,
-  .btnOutstanding {
-    font-size: 0.8125rem;
-    padding: 0.75rem 1.25rem;
-  }
-
-  .searchInput {
-    padding: 0.65rem 2.25rem 0.65rem 0.875rem;
-    font-size: 0.875rem;
-  }
-
-  .salesPage table {
-    min-width: 900px;
-  }
-
-  .salesPage table th,
-  .salesPage table td {
-    padding: 0.625rem 0.75rem;
-    font-size: 0.75rem;
-  }
-
-  .salesPage .badge {
-    font-size: 0.6875rem;
-    padding: 0.25rem 0.5rem;
-  }
-}
-
-/* Extra Small Screens */
-@media (max-width: 360px) {
-  .salesPage { 
-    padding: 0.5rem; 
-  }
-
-  .pageTitle { 
-    font-size: 1.25rem;
-  }
-
-  .salesPage table {
-    min-width: 850px;
-  }
-
-  .salesPage table th,
-  .salesPage table td {
-    padding: 0.5rem;
-    font-size: 0.6875rem;
-  }
 }
 
 /* Approval Status Badges */
@@ -1121,7 +907,6 @@
   border-color: #94a3b8;
 }
 
-/* Loading & empty states */
 .historyLoading {
   display: flex;
   flex-direction: column;
@@ -1140,10 +925,6 @@
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 .historyEmpty {
   text-align: center;
   padding: 2rem;
@@ -1155,7 +936,6 @@
   margin-bottom: 0.75rem;
 }
 
-/* History entries */
 .historyList {
   display: flex;
   flex-direction: column;
@@ -1248,14 +1028,182 @@
   font-style: italic;
 }
 
-/* Salesperson cell (existing, kept for reference) */
-.salespersonCell {
-  font-size: 0.875rem;
-  color: #374151;
-  font-weight: 500;
+/* Payment history toggle button active state */
+.btnViewHistoryActive {
+  background: #eff6ff;
+  color: #1e40af;
+  border-color: #bfdbfe;
 }
 
-.noSalesperson {
-  color: #cbd5e1;
-  font-size: 1rem;
+/* Payment history sub-row */
+.paymentHistoryRow {
+  background: #f8fafc;
+}
+
+.paymentHistoryCell {
+  padding: 0 !important;
+  border-top: none !important;
+}
+
+.paymentHistoryPanel {
+  padding: 14px 20px 16px 36px;
+  border-left: 4px solid #1e40af;
+  margin: 0 12px 8px 12px;
+  background: #fff;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 1px 4px rgba(30, 64, 175, 0.08);
+}
+
+.paymentHistoryTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.paymentHistorySub {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.paymentHistoryBalance {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.paymentHistoryCleared {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.paymentHistoryTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.paymentHistoryTable thead tr {
+  background: #f1f5f9;
+}
+
+.paymentHistoryTable th {
+  padding: 7px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.paymentHistoryTable td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.paymentHistoryTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.payHistIdx {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  width: 28px;
+}
+
+.payHistDate {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.payHistAmt {
+  font-weight: 700;
+  color: #16a34a;
+  white-space: nowrap;
+}
+
+.payHistMode {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #eff6ff;
+  color: #1e40af;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.payHistNote {
+  color: #64748b;
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+  .salesPage { padding: 1rem; }
+  .pageTitle { font-size: 1.75rem; }
+  .actionBar { padding: 0.75rem 1rem; }
+}
+
+@media (max-width: 768px) {
+  .salesPage { padding: 1rem 0.75rem; }
+  .pageHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .pageTitle { font-size: 1.5rem; }
+  .pageSubtitle { font-size: 0.875rem; }
+  .headerButtons { width: 100%; }
+  .btnNewSale { width: 100%; padding: 0.875rem 1.5rem; font-size: 1rem; justify-content: center; }
+  .actionBar { width: 100%; flex-direction: column; gap: 0.5rem; padding: 0.75rem 1rem; }
+  .btnAllSales, .btnOutstanding { width: 100%; padding: 0.875rem 1.5rem; font-size: 0.875rem; justify-content: center; text-align: center; }
+  .searchBox { max-width: 100%; margin-bottom: 1rem; }
+  .searchInput { width: 100%; }
+  .salesPage .table-container { padding: 1rem; overflow-x: auto; }
+  .salesPage table { min-width: 1000px; }
+  .salesPage table th, .salesPage table td { padding: 0.75rem 0.875rem; font-size: 0.8125rem; border-width: 1px; }
+  .modalOverlay { padding: 1rem 0.5rem; }
+  .modalBody { padding: 1.5rem; }
+  .formGrid { grid-template-columns: 1fr; }
+  .totalRow { flex-direction: column; gap: 0.5rem; text-align: center; padding: 0.875rem 1rem; }
+  .totalLabel { font-size: 0.9375rem; }
+  .totalValue { font-size: 1.25rem; }
+  .paidValue, .balanceValue { font-size: 1.125rem; }
+}
+
+@media (max-width: 480px) {
+  .salesPage { padding: 0.75rem 0.5rem; }
+  .pageHeader { margin-bottom: 1rem; padding-bottom: 0.75rem; }
+  .pageTitle { font-size: 1.375rem; }
+  .pageSubtitle { font-size: 0.8125rem; }
+  .btnNewSale { padding: 0.75rem 1.25rem; font-size: 0.9375rem; }
+  .actionBar { gap: 0.5rem; padding: 0.5rem 0.75rem; }
+  .btnAllSales, .btnOutstanding { font-size: 0.8125rem; padding: 0.75rem 1.25rem; }
+  .salesPage table { min-width: 900px; }
+  .salesPage table th, .salesPage table td { padding: 0.625rem 0.75rem; font-size: 0.75rem; }
+  .salesPage .badge { font-size: 0.6875rem; padding: 0.25rem 0.5rem; }
+}
+
+@media (max-width: 360px) {
+  .salesPage { padding: 0.5rem; }
+  .pageTitle { font-size: 1.25rem; }
+  .salesPage table { min-width: 850px; }
+  .salesPage table th, .salesPage table td { padding: 0.5rem; font-size: 0.6875rem; }
 }
