@@ -8,25 +8,37 @@
   min-height: 100vh;
 }
 
-/* Bold, Visible Scrollbar */
+/* ── Bold, Dark Visible Scrollbar ─────────────────────────────────────────── */
 .reportsPage ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
 }
 
 .reportsPage ::-webkit-scrollbar-track {
-  background: #e2e8f0;
-  border-radius: 6px;
+  background: #cbd5e1;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
 }
 
 .reportsPage ::-webkit-scrollbar-thumb {
-  background: #2563eb;
-  border-radius: 6px;
-  border: 2px solid #e2e8f0;
+  background: #1e3a8a;
+  border-radius: 8px;
+  border: 2px solid #cbd5e1;
+  min-height: 40px;
 }
 
 .reportsPage ::-webkit-scrollbar-thumb:hover {
   background: #1e40af;
+}
+
+.reportsPage ::-webkit-scrollbar-corner {
+  background: #cbd5e1;
+}
+
+/* Also apply globally on the page for any overflow containers */
+* {
+  scrollbar-width: auto;
+  scrollbar-color: #1e3a8a #cbd5e1;
 }
 
 /* Page Header */
@@ -53,29 +65,43 @@
 .controlPanel {
   background: white;
   border-radius: 12px;
-  padding: 1.75rem;
+  padding: 1rem 1.25rem;
   margin-bottom: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
+/* Row 1: report type + date pickers side by side */
 .filtersRow {
-  display: grid;
-  grid-template-columns: 1fr 2fr auto;
-  gap: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
   align-items: end;
+}
+
+/* Row 2: action buttons — full-width row below the filters */
+.actionButtonsRow {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e2e8f0;
 }
 
 .reportSelector {
   display: flex;
   flex-direction: column;
+  width: 200px;
 }
 
 .label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: #334155;
   letter-spacing: 0.3px;
 }
@@ -83,14 +109,15 @@
 .select,
 .input {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   border: 2px solid #e2e8f0;
   border-radius: 8px;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: #1e293b;
   background: white;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .select:hover,
@@ -106,37 +133,40 @@
 }
 
 .dateRange {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  display: flex;
+  gap: 0.625rem;
+  align-items: end;
 }
 
 .dateInput {
   display: flex;
   flex-direction: column;
+  width: 160px;
 }
 
-.actionButtonWrapper {
-  display: flex;
-  align-items: flex-end;
-}
-
-.generateBtn {
+/* ── Button shared base ────────────────────────────────────────────────────── */
+.generateBtn,
+.exportBtn,
+.exportExcelBtn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.875rem 1.75rem;
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-  color: white;
+  padding: 0.6rem 1.25rem;
   border: none;
   border-radius: 8px;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
   white-space: nowrap;
+}
+
+/* Generate Report — blue */
+.generateBtn {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
 
 .generateBtn:hover:not(:disabled) {
@@ -150,10 +180,50 @@
   box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
 
-.generateBtn:disabled {
+/* Export PDF — red */
+.exportBtn {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25);
+}
+
+.exportBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.35);
+  transform: translateY(-1px);
+}
+
+.exportBtn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25);
+}
+
+/* Export Excel — green */
+.exportExcelBtn {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(22, 163, 74, 0.25);
+}
+
+.exportExcelBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+  box-shadow: 0 4px 8px rgba(22, 163, 74, 0.35);
+  transform: translateY(-1px);
+}
+
+.exportExcelBtn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(22, 163, 74, 0.25);
+}
+
+/* Disabled state — all buttons */
+.generateBtn:disabled,
+.exportBtn:disabled,
+.exportExcelBtn:disabled {
   background: #94a3b8;
   cursor: not-allowed;
   box-shadow: none;
+  transform: none;
 }
 
 .btnIcon {
@@ -174,7 +244,7 @@
   to { transform: rotate(360deg); }
 }
 
-/* Category Filter Bar - Matching Products Page Style */
+/* Category Filter Bar */
 .categoryFilterBar {
   display: flex;
   gap: 0.75rem;
@@ -237,18 +307,9 @@
   overflow: hidden;
 }
 
-/* Colorful cards for stock report */
-.statCard:nth-child(1) {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-}
-
-.statCard:nth-child(2) {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
-
-.statCard:nth-child(3) {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
+.statCard:nth-child(1) { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+.statCard:nth-child(2) { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.statCard:nth-child(3) { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
 
 .statCard:hover {
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
@@ -284,7 +345,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 1.75rem;
+  padding: 0.75rem 1.25rem;
   border-bottom: 2px solid #e2e8f0;
   background: linear-gradient(to right, #f8fafc 0%, #ffffff 100%);
 }
@@ -306,9 +367,7 @@
   border-radius: 6px;
 }
 
-.reportBody {
-  padding: 0;
-}
+.reportBody { padding: 0; }
 
 /* Loading State */
 .loadingContainer {
@@ -345,40 +404,23 @@
   padding: 3rem;
 }
 
-.emptyIcon {
-  font-size: 4rem;
-  opacity: 0.3;
-  margin-bottom: 1rem;
-}
-
-.emptyText {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #475569;
-  margin: 0 0 0.5rem 0;
-}
-
-.emptySubtext {
-  font-size: 0.9375rem;
-  color: #94a3b8;
-  margin: 0;
-}
+.emptyIcon { font-size: 4rem; opacity: 0.3; margin-bottom: 1rem; }
+.emptyText { font-size: 1.125rem; font-weight: 600; color: #475569; margin: 0 0 0.5rem 0; }
+.emptySubtext { font-size: 0.9375rem; color: #94a3b8; margin: 0; }
 
 /* Report Content */
-.reportContent {
-  overflow-x: auto;
-}
+.reportContent { overflow-x: auto; }
 
 .tableWrapper {
   overflow-x: auto;
-  padding: 1.5rem 1.75rem;
+  padding: 0.75rem 1rem;
 }
 
-/* Table Styles - WITH VISIBLE BORDERS */
+/* Table — WITH VISIBLE BORDERS */
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   border: 2px solid #cbd5e1;
 }
 
@@ -387,10 +429,10 @@
 }
 
 .table th {
-  padding: 1rem 1.25rem;
+  padding: 0.5rem 0.75rem;
   text-align: left;
   font-weight: 700;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   color: #334155;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -399,86 +441,29 @@
   background: #f8fafc;
 }
 
-.table tbody tr {
-  transition: background-color 0.15s ease;
-}
-
-.table tbody tr:hover {
-  background-color: #f8fafc;
-}
+.table tbody tr { transition: background-color 0.15s ease; }
+.table tbody tr:hover { background-color: #f8fafc; }
 
 .table td {
-  padding: 1rem 1.25rem;
+  padding: 0.5rem 0.75rem;
   color: #334155;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   vertical-align: middle;
   border: 2px solid #cbd5e1;
 }
 
-/* Table Cell Styles */
-.saleNumber {
-  font-weight: 600;
-  color: #1e40af;
-}
-
-.productCode {
-  font-family: 'Courier New', monospace;
-  font-weight: 600;
-  color: #64748b;
-  font-size: 0.8125rem;
-}
-
-.productName {
-  font-weight: 500;
-  color: #1e293b;
-}
-
-.amount {
-  font-weight: 600;
-  color: #334155;
-  text-align: right;
-}
-
-.stockQuantity {
-  font-weight: 600;
-  color: #475569;
-  text-align: center;
-}
-
-.outstandingQty {
-  font-weight: 700;
-  color: #dc2626;
-  text-align: center;
-  font-size: 0.9375rem;
-}
-
-.outstandingAmount {
-  font-weight: 700;
-  color: #dc2626;
-  text-align: right;
-  font-size: 0.9375rem;
-}
-
-.productList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.productItem {
-  padding: 0.25rem 0;
-  line-height: 1.4;
-}
-
-.textDanger {
-  color: #dc2626;
-  font-weight: 700;
-}
-
-.textSuccess {
-  color: #16a34a;
-  font-weight: 700;
-}
+/* Cell classes */
+.saleNumber { font-weight: 600; color: #1e40af; }
+.productCode { font-family: 'Courier New', monospace; font-weight: 600; color: #64748b; font-size: 0.8125rem; }
+.productName { font-weight: 500; color: #1e293b; }
+.amount { font-weight: 600; color: #334155; text-align: right; }
+.stockQuantity { font-weight: 600; color: #475569; text-align: center; }
+.outstandingQty { font-weight: 700; color: #dc2626; text-align: center; font-size: 0.9375rem; }
+.outstandingAmount { font-weight: 700; color: #dc2626; text-align: right; font-size: 0.9375rem; }
+.productList { display: flex; flex-direction: column; gap: 0.375rem; }
+.productItem { padding: 0.25rem 0; line-height: 1.4; }
+.textDanger { color: #dc2626; font-weight: 700; }
+.textSuccess { color: #16a34a; font-weight: 700; }
 
 /* Badges */
 .badge {
@@ -492,158 +477,159 @@
   white-space: nowrap;
 }
 
-.badgeSuccess {
-  background: #dcfce7;
-  color: #15803d;
-  border: 1px solid #86efac;
-}
+.badgeSuccess { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+.badgeWarning { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+.badgeDanger  { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
 
-.badgeWarning {
-  background: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fde68a;
-}
-
-.badgeDanger {
-  background: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
-}
-
-/* Stock Report Specific Styles - Matching Overall Theme */
-.stockReport {
-  padding: 1.5rem 1.75rem;
-}
+/* Stock Report */
+.stockReport { padding: 0.75rem 1rem; }
 
 .categorySection {
-  margin-bottom: 2.5rem;
+  margin-bottom: 1rem;
   background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
+  border-radius: 10px;
+  padding: 0.875rem 1rem;
   border: 2px solid #e2e8f0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
+.categorySection:last-child { margin-bottom: 0; }
 
-.categorySection:last-child {
-  margin-bottom: 0;
-}
+.categoryHeader { margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 3px solid #2563eb; }
+.categoryTitle { font-size: 1.125rem; font-weight: 700; color: #1e40af; margin: 0; letter-spacing: -0.3px; text-transform: uppercase; }
 
-.categoryHeader {
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 3px solid #2563eb;
-}
+.subcategorySection { margin-bottom: 0.875rem; padding-left: 0.625rem; }
+.subcategorySection:last-child { margin-bottom: 0; }
 
-.categoryTitle {
-  font-size: 1.375rem;
-  font-weight: 700;
-  color: #1e40af;
-  margin: 0;
-  letter-spacing: -0.3px;
-  text-transform: uppercase;
-}
-
-.subcategorySection {
-  margin-bottom: 2rem;
-  padding-left: 1rem;
-}
-
-.subcategorySection:last-child {
-  margin-bottom: 0;
-}
-
-.subcategoryHeader {
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #cbd5e1;
-}
-
-.subcategoryTitle {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #475569;
-  margin: 0;
-  letter-spacing: -0.2px;
-  text-transform: uppercase;
-}
+.subcategoryHeader { margin-bottom: 0.5rem; padding-bottom: 0.375rem; border-bottom: 2px solid #cbd5e1; }
+.subcategoryTitle { font-size: 0.9375rem; font-weight: 700; color: #475569; margin: 0; letter-spacing: -0.2px; text-transform: uppercase; }
 
 .groupSection {
-  margin-bottom: 1.5rem;
-  padding-left: 1rem;
+  margin-bottom: 0.75rem;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 10px;
-  padding: 1.25rem;
+  border-radius: 8px;
+  padding: 0.75rem;
   border: 2px solid #cbd5e1;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
-
-.groupSection:last-child {
-  margin-bottom: 0;
-}
+.groupSection:last-child { margin-bottom: 0; }
 
 .groupHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.375rem;
   border-bottom: 2px solid #2563eb;
 }
 
-.groupTitle {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #1e40af;
-  margin: 0;
-  text-transform: capitalize;
-}
+.groupTitle { font-size: 0.875rem; font-weight: 700; color: #1e40af; margin: 0; text-transform: capitalize; }
 
 .groupCount {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: white;
   background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-  padding: 0.375rem 0.75rem;
+  padding: 0.25rem 0.5rem;
   border-radius: 6px;
   box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
 }
 
 .groupSection .tableWrapper {
   padding: 0;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
   background: white;
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
   border: 2px solid #cbd5e1;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
-.groupSection .table {
-  border: none;
+.groupSection .table { border: none; }
+
+/* ── Outstanding Balances — grouped by customer ─────────────────────────── */
+.outstandingBalancesReport {
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
 }
 
-/* Mobile Responsive - Tablets */
+.customerBalanceSection {
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.customerBalanceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.customerBalanceNameBlock { display: flex; flex-direction: column; gap: 1px; }
+.customerBalanceName { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.01em; }
+.customerBalanceMeta { font-size: 10px; color: rgba(255,255,255,0.75); font-weight: 500; }
+
+.customerBalanceTotalBlock { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.customerBalanceTotalLabel { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255,255,255,0.75); font-weight: 600; }
+.customerBalanceTotalValue { font-size: 14px; font-weight: 700; color: #fff; }
+
+.customerBalanceSection .tableWrapper { padding: 0; }
+.customerBalanceSection .table { border-radius: 0; border: none; border-top: 1px solid #e2e8f0; }
+.customerBalanceSection .table th { border-top: none; }
+
+.productQty { font-size: 11px; color: #94a3b8; font-weight: 400; }
+
+.customerSubtotalRow td { background: #f0f4ff !important; border-top: 2px solid #bfdbfe !important; }
+.customerSubtotalLabel { font-size: 11px; font-weight: 700; color: #1e40af; text-align: right !important; }
+.customerSubtotalValue { font-size: 12px; font-weight: 700; color: #dc2626; text-align: right; }
+
+.grandTotalBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0f172a;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-top: 0.25rem;
+}
+
+.grandTotalLabel { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.85); text-transform: uppercase; letter-spacing: 0.05em; }
+.grandTotalValue { font-size: 16px; font-weight: 700; color: #fff; }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 1200px) {
   .filtersRow {
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
-  .dateRange {
-    grid-template-columns: 1fr;
-  }
-
-  .actionButtonWrapper {
-    justify-content: stretch;
-  }
-
-  .generateBtn {
+  .reportSelector,
+  .dateInput {
     width: 100%;
   }
 
-  .statsGrid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  .dateRange {
+    flex-direction: column;
+    width: 100%;
   }
+
+  .actionButtonsRow {
+    flex-direction: column;
+  }
+
+  .generateBtn,
+  .exportBtn,
+  .exportExcelBtn {
+    width: 100%;
+  }
+
+  .statsGrid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 
   .categoryFilterBar {
     overflow-x: auto;
@@ -653,384 +639,53 @@
   }
 }
 
-/* Mobile Responsive - Medium Phones */
 @media (max-width: 768px) {
-  .reportsPage {
-    padding: 1rem;
-  }
-
-  .pageTitle {
-    font-size: 1.5rem;
-  }
-
-  .pageSubtitle {
-    font-size: 0.875rem;
-  }
-
-  .controlPanel {
-    padding: 1.25rem;
-  }
-
-  .categoryFilterBar {
-    padding: 0.75rem;
-  }
-
-  .categoryButton,
-  .categoryActive {
-    padding: 0.5rem 1rem;
-    font-size: 0.75rem;
-  }
-
-  .reportHeader {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-
-  .tableWrapper {
-    padding: 1rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .table {
-    font-size: 0.8125rem;
-    min-width: 800px;
-  }
-
-  .table th,
-  .table td {
-    padding: 0.75rem 0.875rem;
-    border-width: 1px;
-  }
-
-  .statValue {
-    font-size: 1.5rem;
-  }
-
-  .categoryTitle {
-    font-size: 1.125rem;
-  }
-
-  .subcategoryTitle {
-    font-size: 1rem;
-  }
-
-  .groupTitle {
-    font-size: 0.9375rem;
-  }
-
-  .stockReport {
-    padding: 1rem;
-  }
-
-  .categorySection {
-    padding: 1rem;
-  }
-
-  .subcategorySection,
-  .groupSection {
-    padding-left: 0.5rem;
-  }
-}
-
-/* Mobile Responsive - Small Phones */
-@media (max-width: 480px) {
-  .reportsPage {
-    padding: 0.75rem;
-  }
-
-  .pageTitle {
-    font-size: 1.25rem;
-  }
-
-  .controlPanel {
-    padding: 1rem;
-  }
-
-  .categoryFilterBar {
-    padding: 0.5rem;
-  }
-
-  .categoryButton,
-  .categoryActive {
-    padding: 0.5rem 0.875rem;
-    font-size: 0.6875rem;
-  }
-
-  .statsGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .table {
-    font-size: 0.75rem;
-    min-width: 700px;
-  }
-
-  .table th,
-  .table td {
-    padding: 0.625rem 0.75rem;
-    font-size: 0.75rem;
-  }
-
-  .badge {
-    font-size: 0.6875rem;
-    padding: 0.25rem 0.5rem;
-  }
-
-  .statValue {
-    font-size: 1.25rem;
-  }
-
-  .categoryTitle {
-    font-size: 1rem;
-  }
-
-  .subcategoryTitle {
-    font-size: 0.9375rem;
-  }
-
-  .groupTitle {
-    font-size: 0.875rem;
-  }
-
-  .groupCount {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
-  }
-
-  .categorySection {
-    padding: 0.75rem;
-  }
-}
-
-/* Extra Small Screens */
-@media (max-width: 360px) {
-  .reportsPage {
-    padding: 0.5rem;
-  }
-
-  .pageTitle {
-    font-size: 1.125rem;
-  }
-
-  .controlPanel,
-  .categoryFilterBar {
-    padding: 0.75rem;
-  }
-
-  .table {
-    min-width: 650px;
-  }
-
-  .table th,
-  .table td {
-    padding: 0.5rem;
-    font-size: 0.6875rem;
-  }
-}
-
-/* ── Export PDF Button ──────────────────────────────────────────────────── */
-.exportBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.875rem 1.75rem;
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25);
-  white-space: nowrap;
-  margin-left: 0.75rem;
-}
-
-.exportBtn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
-  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.35);
-  transform: translateY(-1px);
-}
-
-.exportBtn:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25);
-}
-
-.exportBtn:disabled {
-  background: #94a3b8;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-/* Make the action wrapper flex so buttons sit side-by-side */
-.actionButtonWrapper {
-  display: flex;
-  align-items: flex-end;
-  gap: 0;               /* gap handled by margin-left on exportBtn */
-}
-
-/* On mobile, stack the buttons */
-@media (max-width: 1200px) {
-  .actionButtonWrapper {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .exportBtn {
-    margin-left: 0;
-    width: 100%;
-  }
-}
-
-/* ── Outstanding Balances — grouped by customer ─────────────────────────── */
-.outstandingBalancesReport {
-  padding: 1.5rem 1.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-/* One customer block */
-.customerBalanceSection {
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-}
-
-/* Customer header strip */
-.customerBalanceHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px;
-  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.customerBalanceNameBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.customerBalanceName {
-  font-size: 15px;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.01em;
-}
-
-.customerBalanceMeta {
-  font-size: 11px;
-  color: rgba(255,255,255,0.75);
-  font-weight: 500;
-}
-
-.customerBalanceTotalBlock {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.customerBalanceTotalLabel {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(255,255,255,0.75);
-  font-weight: 600;
-}
-
-.customerBalanceTotalValue {
-  font-size: 17px;
-  font-weight: 700;
-  color: #fff;
-}
-
-/* The table inside a customer section — no extra wrapper padding */
-.customerBalanceSection .tableWrapper {
-  padding: 0;
-}
-
-.customerBalanceSection .table {
-  border-radius: 0;
-  border: none;
-  border-top: 1px solid #e2e8f0;
-}
-
-.customerBalanceSection .table th {
-  border-top: none;
-}
-
-/* Product quantity sub-text */
-.productQty {
-  font-size: 11px;
-  color: #94a3b8;
-  font-weight: 400;
-}
-
-/* Customer subtotal row */
-.customerSubtotalRow td {
-  background: #f0f4ff !important;
-  border-top: 2px solid #bfdbfe !important;
-}
-
-.customerSubtotalLabel {
-  font-size: 12px;
-  font-weight: 700;
-  color: #1e40af;
-  text-align: right !important;
-}
-
-.customerSubtotalValue {
-  font-size: 14px;
-  font-weight: 700;
-  color: #dc2626;
-  text-align: right;
-}
-
-/* Grand total bar */
-.grandTotalBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #0f172a;
-  border-radius: 10px;
-  padding: 16px 24px;
-  margin-top: 0.5rem;
-}
-
-.grandTotalLabel {
-  font-size: 13px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.85);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.grandTotalValue {
-  font-size: 20px;
-  font-weight: 700;
-  color: #fff;
-}
-
-@media (max-width: 768px) {
-  .outstandingBalancesReport {
-    padding: 1rem;
-    gap: 1.5rem;
-  }
-  .customerBalanceHeader {
-    padding: 12px 14px;
-  }
+  .reportsPage { padding: 1rem; }
+  .pageTitle { font-size: 1.5rem; }
+  .pageSubtitle { font-size: 0.875rem; }
+  .controlPanel { padding: 1.25rem; }
+  .categoryFilterBar { padding: 0.75rem; }
+  .categoryButton, .categoryActive { padding: 0.5rem 1rem; font-size: 0.75rem; }
+  .reportHeader { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+  .tableWrapper { padding: 1rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table { font-size: 0.8125rem; min-width: 800px; }
+  .table th, .table td { padding: 0.75rem 0.875rem; border-width: 1px; }
+  .statValue { font-size: 1.5rem; }
+  .categoryTitle { font-size: 1.125rem; }
+  .subcategoryTitle { font-size: 1rem; }
+  .groupTitle { font-size: 0.9375rem; }
+  .stockReport { padding: 1rem; }
+  .categorySection { padding: 1rem; }
+  .outstandingBalancesReport { padding: 1rem; gap: 1.5rem; }
+  .customerBalanceHeader { padding: 12px 14px; }
   .customerBalanceName { font-size: 13px; }
   .customerBalanceTotalValue { font-size: 14px; }
   .grandTotalBar { padding: 12px 16px; }
   .grandTotalValue { font-size: 16px; }
+}
+
+@media (max-width: 480px) {
+  .reportsPage { padding: 0.75rem; }
+  .pageTitle { font-size: 1.25rem; }
+  .controlPanel { padding: 1rem; }
+  .categoryFilterBar { padding: 0.5rem; }
+  .categoryButton, .categoryActive { padding: 0.5rem 0.875rem; font-size: 0.6875rem; }
+  .statsGrid { grid-template-columns: 1fr; }
+  .table { font-size: 0.75rem; min-width: 700px; }
+  .table th, .table td { padding: 0.625rem 0.75rem; font-size: 0.75rem; }
+  .badge { font-size: 0.6875rem; padding: 0.25rem 0.5rem; }
+  .statValue { font-size: 1.25rem; }
+  .categoryTitle { font-size: 1rem; }
+  .subcategoryTitle { font-size: 0.9375rem; }
+  .groupTitle { font-size: 0.875rem; }
+  .groupCount { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+  .categorySection { padding: 0.75rem; }
+}
+
+@media (max-width: 360px) {
+  .reportsPage { padding: 0.5rem; }
+  .pageTitle { font-size: 1.125rem; }
+  .controlPanel, .categoryFilterBar { padding: 0.75rem; }
+  .table { min-width: 650px; }
+  .table th, .table td { padding: 0.5rem; font-size: 0.6875rem; }
 }

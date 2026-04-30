@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import api from '../../utils/api';
 import styles from './Reports.module.css';
 
@@ -37,7 +38,6 @@ const groupSalesByCustomer = (sales) => {
     map[cid].sales.push(sale);
     map[cid].totalOutstanding += parseFloat(sale.outstanding_balance || 0);
   });
-  // Sort customers by total outstanding descending
   return Object.values(map).sort((a, b) => b.totalOutstanding - a.totalOutstanding);
 };
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,6 +53,120 @@ const Reports = () => {
   const formatCurrency = (amount) => {
     const num = parseFloat(amount) || 0;
     return num.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // EXCEL EXPORT
+  // ───────────────────────────────────────────────────────────────────────────
+  const exportToExcel = () => {
+    if (!reportData || reportData.length === 0) { alert('No data to export.'); return; }
+
+    const wb = XLSX.utils.book_new();
+
+    if (reportType === 'sales') {
+      const rows = [];
+      reportData.forEach((sale) => {
+        (sale.line_items || []).forEach((item, idx) => {
+          rows.push({
+            Date: idx === 0 ? formatSaleDate(sale) : '',
+            'Sale Number': idx === 0 ? sale.sale_number : '',
+            Customer: idx === 0 ? sale.customer_name : '',
+            'LPO/Quote': idx === 0 ? (sale.lpo_quotation_number || '-') : '',
+            'Product Name': item.product_name,
+            'Qty Supplied': item.quantity_supplied,
+            'Total Amount (KES)': idx === 0 ? parseFloat(sale.total_amount) || 0 : '',
+            'Amount Paid (KES)': idx === 0 ? parseFloat(sale.amount_paid) || 0 : '',
+            'Outstanding Balance (KES)': idx === 0 ? parseFloat(sale.outstanding_balance) || 0 : '',
+            Salesperson: idx === 0 ? (sale.salesperson || '—') : '',
+            'Mode of Payment': idx === 0 ? sale.mode_of_payment : '',
+          });
+        });
+      });
+      const ws = XLSX.utils.json_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sales Report');
+    }
+
+    else if (reportType === 'stock') {
+      const grouped = groupStockProducts(reportData);
+      const rows = [];
+      Object.entries(grouped).forEach(([catName, subcats]) => {
+        Object.entries(subcats).forEach(([subcatName, groups]) => {
+          Object.entries(groups).forEach(([groupName, products]) => {
+            products.forEach((p) => {
+              rows.push({
+                Category: catName,
+                Subcategory: subcatName,
+                Group: groupName,
+                'Product Code': p.code,
+                'Product Name': p.name,
+                'Current Stock': p.current_stock,
+                'Minimum Stock': p.minimum_stock || 0,
+                Status: (p.current_stock || 0) <= (p.minimum_stock || 0) ? 'Low Stock' : 'In Stock',
+              });
+            });
+          });
+        });
+      });
+      const ws = XLSX.utils.json_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Stock Report');
+    }
+
+    else if (reportType === 'outstanding_supplies') {
+      const rows = [];
+      reportData.forEach((sale) => {
+        (sale.line_items || [])
+          .filter((item) => item.supply_status === 'Partially Supplied' || item.supply_status === 'Not Supplied')
+          .forEach((item) => {
+            const outstanding = (item.quantity_ordered || 0) - (item.quantity_supplied || 0);
+            const payStatus = parseFloat(sale.outstanding_balance || 0) > 0 ? 'Pending' : 'Paid';
+            rows.push({
+              Date: formatSaleDate(sale),
+              'Sale Number': sale.sale_number,
+              Customer: sale.customer_name,
+              'LPO/Quote': sale.lpo_quotation_number || '-',
+              'Product Name': item.product_name,
+              'Qty Ordered': item.quantity_ordered,
+              'Qty Supplied': item.quantity_supplied,
+              'Outstanding Qty': outstanding,
+              'Payment Status': payStatus,
+            });
+          });
+      });
+      const ws = XLSX.utils.json_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Outstanding Supplies');
+    }
+
+    else if (reportType === 'outstanding_balances') {
+      const customerGroups = groupSalesByCustomer(reportData);
+      const rows = [];
+      customerGroups.forEach((group) => {
+        group.sales.forEach((sale) => {
+          rows.push({
+            Customer: group.customerName,
+            Date: formatSaleDate(sale),
+            'Sale Number': sale.sale_number,
+            'LPO/Quote': sale.lpo_quotation_number || '-',
+            Products: (sale.line_items || []).map((i) => `${i.product_name} (${i.quantity_supplied}/${i.quantity_ordered})`).join('; '),
+            'Total Amount (KES)': parseFloat(sale.total_amount) || 0,
+            'Amount Paid (KES)': parseFloat(sale.amount_paid) || 0,
+            'Outstanding Balance (KES)': parseFloat(sale.outstanding_balance) || 0,
+          });
+        });
+        // Subtotal row per customer
+        rows.push({
+          Customer: `TOTAL — ${group.customerName}`,
+          Date: '', 'Sale Number': '', 'LPO/Quote': '', Products: '',
+          'Total Amount (KES)': '',
+          'Amount Paid (KES)': '',
+          'Outstanding Balance (KES)': group.totalOutstanding,
+        });
+        rows.push({}); // blank separator
+      });
+      const ws = XLSX.utils.json_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Outstanding Balances');
+    }
+
+    XLSX.writeFile(wb, `${reportType}_report_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -85,9 +199,13 @@ const Reports = () => {
     const title      = getReportTitle();
     const exportDate = new Date().toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' });
 
+    const HEADER_H = 44;
+    const FOOTER_H = 24;
+    const MARGIN   = { top: HEADER_H + 16, right: 30, bottom: FOOTER_H + 12, left: 30 };
+
     const drawPageHeader = (pageNum, totalPages) => {
       doc.setFillColor(...BLUE_DARK);
-      doc.rect(0, 0, pageWidth, 44, 'F');
+      doc.rect(0, 0, pageWidth, HEADER_H, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(16);
       doc.setTextColor(...WHITE);
@@ -98,12 +216,12 @@ const Reports = () => {
       doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - 40, 32, { align: 'right' });
       doc.setDrawColor(...SLATE_300);
       doc.setLineWidth(0.5);
-      doc.line(0, 44, pageWidth, 44);
+      doc.line(0, HEADER_H, pageWidth, HEADER_H);
     };
 
     const drawPageFooter = () => {
       doc.setFillColor(...SLATE_50);
-      doc.rect(0, pageHeight - 24, pageWidth, 24, 'F');
+      doc.rect(0, pageHeight - FOOTER_H, pageWidth, FOOTER_H, 'F');
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(...SLATE_600);
@@ -111,8 +229,7 @@ const Reports = () => {
     };
 
     const baseTableStyles = {
-      startY: 60,
-      margin: { top: 60, right: 30, bottom: 36, left: 30 },
+      margin: MARGIN,
       tableLineColor: SLATE_300,
       tableLineWidth: 0.75,
       headStyles: {
@@ -159,6 +276,7 @@ const Reports = () => {
 
       autoTable(doc, {
         ...baseTableStyles,
+        startY: MARGIN.top,
         head: [['Date', 'Customer', 'Product Name', 'Qty Supplied', 'Total Amount', 'Amount Paid', 'Outstanding', 'Salesperson', 'Payment Mode']],
         body: rows.map(r => [r.date, r.customer, r.product, r.qtySupplied, r.total, r.paid, r.balance, r.salesperson, r.payment]),
         alternateRowStyles: {},
@@ -199,46 +317,83 @@ const Reports = () => {
     }
 
     // ── STOCK REPORT ──────────────────────────────────────────────────────────
+    // Uses a single flat autoTable per group to prevent overlapping titles
     else if (reportType === 'stock') {
       const grouped = groupStockProducts(reportData);
-      let firstSection = true;
+      let isFirstGroup = true;
+
       Object.entries(grouped).forEach(([catName, subcats]) => {
-        if (!firstSection) doc.addPage();
-        firstSection = false;
-        const currentY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 18 : 60;
-        const safeY = currentY > pageHeight - 80 ? (doc.addPage(), 60) : currentY;
-        doc.setFillColor(...BLUE_DARK);
-        doc.rect(30, safeY, pageWidth - 60, 22, 'F');
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...WHITE);
-        doc.text(catName.toUpperCase(), 40, safeY + 15);
-        let sectionStartY = safeY + 30;
         Object.entries(subcats).forEach(([subcatName, groups]) => {
-          const subY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 14 : sectionStartY;
-          const safeSubY = subY > pageHeight - 60 ? (doc.addPage(), 60) : subY;
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...SLATE_600);
-          doc.text(subcatName.toUpperCase(), 40, safeSubY);
-          doc.setDrawColor(...SLATE_300); doc.setLineWidth(0.5);
-          doc.line(40, safeSubY + 3, pageWidth - 40, safeSubY + 3);
           Object.entries(groups).forEach(([groupName, products]) => {
-            const grpStartY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 12 : safeSubY + 14;
-            const safeGrpY = grpStartY > pageHeight - 60 ? (doc.addPage(), 60) : grpStartY;
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...BLUE_MID);
-            doc.text(`${groupName}  (${products.length} products)`, 50, safeGrpY);
+            // Calculate where we currently are
+            const currentY = isFirstGroup
+              ? MARGIN.top
+              : (doc.lastAutoTable ? doc.lastAutoTable.finalY : MARGIN.top);
+
+            // Need at least 80pt for the label block + a few table rows
+            const minSpaceNeeded = 80;
+            let labelY;
+
+            if (!isFirstGroup && currentY + minSpaceNeeded > pageHeight - MARGIN.bottom) {
+              doc.addPage();
+              labelY = MARGIN.top;
+            } else {
+              labelY = isFirstGroup ? MARGIN.top : currentY + 14;
+            }
+
+            isFirstGroup = false;
+
+            // ── Category banner ──
+            doc.setFillColor(...BLUE_DARK);
+            doc.rect(MARGIN.left, labelY, pageWidth - MARGIN.left - MARGIN.right, 20, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
+            doc.setTextColor(...WHITE);
+            doc.text(catName.toUpperCase(), MARGIN.left + 8, labelY + 13);
+
+            // ── Subcategory label ──
+            const subcatY = labelY + 26;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.setTextColor(...SLATE_600);
+            doc.text(subcatName.toUpperCase(), MARGIN.left + 4, subcatY);
+            doc.setDrawColor(...SLATE_300);
+            doc.setLineWidth(0.4);
+            doc.line(MARGIN.left, subcatY + 3, pageWidth - MARGIN.right, subcatY + 3);
+
+            // ── Group label ──
+            const grpY = subcatY + 14;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.setTextColor(...BLUE_MID);
+            doc.text(`${groupName}  (${products.length} product${products.length !== 1 ? 's' : ''})`, MARGIN.left + 4, grpY);
+
+            // ── Products table ──
             autoTable(doc, {
-              ...baseTableStyles, startY: safeGrpY + 8,
+              ...baseTableStyles,
+              startY: grpY + 8,
               head: [['Product Code', 'Product Name', 'Current Stock', 'Min Stock', 'Status']],
-              body: products.map(p => [p.code, p.name, p.current_stock, p.minimum_stock || 0, (p.current_stock || 0) <= (p.minimum_stock || 0) ? 'Low Stock' : 'In Stock']),
+              body: products.map(p => [
+                p.code,
+                p.name,
+                p.current_stock,
+                p.minimum_stock || 0,
+                (p.current_stock || 0) <= (p.minimum_stock || 0) ? 'Low Stock' : 'In Stock',
+              ]),
               columnStyles: {
-                0: { cellWidth: 80, fontStyle: 'bold', textColor: SLATE_600, font: 'courier' },
-                1: { cellWidth: 'auto' }, 2: { cellWidth: 72, halign: 'center' },
-                3: { cellWidth: 64, halign: 'center' }, 4: { cellWidth: 72, halign: 'center' },
+                0: { cellWidth: 90, fontStyle: 'bold', textColor: SLATE_600, font: 'courier' },
+                1: { cellWidth: 'auto' },
+                2: { cellWidth: 80, halign: 'center' },
+                3: { cellWidth: 70, halign: 'center' },
+                4: { cellWidth: 80, halign: 'center' },
               },
               didParseCell: (data) => {
                 if (data.section !== 'body' || data.column.index !== 4) return;
                 const isLow = data.cell.raw === 'Low Stock';
                 data.cell.styles.textColor = isLow ? [185, 28, 28] : GREEN_DARK;
                 data.cell.styles.fillColor = isLow ? RED_BG : GREEN_BG;
-                data.cell.styles.fontStyle = 'bold'; data.cell.styles.fontSize = 7.5;
+                data.cell.styles.fontStyle = 'bold';
+                data.cell.styles.fontSize = 7.5;
               },
             });
           });
@@ -260,6 +415,7 @@ const Reports = () => {
       });
       autoTable(doc, {
         ...baseTableStyles,
+        startY: MARGIN.top,
         head: [['Date', 'Sale No.', 'Customer', 'LPO / Quote', 'Product Name', 'Qty Ordered', 'Qty Supplied', 'Outstanding', 'Payment']],
         body: rows,
         columnStyles: {
@@ -282,20 +438,19 @@ const Reports = () => {
     // ── OUTSTANDING BALANCES REPORT — grouped by customer ────────────────────
     else if (reportType === 'outstanding_balances') {
       const customerGroups = groupSalesByCustomer(reportData);
-      let startY = 60;
+      let startY = MARGIN.top;
 
-      customerGroups.forEach((group, gIdx) => {
-        // Customer header banner
+      customerGroups.forEach((group) => {
         const bannerY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 18 : startY;
-        const safeBannerY = bannerY > pageHeight - 80 ? (doc.addPage(), 60) : bannerY;
+        const safeBannerY = bannerY > pageHeight - 80 ? (doc.addPage(), MARGIN.top) : bannerY;
 
         doc.setFillColor(37, 99, 235);
-        doc.rect(30, safeBannerY, pageWidth - 60, 20, 'F');
+        doc.rect(MARGIN.left, safeBannerY, pageWidth - MARGIN.left - MARGIN.right, 20, 'F');
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.setTextColor(...WHITE);
-        doc.text(group.customerName.toUpperCase(), 38, safeBannerY + 13);
-        doc.text(`Total Outstanding: KES ${formatCurrency(group.totalOutstanding)}`, pageWidth - 38, safeBannerY + 13, { align: 'right' });
+        doc.text(group.customerName.toUpperCase(), MARGIN.left + 8, safeBannerY + 13);
+        doc.text(`Total Outstanding: KES ${formatCurrency(group.totalOutstanding)}`, pageWidth - MARGIN.right - 4, safeBannerY + 13, { align: 'right' });
 
         const tableRows = group.sales.map(sale => [
           formatSaleDate(sale),
@@ -307,11 +462,7 @@ const Reports = () => {
           `KES ${formatCurrency(sale.outstanding_balance)}`,
         ]);
 
-        // Grand total row for customer
-        tableRows.push([
-          '', '', '', 'CUSTOMER TOTAL', '', '',
-          `KES ${formatCurrency(group.totalOutstanding)}`
-        ]);
+        tableRows.push(['', '', '', 'CUSTOMER TOTAL', '', '', `KES ${formatCurrency(group.totalOutstanding)}`]);
 
         autoTable(doc, {
           ...baseTableStyles,
@@ -339,17 +490,16 @@ const Reports = () => {
         });
       });
 
-      // Grand total across all customers
       const grandTotal = reportData.reduce((sum, s) => sum + parseFloat(s.outstanding_balance || 0), 0);
-      const gtY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 60;
+      const gtY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : MARGIN.top;
       if (gtY < pageHeight - 40) {
         doc.setFillColor(15, 23, 42);
-        doc.rect(30, gtY, pageWidth - 60, 22, 'F');
+        doc.rect(MARGIN.left, gtY, pageWidth - MARGIN.left - MARGIN.right, 22, 'F');
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
         doc.setTextColor(...WHITE);
-        doc.text('GRAND TOTAL — ALL CUSTOMERS', 38, gtY + 14);
-        doc.text(`KES ${formatCurrency(grandTotal)}`, pageWidth - 38, gtY + 14, { align: 'right' });
+        doc.text('GRAND TOTAL — ALL CUSTOMERS', MARGIN.left + 8, gtY + 14);
+        doc.text(`KES ${formatCurrency(grandTotal)}`, pageWidth - MARGIN.right - 4, gtY + 14, { align: 'right' });
       }
     }
 
@@ -488,6 +638,7 @@ const Reports = () => {
   };
 
   const stats = getReportStats();
+  const hasData = reportData && reportData.length > 0;
 
   return (
     <div className={styles.reportsPage}>
@@ -499,6 +650,7 @@ const Reports = () => {
       </div>
 
       <div className={styles.controlPanel}>
+        {/* Row 1: Report type + Date filters */}
         <div className={styles.filtersRow}>
           <div className={styles.reportSelector}>
             <label className={styles.label}>Report Type</label>
@@ -524,15 +676,19 @@ const Reports = () => {
               <input type="date" name="end_date" value={dateRange.end_date} onChange={handleDateChange} className={styles.input} />
             </div>
           </div>
+        </div>
 
-          <div className={styles.actionButtonWrapper}>
-            <button onClick={generateReport} className={styles.generateBtn} disabled={loading}>
-              {loading ? (<><span className={styles.spinner}></span>Generating...</>) : (<><span className={styles.btnIcon}>📊</span>Generate Report</>)}
-            </button>
-            <button onClick={exportToPDF} className={styles.exportBtn} disabled={loading || !reportData || reportData.length === 0}>
-              <span className={styles.btnIcon}>📄</span>Export PDF
-            </button>
-          </div>
+        {/* Row 2: Action buttons — full width below the filters */}
+        <div className={styles.actionButtonsRow}>
+          <button onClick={generateReport} className={styles.generateBtn} disabled={loading}>
+            {loading ? (<><span className={styles.spinner}></span>Generating...</>) : (<><span className={styles.btnIcon}>📊</span>Generate Report</>)}
+          </button>
+          <button onClick={exportToPDF} className={styles.exportBtn} disabled={loading || !hasData}>
+            <span className={styles.btnIcon}>📄</span>Export PDF
+          </button>
+          <button onClick={exportToExcel} className={styles.exportExcelBtn} disabled={loading || !hasData}>
+            <span className={styles.btnIcon}>📗</span>Export Excel
+          </button>
         </div>
       </div>
 
@@ -561,7 +717,7 @@ const Reports = () => {
       <div className={styles.reportCard}>
         <div className={styles.reportHeader}>
           <h2 className={styles.reportTitle}>{getReportTitle()}</h2>
-          {reportData && reportData.length > 0 && (
+          {hasData && (
             <div className={styles.recordCount}>
               {reportType === 'stock' && stockCategoryFilter !== 'all'
                 ? `${reportData.filter(p => p.category === parseInt(stockCategoryFilter)).length} records`
@@ -576,7 +732,7 @@ const Reports = () => {
               <div className={styles.loadingSpinner}></div>
               <p className={styles.loadingText}>Generating report...</p>
             </div>
-          ) : !reportData || reportData.length === 0 ? (
+          ) : !hasData ? (
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}>📊</div>
               <p className={styles.emptyText}>No data available for this report</p>
@@ -748,7 +904,6 @@ const Reports = () => {
                   <div className={styles.outstandingBalancesReport}>
                     {customerGroups.map((group) => (
                       <div key={group.customerId} className={styles.customerBalanceSection}>
-                        {/* Customer header */}
                         <div className={styles.customerBalanceHeader}>
                           <div className={styles.customerBalanceNameBlock}>
                             <span className={styles.customerBalanceName}>{group.customerName}</span>
@@ -764,7 +919,6 @@ const Reports = () => {
                           </div>
                         </div>
 
-                        {/* Sales table for this customer */}
                         <div className={styles.tableWrapper}>
                           <table className={styles.table}>
                             <thead>
@@ -803,7 +957,6 @@ const Reports = () => {
                                   </td>
                                 </tr>
                               ))}
-                              {/* Customer subtotal row */}
                               <tr className={styles.customerSubtotalRow}>
                                 <td colSpan={6} className={styles.customerSubtotalLabel}>
                                   Customer Total — {group.customerName}
@@ -818,7 +971,6 @@ const Reports = () => {
                       </div>
                     ))}
 
-                    {/* Grand total across all customers */}
                     <div className={styles.grandTotalBar}>
                       <span className={styles.grandTotalLabel}>Grand Total — All Customers</span>
                       <span className={styles.grandTotalValue}>KES {formatCurrency(grandTotal)}</span>
