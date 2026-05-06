@@ -327,7 +327,7 @@ const api = {
     }),
 
   // ========================
-  // NEW: Sale Approval Methods
+  // Sale Approval Methods
   // ========================
   getPendingSales: () => api.request('/sales/pending/'),
 
@@ -343,17 +343,17 @@ const api = {
       body: JSON.stringify({ action: 'reject', rejection_reason: rejectionReason }),
     }),
 
-// ========================
-// Delivery Records
-// ========================
+  // ========================
+  // Delivery Records
+  // ========================
   recordDelivery: (saleId, data) =>
     api.request(`/sales/${saleId}/record_delivery/`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-   }),
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 
   getDeliveryHistory: (saleId) =>
-  api.request(`/sales/${saleId}/delivery_history/`),
+    api.request(`/sales/${saleId}/delivery_history/`),
 
   // ========================
   // Stock Entries (Legacy)
@@ -475,6 +475,12 @@ const api = {
   getPendingLPOs: () => api.getOutstandingSuppliesReport(),
 
   // ========================
+  // Stock Discrepancy Report
+  // ========================
+  getStockDiscrepancy: (month, year) =>
+    api.request(`/reports/stock-discrepancy/report/?month=${month}&year=${year}`),
+
+  // ========================
   // CSV Export
   // ========================
   exportReportToCSV: (reportType, data) => {
@@ -505,7 +511,7 @@ const api = {
     a.click();
     window.URL.revokeObjectURL(url);
   },
-  };
+};
 
 // ========================
 // CSV Helper Functions

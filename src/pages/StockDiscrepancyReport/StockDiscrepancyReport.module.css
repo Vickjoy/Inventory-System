@@ -1,0 +1,312 @@
+/* src/pages/StockDiscrepancyReport/StockDiscrepancyReport.module.css */
+
+.container {
+    padding: 24px;
+    max-width: 1400px;
+  }
+  
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  
+  .title {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--text-primary, #1a1a2e);
+    margin: 0 0 4px 0;
+  }
+  
+  .subtitle {
+    font-size: 0.9rem;
+    color: var(--text-secondary, #666);
+    margin: 0;
+  }
+  
+  /* Controls */
+  .controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  
+  .controlGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary, #555);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: var(--bg-primary, #fff);
+    color: var(--text-primary, #333);
+    min-width: 140px;
+    cursor: pointer;
+  }
+  
+  .select:focus {
+    outline: none;
+    border-color: #4a6cf7;
+    box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+  }
+  
+  .runButton {
+    padding: 9px 24px;
+    background: #4a6cf7;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  
+  .runButton:hover:not(:disabled) {
+    background: #3a5ce7;
+  }
+  
+  .runButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .exportButton {
+    padding: 9px 20px;
+    background: transparent;
+    color: #4a6cf7;
+    border: 1px solid #4a6cf7;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .exportButton:hover {
+    background: #4a6cf7;
+    color: #fff;
+  }
+  
+  /* Error */
+  .errorBanner {
+    background: #fff0f0;
+    border: 1px solid #fca5a5;
+    color: #b91c1c;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+  }
+  
+  /* Summary cards */
+  .summaryCards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .summaryCard {
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .summaryCardWarning {
+    border-color: #fbbf24;
+    background: #fffbeb;
+  }
+  
+  .summaryCardDanger {
+    border-color: #f87171;
+    background: #fff0f0;
+  }
+  
+  .summaryCardOk {
+    border-color: #6ee7b7;
+    background: #f0fdf4;
+  }
+  
+  .summaryValue {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary, #111);
+    line-height: 1;
+  }
+  
+  .summaryLabel {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #666);
+    font-weight: 500;
+  }
+  
+  /* Empty state */
+  .emptyState {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--text-secondary, #888);
+    font-size: 0.95rem;
+    background: var(--bg-card, #fafafa);
+    border-radius: 12px;
+    border: 1px dashed var(--border-color, #ddd);
+  }
+  
+  /* Table */
+  .tableWrapper {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--border-color, #e5e7eb);
+  }
+  
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  
+  .table thead tr {
+    background: var(--bg-secondary, #f9fafb);
+  }
+  
+  .table th {
+    padding: 12px 14px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #555);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    white-space: nowrap;
+  }
+  
+  .table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-color, #f3f4f6);
+    color: var(--text-primary, #333);
+    vertical-align: middle;
+  }
+  
+  .table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .table tbody tr:hover {
+    background: var(--bg-hover, #f9fafb);
+  }
+  
+  .rowHighlight {
+    background: #fffbeb !important;
+  }
+  
+  .rowHighlight:hover {
+    background: #fef9c3 !important;
+  }
+  
+  .numCol {
+    text-align: right !important;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  
+  .codeCell {
+    font-family: monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4a6cf7;
+    white-space: nowrap;
+  }
+  
+  .categoryCell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  
+  .subcategory {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #888);
+  }
+  
+  .inCol {
+    color: #16a34a;
+    font-weight: 500;
+  }
+  
+  .outCol {
+    color: #dc2626;
+    font-weight: 500;
+  }
+  
+  /* Discrepancy badges */
+  .discrepancyNegative {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    background: #fee2e2;
+    color: #b91c1c;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  
+  .discrepancyPositive {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    background: #d1fae5;
+    color: #065f46;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  
+  .discrepancyZero {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-weight: 500;
+    font-size: 0.85rem;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .container {
+      padding: 16px;
+    }
+  
+    .controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  
+    .runButton,
+    .exportButton {
+      width: 100%;
+      text-align: center;
+    }
+  
+    .summaryCards {
+      grid-template-columns: 1fr 1fr;
+    }
+  }

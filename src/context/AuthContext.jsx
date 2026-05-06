@@ -35,8 +35,8 @@ export const AuthProvider = ({ children }) => {
 
           const mergedUser = {
             ...freshUser,
-            // Prefer role from fresh response, fallback to stored, fallback to 'staff'
             role: freshUser.role || userData.role || 'staff',
+            is_director: freshUser.is_director ?? userData.is_director ?? false,
           };
 
           setUser(mergedUser);
@@ -70,7 +70,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await api.login({ username, password });
 
-      // Guard: if access token missing, treat as failed login
       if (!data?.access) {
         return {
           success: false,
@@ -78,15 +77,9 @@ export const AuthProvider = ({ children }) => {
         };
       }
 
-      // Store tokens
       localStorage.setItem('access_token', data.access);
       localStorage.setItem('refresh_token', data.refresh);
 
-      // -------------------------------------------------------
-      // Build user object
-      // CASE 1: Backend returns data.user (CustomTokenObtainPairSerializer is active)
-      // CASE 2: Backend doesn't return data.user yet — fall back to /users/me/
-      // -------------------------------------------------------
       let userData;
 
       if (data.user && data.user.id) {
@@ -98,6 +91,7 @@ export const AuthProvider = ({ children }) => {
           first_name: data.user.first_name || '',
           last_name: data.user.last_name || '',
           role: data.user.role || 'staff',
+          is_director: data.user.is_director ?? false,
           is_staff: data.user.is_staff || false,
           is_superuser: data.user.is_superuser || false,
         };
@@ -116,6 +110,7 @@ export const AuthProvider = ({ children }) => {
           first_name: freshUser.first_name || '',
           last_name: freshUser.last_name || '',
           role: freshUser.role || 'staff',
+          is_director: freshUser.is_director ?? false,
           is_staff: freshUser.is_staff || false,
           is_superuser: freshUser.is_superuser || false,
         };
@@ -144,10 +139,10 @@ export const AuthProvider = ({ children }) => {
 
   // ========================
   // Role helpers
-  // Use these anywhere in the app to show/hide UI
   // ========================
   const isAdmin = user?.role === 'admin';
   const isStaff = user?.role === 'staff';
+  const isDirector = user?.is_director === true;
 
   // ========================
   // Context value
@@ -158,6 +153,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     isAdmin,
     isStaff,
+    isDirector,
     login,
     logout,
   };

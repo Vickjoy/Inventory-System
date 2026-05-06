@@ -124,10 +124,10 @@ const Products = () => {
     setShowProductModal(true);
   };
 
-  const handleEditProduct = (product) => {
-    setSelectedProduct(product);
-    setShowProductModal(true);
-  };
+  // const handleEditProduct = (product) => {
+  //   setSelectedProduct(product);
+  //   setShowProductModal(true);
+  // };
 
   const handleStockAdjust = (product = null) => {
     setSelectedProduct(product);
@@ -223,13 +223,13 @@ const Products = () => {
             <div className={styles.actionButtons}>
               {isStaffOrAdmin && (
                 <>
-                  <button
+                  {/* <button
                     onClick={() => handleEditProduct(product)}
                     className="btn btn-sm btn-edit"
                     title="Edit product"
                   >
                     ✏️ Edit
-                  </button>
+                  </button> */}
                   <button
                     onClick={() => handleStockAdjust(product)}
                     className="btn btn-sm btn-outline"

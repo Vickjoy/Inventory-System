@@ -192,7 +192,7 @@
 
 /* Card Styles */
 .salesPage .card {
-  border: 1px solid #cbd5e1;
+  border: 2px solid #cbd5e1;
   border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
   overflow: hidden;
@@ -210,16 +210,16 @@
   padding: 0.875rem 1rem;
 }
 
-/* Table — compact */
+/* ── Table — visible borders on rows AND columns ───────────────────────── */
 .salesPage table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8125rem;
-  border: 1px solid #cbd5e1;
+  border: 2px solid #cbd5e1;
 }
 
 .salesPage table thead {
-  background: #f8fafc;
+  background: linear-gradient(to right, #f8fafc 0%, #f1f5f9 100%);
 }
 
 .salesPage table th {
@@ -230,7 +230,7 @@
   color: #334155;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  border: 1px solid #cbd5e1;
+  border: 2px solid #cbd5e1;   /* ← visible column + row borders */
   white-space: nowrap;
   background: #f8fafc;
 }
@@ -240,7 +240,7 @@
 }
 
 .salesPage table tbody tr:hover {
-  background-color: #f8fafc;
+  background-color: #f0f6ff;
 }
 
 .salesPage table td {
@@ -248,8 +248,13 @@
   color: #334155;
   font-size: 0.8125rem;
   vertical-align: middle;
-  border: 1px solid #e2e8f0;
+  border: 2px solid #cbd5e1;   /* ← visible column + row borders */
   font-weight: 500;
+}
+
+/* Zebra stripe for readability */
+.salesPage table tbody tr:nth-child(even) {
+  background-color: #f8fafc;
 }
 
 /* Table Cell Styles */

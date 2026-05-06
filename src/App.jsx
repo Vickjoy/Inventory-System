@@ -1,5 +1,4 @@
 // src/App.jsx
-// CHANGES: imported ReceivePayments and added its route under /receive-payments (admin-only)
 import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
@@ -18,9 +17,11 @@ import StockEntries from './pages/StockEntries/StockEntries';
 import Reports from './pages/Reports/Reports';
 import PendingApprovals from './pages/PendingApprovals/PendingApprovals';
 import ReceivePayments from './pages/ReceivePayments/ReceivePayments';
+import StockDiscrepancyReport from './pages/StockDiscrepancyReport/StockDiscrepancyReport';
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import AdminRoute from './components/AdminRoute/AdminRoute';
+import DirectorRoute from './components/DirectorRoute/DirectorRoute';
 import './App.css';
 
 const POLL_INTERVAL_MS = 30000;
@@ -91,6 +92,16 @@ function App() {
             <AdminRoute>
               <ReceivePayments />
             </AdminRoute>
+          }
+        />
+
+        {/* Director-only route */}
+        <Route
+          path="/reports/stock-discrepancy"
+          element={
+            <DirectorRoute>
+              <StockDiscrepancyReport />
+            </DirectorRoute>
           }
         />
       </Route>
