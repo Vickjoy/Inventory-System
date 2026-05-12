@@ -1,5 +1,5 @@
 // src/utils/api.js
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://192.168.100.120:8000/api';
 
 const api = {
 
