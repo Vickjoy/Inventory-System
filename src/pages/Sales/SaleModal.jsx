@@ -31,7 +31,10 @@ const handleDecimalInput = (value) => {
   return cleaned;
 };
 
-const SaleModal = ({ onClose, onSuccess }) => {
+// sale prop is passed when editing an existing pending sale
+const SaleModal = ({ onClose, onSuccess, sale }) => {
+  const isEditing = !!sale;
+
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     customer: '',
@@ -61,6 +64,47 @@ const SaleModal = ({ onClose, onSuccess }) => {
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [showSalespersonDropdown, setShowSalespersonDropdown] = useState(false);
 
+  // ── Pre-populate form when editing an existing sale ──────────────────────
+  useEffect(() => {
+    if (!isEditing) return;
+
+    setFormData({
+      customer: sale.customer || '',
+      sale_date: sale.sale_date || getTodayLocal(),
+      salesperson: sale.salesperson || '',
+      lpo_quotation_number: sale.lpo_quotation_number || '',
+      delivery_number: sale.delivery_number || '',
+      mode_of_payment: sale.mode_of_payment || 'Not Paid',
+      amount_paid: sale.amount_paid && parseFloat(sale.amount_paid) > 0
+        ? String(sale.amount_paid)
+        : '',
+    });
+
+    setCustomerSearch(sale.customer_name || '');
+    setSalespersonSearch(sale.salesperson || '');
+
+    if (Array.isArray(sale.line_items) && sale.line_items.length > 0) {
+      const items = sale.line_items.map(item => ({
+        id: item.id,                          // keep line item id for PUT
+        product: item.product,
+        quantity_ordered: String(item.quantity_ordered || ''),
+        supply_status: item.supply_status || 'Supplied',
+        quantity_supplied: String(item.quantity_supplied || ''),
+        unit_price: item.unit_price != null ? String(item.unit_price) : '',
+      }));
+      setLineItems(items);
+
+      const searches = sale.line_items.map(item =>
+        item.product_code && item.product_name
+          ? `${item.product_code} - ${item.product_name}`
+          : item.product_name || ''
+      );
+      setProductSearch(searches);
+      setShowProductDropdown(sale.line_items.map(() => false));
+    }
+  }, [isEditing]);
+
+  // ── Search side-effects ──────────────────────────────────────────────────
   useEffect(() => {
     if (customerSearch.length >= 2) searchCustomers(customerSearch);
     else setCustomerSuggestions([]);
@@ -71,6 +115,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
     else setSalespersonSuggestions([]);
   }, [salespersonSearch]);
 
+  // ── API search helpers ───────────────────────────────────────────────────
   const searchProducts = async (query, index) => {
     if (query.length < 2) return;
     try {
@@ -98,6 +143,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
     } catch (e) { console.error('Error searching salespersons:', e); }
   };
 
+  // ── Selection handlers ───────────────────────────────────────────────────
   const selectSalesperson = (sp) => {
     setFormData(prev => ({ ...prev, salesperson: sp.name }));
     setSalespersonSearch(sp.name);
@@ -149,6 +195,7 @@ const SaleModal = ({ onClose, onSuccess }) => {
     if (value.length >= 2) searchProducts(value, index);
   };
 
+  // ── Line item change handler ─────────────────────────────────────────────
   const handleLineItemChange = (index, field, value) => {
     const newItems = [...lineItems];
     if (field === 'unit_price') {
@@ -206,111 +253,166 @@ const SaleModal = ({ onClose, onSuccess }) => {
     });
   };
 
+  // ── Totals ───────────────────────────────────────────────────────────────
   const calculateSubtotal = () =>
-    lineItems.reduce((sum, item) => {
-      return sum + ((parseFloat(item.quantity_ordered) || 0) * (parseFloat(item.unit_price) || 0));
-    }, 0);
+    lineItems.reduce((sum, item) =>
+      sum + ((parseFloat(item.quantity_ordered) || 0) * (parseFloat(item.unit_price) || 0)), 0);
 
   const calculateTotal = () => roundToTwoDecimals(calculateSubtotal());
 
   const calculateBalance = () =>
     roundToTwoDecimals(calculateTotal() - (parseFloat(formData.amount_paid) || 0));
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!customerSearch.trim()) return alert('Please enter or select a customer');
-    if (!formData.sale_date) return alert('Please enter a sale date');
+  // ── Validation (shared for create & edit) ────────────────────────────────
+  const validate = () => {
+    if (!customerSearch.trim()) { alert('Please enter or select a customer'); return false; }
+    if (!formData.sale_date) { alert('Please enter a sale date'); return false; }
 
     for (let i = 0; i < lineItems.length; i++) {
       const item = lineItems[i];
-      if (!item.product || !item.quantity_ordered)
-        return alert(`Please select a product and enter a quantity for item ${i + 1}`);
+      if (!item.product || !item.quantity_ordered) {
+        alert(`Please select a product and enter a quantity for item ${i + 1}`);
+        return false;
+      }
       const qty = parseFloat(item.quantity_ordered);
-      if (isNaN(qty) || qty <= 0)
-        return alert(`Invalid quantity for product ${i + 1}`);
+      if (isNaN(qty) || qty <= 0) { alert(`Invalid quantity for product ${i + 1}`); return false; }
       if (item.unit_price !== '' && item.unit_price != null) {
         const price = parseFloat(item.unit_price);
-        if (isNaN(price) || price < 0)
-          return alert(`Invalid unit price for product ${i + 1}`);
+        if (isNaN(price) || price < 0) { alert(`Invalid unit price for product ${i + 1}`); return false; }
       }
       if (item.supply_status === 'Partially Supplied') {
         const qtySupplied = parseFloat(item.quantity_supplied);
-        if (!item.quantity_supplied || item.quantity_supplied === '0')
-          return alert(`Enter quantity supplied for product ${i + 1}`);
-        if (qtySupplied >= qty)
-          return alert(`Quantity supplied must be less than ordered for product ${i + 1}`);
+        if (!item.quantity_supplied || item.quantity_supplied === '0') {
+          alert(`Enter quantity supplied for product ${i + 1}`); return false;
+        }
+        if (qtySupplied >= qty) {
+          alert(`Quantity supplied must be less than ordered for product ${i + 1}`); return false;
+        }
       }
     }
 
     if (formData.mode_of_payment !== 'Not Paid' &&
         (!formData.amount_paid || parseFloat(formData.amount_paid) <= 0)) {
-      return alert('Please enter the amount paid');
+      alert('Please enter the amount paid');
+      return false;
     }
+    return true;
+  };
+
+  // ── Build shared payload ─────────────────────────────────────────────────
+  const buildPayload = () => {
+    const subtotal = roundToTwoDecimals(calculateSubtotal());
+    return {
+      ...(formData.customer
+        ? { customer: formData.customer }
+        : { customer_name: customerSearch.trim() }
+      ),
+      sale_date: formData.sale_date,
+      salesperson: formData.salesperson.trim() || null,
+      lpo_quotation_number: formData.lpo_quotation_number,
+      delivery_number: formData.delivery_number,
+      mode_of_payment: formData.mode_of_payment,
+      line_items: lineItems.map(item => ({
+        ...(item.id ? { id: item.id } : {}),        // include id when editing
+        product: item.product,
+        quantity_ordered: parseInt(item.quantity_ordered),
+        quantity_supplied:
+          item.supply_status === 'Not Supplied' ? 0
+          : item.supply_status === 'Supplied' ? parseInt(item.quantity_ordered)
+          : parseInt(item.quantity_supplied),
+        supply_status: item.supply_status,
+        unit_price: item.unit_price === '' || item.unit_price == null
+          ? null
+          : roundToTwoDecimals(parseFloat(item.unit_price)),
+      })),
+      amount_paid: formData.mode_of_payment === 'Not Paid'
+        ? 0
+        : roundToTwoDecimals(parseFloat(formData.amount_paid)),
+      subtotal,
+      vat_amount: 0,
+      total_amount: subtotal,
+    };
+  };
+
+  // ── Submit handler — create OR update ───────────────────────────────────
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
 
     try {
       setLoading(true);
-      const subtotal = roundToTwoDecimals(calculateSubtotal());
-      const payload = {
-        ...(formData.customer
-          ? { customer: formData.customer }
-          : { customer_name: customerSearch.trim() }
-        ),
-        sale_date: formData.sale_date,
-        salesperson: formData.salesperson.trim() || null,
-        lpo_quotation_number: formData.lpo_quotation_number,
-        delivery_number: formData.delivery_number,
-        mode_of_payment: formData.mode_of_payment,
-        line_items: lineItems.map(item => ({
-          product: item.product,
-          quantity_ordered: parseInt(item.quantity_ordered),
-          quantity_supplied: item.supply_status === 'Not Supplied' ? 0
-            : item.supply_status === 'Supplied' ? parseInt(item.quantity_ordered)
-            : parseInt(item.quantity_supplied),
-          supply_status: item.supply_status,
-          unit_price: item.unit_price === '' || item.unit_price == null
-            ? null
-            : roundToTwoDecimals(parseFloat(item.unit_price)),
-        })),
-        amount_paid: formData.mode_of_payment === 'Not Paid'
-          ? 0 : roundToTwoDecimals(parseFloat(formData.amount_paid)),
-        subtotal,
-        vat_amount: 0,
-        total_amount: subtotal,
-      };
+      const payload = buildPayload();
 
-      const result = await api.request('/sales/', { method: 'POST', body: JSON.stringify(payload) });
-
-      alert(
-        `✅ Sale submitted successfully!\n\n` +
-        `Sale #: ${result.sale_number}\n` +
-        `Date: ${formData.sale_date}\n` +
-        `Total: KES ${formatCurrency(result.total_amount)}\n\n` +
-        `⏳ Status: Pending Admin Approval\n` +
-        `Stock will be deducted once an admin approves this sale.`
-      );
+      let result;
+      if (isEditing) {
+        // PUT to update the existing pending sale; status stays 'pending'
+        result = await api.updateSale(sale.id, payload);
+        alert(
+          `✅ Sale updated and resubmitted!\n\n` +
+          `Sale #: ${result.sale_number}\n` +
+          `Date: ${result.sale_date}\n` +
+          `Total: KES ${formatCurrency(result.total_amount)}\n\n` +
+          `⏳ Status: Pending Admin Approval`
+        );
+      } else {
+        result = await api.request('/sales/', { method: 'POST', body: JSON.stringify(payload) });
+        alert(
+          `✅ Sale submitted successfully!\n\n` +
+          `Sale #: ${result.sale_number}\n` +
+          `Date: ${result.sale_date || formData.sale_date}\n` +
+          `Total: KES ${formatCurrency(result.total_amount)}\n\n` +
+          `⏳ Status: Pending Admin Approval\n` +
+          `Stock will be deducted once an admin approves this sale.`
+        );
+      }
 
       onSuccess?.();
       onClose();
     } catch (error) {
-      alert('Error recording sale: ' + error.message);
+      alert(`Error ${isEditing ? 'updating' : 'recording'} sale: ` + error.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div className={styles.modalOverlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className={styles.modal}>
+
+        {/* Header */}
         <div className={styles.modalHeader}>
           <div>
-            <h2 className={styles.modalTitle}>Record New Sale</h2>
-            <span className={styles.badge}>⏳ Will be sent for admin approval</span>
+            <h2 className={styles.modalTitle}>
+              {isEditing ? '✏️ Edit Pending Sale' : 'Record New Sale'}
+            </h2>
+            {isEditing ? (
+              <span className={styles.badge} style={{ background: 'rgba(251,191,36,0.25)', color: '#fbbf24' }}>
+                ✏️ Editing {sale.sale_number} — will resubmit for approval
+              </span>
+            ) : (
+              <span className={styles.badge}>⏳ Will be sent for admin approval</span>
+            )}
           </div>
           <button className={styles.modalClose} onClick={onClose}>×</button>
         </div>
 
         <div className={styles.modalBody}>
+
+          {/* Edit notice banner */}
+          {isEditing && (
+            <div className={styles.editNoticeBanner}>
+              <span className={styles.editNoticeIcon}>ℹ️</span>
+              <div>
+                <strong>Editing a pending sale</strong>
+                <p>
+                  You can correct any details below. When you click <em>Update &amp; Resubmit</em>,
+                  the corrected record will be saved and remain pending for admin approval.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Customer Section */}
           <div className={styles.section}>
             <h3 className={styles.sectionTitle}><span>👤</span> Customer Details</h3>
@@ -350,7 +452,9 @@ const SaleModal = ({ onClose, onSuccess }) => {
 
               {/* Sale Date */}
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Sale Date <span className={styles.required}>*</span></label>
+                <label className={styles.formLabel}>
+                  Sale Date <span className={styles.required}>*</span>
+                </label>
                 <input
                   type="date"
                   name="sale_date"
@@ -416,7 +520,9 @@ const SaleModal = ({ onClose, onSuccess }) => {
           <div className={`${styles.section} ${styles.productsSection}`}>
             <div className={styles.sectionHeader}>
               <h3 className={styles.sectionTitle}><span>📦</span> Products</h3>
-              <button type="button" onClick={addLineItem} className={styles.btnAdd}>+ Add Product</button>
+              <button type="button" onClick={addLineItem} className={styles.btnAdd}>
+                + Add Product
+              </button>
             </div>
             <div className={styles.lineItems}>
               {lineItems.map((item, index) => (
@@ -424,25 +530,41 @@ const SaleModal = ({ onClose, onSuccess }) => {
                   <div className={styles.lineItemHeader}>
                     <span>Product {index + 1}</span>
                     {lineItems.length > 1 && (
-                      <button type="button" onClick={() => removeLineItem(index)} className={styles.btnRemove}>×</button>
+                      <button
+                        type="button"
+                        onClick={() => removeLineItem(index)}
+                        className={styles.btnRemove}
+                      >
+                        ×
+                      </button>
                     )}
                   </div>
                   <div className={styles.formGrid}>
                     <div className={`${styles.formGroup} ${styles.autocompleteGroup} ${styles.fullWidth}`}>
-                      <label className={styles.formLabel}>Product <span className={styles.required}>*</span></label>
+                      <label className={styles.formLabel}>
+                        Product <span className={styles.required}>*</span>
+                      </label>
                       <input
                         type="text"
                         value={productSearch[index] || ''}
                         onChange={(e) => handleProductSearchChange(e.target.value, index)}
-                        onFocus={() => productSearch[index]?.length >= 2 &&
-                          setShowProductDropdown(prev => { const n = [...prev]; n[index] = true; return n; })}
+                        onFocus={() =>
+                          productSearch[index]?.length >= 2 &&
+                          setShowProductDropdown(prev => {
+                            const n = [...prev]; n[index] = true; return n;
+                          })
+                        }
                         className={styles.formInput}
                         placeholder="Search products..."
                       />
                       {showProductDropdown[index] && productSuggestions.length > 0 && (
                         <div className={styles.dropdown}>
                           {productSuggestions.map(p => (
-                            <div key={p.id} className={styles.dropdownItem} onClick={() => selectProduct(p, index)}>
+                            <div
+                              key={p.id}
+                              className={styles.dropdownItem}
+                              onClick={() => selectProduct(p, index)}
+                            >
                               <strong>{p.code}</strong> - {p.name}
                               <span>Stock: {p.current_stock} | KES {p.unit_price ?? '—'}</span>
                             </div>
@@ -464,7 +586,9 @@ const SaleModal = ({ onClose, onSuccess }) => {
                     </div>
 
                     <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Qty Ordered <span className={styles.required}>*</span></label>
+                      <label className={styles.formLabel}>
+                        Qty Ordered <span className={styles.required}>*</span>
+                      </label>
                       <input
                         type="text"
                         inputMode="numeric"
@@ -476,7 +600,9 @@ const SaleModal = ({ onClose, onSuccess }) => {
                     </div>
 
                     <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Supply Status <span className={styles.required}>*</span></label>
+                      <label className={styles.formLabel}>
+                        Supply Status <span className={styles.required}>*</span>
+                      </label>
                       <select
                         value={item.supply_status}
                         onChange={(e) => handleLineItemChange(index, 'supply_status', e.target.value)}
@@ -497,7 +623,9 @@ const SaleModal = ({ onClose, onSuccess }) => {
                           type="text"
                           inputMode="numeric"
                           value={item.quantity_supplied}
-                          onChange={(e) => handleLineItemChange(index, 'quantity_supplied', e.target.value)}
+                          onChange={(e) =>
+                            handleLineItemChange(index, 'quantity_supplied', e.target.value)
+                          }
                           className={styles.formInput}
                           placeholder="0"
                         />
@@ -508,9 +636,12 @@ const SaleModal = ({ onClose, onSuccess }) => {
                     {item.quantity_ordered && item.unit_price && (
                       <div className={styles.subtotal}>
                         <label>Item Subtotal</label>
-                        <span>KES {formatCurrency(
-                          (parseFloat(item.quantity_ordered) || 0) * (parseFloat(item.unit_price) || 0)
-                        )}</span>
+                        <span>
+                          KES {formatCurrency(
+                            (parseFloat(item.quantity_ordered) || 0) *
+                            (parseFloat(item.unit_price) || 0)
+                          )}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -521,10 +652,12 @@ const SaleModal = ({ onClose, onSuccess }) => {
 
           {/* Payment Section */}
           <div className={`${styles.section} ${styles.paymentSection}`}>
-            <h3 className={styles.sectionTitle}><span>💳</span> Payment & Summary</h3>
+            <h3 className={styles.sectionTitle}><span>💳</span> Payment &amp; Summary</h3>
             <div className={styles.formGrid}>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Payment Mode <span className={styles.required}>*</span></label>
+                <label className={styles.formLabel}>
+                  Payment Mode <span className={styles.required}>*</span>
+                </label>
                 <select
                   name="mode_of_payment"
                   value={formData.mode_of_payment}
@@ -540,7 +673,9 @@ const SaleModal = ({ onClose, onSuccess }) => {
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>
                   Amount Paid (KES)
-                  {formData.mode_of_payment !== 'Not Paid' && <span className={styles.required}>*</span>}
+                  {formData.mode_of_payment !== 'Not Paid' && (
+                    <span className={styles.required}>*</span>
+                  )}
                 </label>
                 <input
                   type="text"
@@ -564,12 +699,16 @@ const SaleModal = ({ onClose, onSuccess }) => {
                 <>
                   <div className={styles.summaryRow}>
                     <span className={styles.summaryLabel}>Amount Paid:</span>
-                    <span className={styles.paidValue}>KES {formatCurrency(formData.amount_paid)}</span>
+                    <span className={styles.paidValue}>
+                      KES {formatCurrency(formData.amount_paid)}
+                    </span>
                   </div>
                   <div className={`${styles.summaryRow} ${styles.balanceRow}`}>
                     <span className={styles.balanceLabel}>Outstanding Balance:</span>
                     <span className={calculateBalance() <= 0 ? styles.fullyPaidValue : styles.balanceValue}>
-                      {calculateBalance() <= 0 ? '✓ Fully Paid' : `KES ${formatCurrency(calculateBalance())}`}
+                      {calculateBalance() <= 0
+                        ? '✓ Fully Paid'
+                        : `KES ${formatCurrency(calculateBalance())}`}
                     </span>
                   </div>
                 </>
@@ -584,14 +723,29 @@ const SaleModal = ({ onClose, onSuccess }) => {
           </div>
         </div>
 
+        {/* Footer */}
         <div className={styles.modalFooter}>
-          <button type="button" onClick={onClose} className={styles.btnOutline} disabled={loading}>
+          <button
+            type="button"
+            onClick={onClose}
+            className={styles.btnOutline}
+            disabled={loading}
+          >
             Cancel
           </button>
-          <button type="button" onClick={handleSubmit} className={styles.btnPrimary} disabled={loading}>
-            {loading ? 'Submitting...' : '📤 Submit for Approval'}
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className={isEditing ? styles.btnUpdate : styles.btnPrimary}
+            disabled={loading}
+          >
+            {loading
+              ? isEditing ? 'Updating...' : 'Submitting...'
+              : isEditing ? 'Update & Resubmit' : 'Submit for Approval'
+            }
           </button>
         </div>
+
       </div>
     </div>
   );

@@ -11,7 +11,8 @@ const Suppliers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
+  const isStaff = user?.is_staff || user?.is_superuser || isAdmin;
 
   useEffect(() => {
     loadSuppliers();
@@ -21,8 +22,6 @@ const Suppliers = () => {
     try {
       setLoading(true);
       const data = await api.getSuppliers();
-      console.log('Loaded suppliers:', data);
-
       if (Array.isArray(data)) {
         setSuppliers(data);
       } else if (data && data.results) {
@@ -78,7 +77,8 @@ const Suppliers = () => {
           <h1 className={styles.pageTitle}>Suppliers</h1>
           <p className={styles.pageSubtitle}>Manage your supplier network</p>
         </div>
-        {isAdmin && (
+        {/* ── Any staff or admin can add a supplier ── */}
+        {isStaff && (
           <button onClick={handleAddSupplier} className="btn btn-primary">
             ➕ Add Supplier
           </button>
@@ -109,6 +109,7 @@ const Suppliers = () => {
                   <tr>
                     <th>Company Name</th>
                     <th>Phone</th>
+                    {/* Edit column visible to admins only */}
                     {isAdmin && <th>Actions</th>}
                   </tr>
                 </thead>
@@ -119,6 +120,7 @@ const Suppliers = () => {
                         {supplier.company_name || '-'}
                       </td>
                       <td>{supplier.phone || '-'}</td>
+                      {/* Edit button — admin only */}
                       {isAdmin && (
                         <td>
                           <button

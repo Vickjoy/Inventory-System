@@ -12,7 +12,8 @@ const Customers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
+  const isStaff = user?.is_staff || user?.is_superuser || isAdmin;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,7 +24,6 @@ const Customers = () => {
     try {
       setLoading(true);
       const data = await api.getCustomers();
-      console.log('Loaded customers:', data);
       if (Array.isArray(data)) {
         setCustomers(data);
       } else if (data && data.results) {
@@ -79,7 +79,8 @@ const Customers = () => {
           <h1 className={styles.pageTitle}>Customers</h1>
           <p className={styles.pageSubtitle}>Manage your customer base</p>
         </div>
-        {isAdmin && (
+        {/* ── Any staff or admin can add a customer ── */}
+        {isStaff && (
           <button onClick={handleAddCustomer} className="btn btn-primary">
             ➕ Add Customer
           </button>
@@ -110,6 +111,7 @@ const Customers = () => {
                   <tr>
                     <th>Company Name</th>
                     <th>Phone</th>
+                    {/* Edit column visible to admins only */}
                     {isAdmin && <th>Actions</th>}
                   </tr>
                 </thead>
@@ -126,6 +128,7 @@ const Customers = () => {
                         </span>
                       </td>
                       <td>{customer.phone || '-'}</td>
+                      {/* Edit button — admin only */}
                       {isAdmin && (
                         <td>
                           <button

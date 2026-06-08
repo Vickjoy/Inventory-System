@@ -23,10 +23,6 @@ const getSaleDisplayDate = (sale) => {
 };
 
 // ─── Parse payment log stored in payment_note ─────────────────────────────
-// ReceivePayments.jsx stores a JSON array in payment_note when recording
-// payments: [{ date, amount, mode, note }, ...]
-// If payment_note is plain text (legacy), we build a single-entry log
-// from amount_paid + payment_date.
 const parsePaymentLog = (sale) => {
   try {
     const raw = sale.payment_note || '';
@@ -36,7 +32,6 @@ const parsePaymentLog = (sale) => {
     }
   } catch (_) {}
 
-  // Legacy fallback: single payment
   const paid = parseFloat(sale.amount_paid || 0);
   if (paid > 0 && sale.payment_date) {
     return [{
@@ -55,6 +50,7 @@ const Sales = () => {
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [saleToEdit, setSaleToEdit] = useState(null);   // null = new sale, object = edit mode
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedSaleId, setExpandedSaleId] = useState(null);
 
@@ -75,6 +71,7 @@ const Sales = () => {
   useEffect(() => {
     const action = searchParams.get('action');
     if (action === 'new') {
+      setSaleToEdit(null);
       setShowModal(true);
       setSearchParams({});
     }
@@ -93,6 +90,23 @@ const Sales = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ── Open modal for a new sale ────────────────────────────────────────────
+  const openNewSaleModal = () => {
+    setSaleToEdit(null);
+    setShowModal(true);
+  };
+
+  // ── Open modal to edit a pending sale ────────────────────────────────────
+  const openEditSaleModal = (sale) => {
+    setSaleToEdit(sale);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSaleToEdit(null);
   };
 
   const openHistoryModal = async (sale) => {
@@ -138,7 +152,8 @@ const Sales = () => {
     setExpandedPaymentSaleId(prev => prev === saleId ? null : saleId);
   };
 
-  const colCount = isAdmin ? 12 : 11;
+  // Column count depends on isAdmin (Salesperson column) + always has Actions col now
+  const colCount = isAdmin ? 13 : 12;
 
   return (
     <div className={styles.salesPage}>
@@ -149,7 +164,7 @@ const Sales = () => {
         </div>
         <div className={styles.headerButtons}>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={openNewSaleModal}
             className={`btn btn-primary ${styles.btnNewSale}`}
           >
             ➕ New Sale
@@ -157,8 +172,13 @@ const Sales = () => {
         </div>
       </div>
 
+      {/* Sale modal — handles both create and edit */}
       {showModal && (
-        <SaleModal onClose={() => setShowModal(false)} onSuccess={loadSales} />
+        <SaleModal
+          onClose={closeModal}
+          onSuccess={loadSales}
+          sale={saleToEdit}           // undefined/null = create, object = edit
+        />
       )}
 
       <div className={styles.actionBar}>
@@ -210,15 +230,17 @@ const Sales = () => {
                     <th>Delivery #</th>
                     <th>History</th>
                     <th>Payments</th>
+                    <th>Actions</th>
                     {isAdmin && <th>Salesperson</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {filteredSales.map(sale => {
                     const approval = getApprovalBadge(sale.status);
-                    // Use the shared parsePaymentLog utility
                     const paymentRecords = parsePaymentLog(sale);
                     const isPayExpanded = expandedPaymentSaleId === sale.id;
+                    const isPending = sale.status === 'pending';
+                    const isApproved = sale.status === 'approved';
 
                     return (
                       <>
@@ -230,7 +252,9 @@ const Sales = () => {
                           <td>
                             <div
                               className={styles.productsSummary}
-                              onClick={() => setExpandedSaleId(expandedSaleId === sale.id ? null : sale.id)}
+                              onClick={() =>
+                                setExpandedSaleId(expandedSaleId === sale.id ? null : sale.id)
+                              }
                             >
                               {sale.line_items[0]?.product_name}
                               {sale.line_items.length > 1 && (
@@ -293,7 +317,7 @@ const Sales = () => {
 
                           {/* Delivery history */}
                           <td>
-                            {sale.status === 'approved' ? (
+                            {isApproved ? (
                               <button
                                 className={styles.btnViewHistory}
                                 onClick={() => openHistoryModal(sale)}
@@ -314,6 +338,25 @@ const Sales = () => {
                               >
                                 💳 {isPayExpanded ? 'Hide' : `View (${paymentRecords.length})`}
                               </button>
+                            ) : (
+                              <span className={styles.noHistory}>—</span>
+                            )}
+                          </td>
+
+                          {/* ── Actions column ─────────────────────── */}
+                          <td>
+                            {isPending ? (
+                              <button
+                                className={styles.btnEditSale}
+                                onClick={() => openEditSaleModal(sale)}
+                                title="Edit this pending sale"
+                              >
+                                ✏️ Edit
+                              </button>
+                            ) : isApproved ? (
+                              <span className={styles.approvedLock} title="Approved sales cannot be edited">
+                                🔒 Locked
+                              </span>
                             ) : (
                               <span className={styles.noHistory}>—</span>
                             )}
@@ -409,7 +452,12 @@ const Sales = () => {
                   {historyModal.sale_number} — {historyModal.customer_name}
                 </span>
               </div>
-              <button className={styles.historyModalClose} onClick={() => setHistoryModal(null)}>×</button>
+              <button
+                className={styles.historyModalClose}
+                onClick={() => setHistoryModal(null)}
+              >
+                ×
+              </button>
             </div>
 
             <div className={styles.historyModalBody}>
@@ -443,7 +491,9 @@ const Sales = () => {
                           <div key={i} className={styles.historyEntryItem}>
                             <span className={styles.historyItemCode}>{item.product_code}</span>
                             <span className={styles.historyItemName}>{item.product_name}</span>
-                            <span className={styles.historyItemQty}>{item.quantity_delivered} units delivered</span>
+                            <span className={styles.historyItemQty}>
+                              {item.quantity_delivered} units delivered
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -457,7 +507,10 @@ const Sales = () => {
             </div>
 
             <div className={styles.historyModalFooter}>
-              <button className={styles.btnCloseHistory} onClick={() => setHistoryModal(null)}>
+              <button
+                className={styles.btnCloseHistory}
+                onClick={() => setHistoryModal(null)}
+              >
                 Close
               </button>
             </div>

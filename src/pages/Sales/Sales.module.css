@@ -899,3 +899,32 @@
   .salesPage table { min-width: 720px; }
   .salesPage table th, .salesPage table td { padding: 0.3rem; font-size: 0.6875rem; }
 }
+
+.btnEditSale {
+  padding: 0.3rem 0.625rem;
+  background: #fffbeb;
+  color: #92400e;
+  border: 1.5px solid #f59e0b;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+ 
+.btnEditSale:hover {
+  background: #f59e0b;
+  color: white;
+  border-color: #d97706;
+}
+ 
+/* Lock indicator for approved sales */
+.approvedLock {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+}

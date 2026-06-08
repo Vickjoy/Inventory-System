@@ -317,7 +317,6 @@ const Reports = () => {
     }
 
     // ── STOCK REPORT ──────────────────────────────────────────────────────────
-    // Uses a single flat autoTable per group to prevent overlapping titles
     else if (reportType === 'stock') {
       const grouped = groupStockProducts(reportData);
       let isFirstGroup = true;
@@ -325,12 +324,10 @@ const Reports = () => {
       Object.entries(grouped).forEach(([catName, subcats]) => {
         Object.entries(subcats).forEach(([subcatName, groups]) => {
           Object.entries(groups).forEach(([groupName, products]) => {
-            // Calculate where we currently are
             const currentY = isFirstGroup
               ? MARGIN.top
               : (doc.lastAutoTable ? doc.lastAutoTable.finalY : MARGIN.top);
 
-            // Need at least 80pt for the label block + a few table rows
             const minSpaceNeeded = 80;
             let labelY;
 
@@ -343,7 +340,6 @@ const Reports = () => {
 
             isFirstGroup = false;
 
-            // ── Category banner ──
             doc.setFillColor(...BLUE_DARK);
             doc.rect(MARGIN.left, labelY, pageWidth - MARGIN.left - MARGIN.right, 20, 'F');
             doc.setFont('helvetica', 'bold');
@@ -351,7 +347,6 @@ const Reports = () => {
             doc.setTextColor(...WHITE);
             doc.text(catName.toUpperCase(), MARGIN.left + 8, labelY + 13);
 
-            // ── Subcategory label ──
             const subcatY = labelY + 26;
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(8);
@@ -361,14 +356,12 @@ const Reports = () => {
             doc.setLineWidth(0.4);
             doc.line(MARGIN.left, subcatY + 3, pageWidth - MARGIN.right, subcatY + 3);
 
-            // ── Group label ──
             const grpY = subcatY + 14;
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(8);
             doc.setTextColor(...BLUE_MID);
             doc.text(`${groupName}  (${products.length} product${products.length !== 1 ? 's' : ''})`, MARGIN.left + 4, grpY);
 
-            // ── Products table ──
             autoTable(doc, {
               ...baseTableStyles,
               startY: grpY + 8,
@@ -557,7 +550,9 @@ const Reports = () => {
       switch (reportType) {
         case 'sales': {
           const raw = await api.getSales();
-          data = Array.isArray(raw) ? raw : (raw?.results || []);
+          const all = Array.isArray(raw) ? raw : (raw?.results || []);
+          // Exclude rejected sales from reports
+          data = all.filter(sale => sale.status !== 'rejected');
           break;
         }
         case 'stock': {
@@ -568,7 +563,9 @@ const Reports = () => {
         case 'outstanding_supplies': {
           const salesData = await api.getSales();
           const allSales = Array.isArray(salesData) ? salesData : (salesData?.results || []);
+          // Exclude rejected sales from reports
           data = allSales.filter(sale =>
+            sale.status !== 'rejected' &&
             sale.line_items && sale.line_items.some(item =>
               item.supply_status === 'Partially Supplied' || item.supply_status === 'Not Supplied'
             )
@@ -578,7 +575,11 @@ const Reports = () => {
         case 'outstanding_balances': {
           const allSalesData = await api.getSales();
           const salesList = Array.isArray(allSalesData) ? allSalesData : (allSalesData?.results || []);
-          data = salesList.filter(sale => parseFloat(sale.outstanding_balance || 0) > 0);
+          // Exclude rejected sales from reports
+          data = salesList.filter(sale =>
+            sale.status !== 'rejected' &&
+            parseFloat(sale.outstanding_balance || 0) > 0
+          );
           break;
         }
         default: data = [];
