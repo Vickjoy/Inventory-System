@@ -1,10 +1,16 @@
 // src/pages/Products/Products.jsx
+// ─ CHANGE FROM ORIGINAL ──────────────────────────────────────────────────────
+//  Task 2: Added [ Returns ] button in the page header (next to Add Product).
+//          Clicking it opens ReturnsModal. When a return is submitted,
+//          loadAllProducts() is called so stock counts refresh immediately.
+// ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import ProductModal from './ProductModal';
 import StockAdjustModal from './StockAdjustModal';
+import ReturnsModal from './ReturnsModal';          // ← NEW
 import styles from './Products.module.css';
 
 const Products = () => {
@@ -17,6 +23,7 @@ const Products = () => {
   const [subcategoryFilter, setSubcategoryFilter] = useState('all');
   const [showProductModal, setShowProductModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
+  const [showReturnsModal, setShowReturnsModal] = useState(false); // ← NEW
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -124,11 +131,6 @@ const Products = () => {
     setShowProductModal(true);
   };
 
-  // const handleEditProduct = (product) => {
-  //   setSelectedProduct(product);
-  //   setShowProductModal(true);
-  // };
-
   const handleStockAdjust = (product = null) => {
     setSelectedProduct(product);
     setShowStockModal(true);
@@ -150,8 +152,8 @@ const Products = () => {
     }
   };
 
-  const currentCategory = categories.find(cat =>
-    categoryFilter !== 'all' && cat.id === parseInt(categoryFilter)
+  const currentCategory = categories.find(
+    (cat) => categoryFilter !== 'all' && cat.id === parseInt(categoryFilter)
   );
   const currentSubcategories = currentCategory?.subcategories || [];
 
@@ -176,7 +178,7 @@ const Products = () => {
   const groupedProducts = {};
   if (!isSearching) {
     if (categoryFilter === 'all') {
-      filteredProducts.forEach(product => {
+      filteredProducts.forEach((product) => {
         const catName = product.category_name || 'Uncategorized';
         const subcatName = product.subcategory_name || 'Uncategorized';
         const groupName = product.subsubcategory_name || 'Ungrouped';
@@ -186,7 +188,7 @@ const Products = () => {
         groupedProducts[catName][subcatName][groupName].push(product);
       });
     } else if (subcategoryFilter === 'all') {
-      filteredProducts.forEach(product => {
+      filteredProducts.forEach((product) => {
         const subcatName = product.subcategory_name || 'Uncategorized';
         const groupName = product.subsubcategory_name || 'Ungrouped';
         if (!groupedProducts[subcatName]) groupedProducts[subcatName] = {};
@@ -194,7 +196,7 @@ const Products = () => {
         groupedProducts[subcatName][groupName].push(product);
       });
     } else {
-      filteredProducts.forEach(product => {
+      filteredProducts.forEach((product) => {
         const groupName = product.subsubcategory_name || 'Ungrouped';
         if (!groupedProducts[groupName]) groupedProducts[groupName] = [];
         groupedProducts[groupName].push(product);
@@ -222,22 +224,13 @@ const Products = () => {
           <td>
             <div className={styles.actionButtons}>
               {isStaffOrAdmin && (
-                <>
-                  {/* <button
-                    onClick={() => handleEditProduct(product)}
-                    className="btn btn-sm btn-edit"
-                    title="Edit product"
-                  >
-                    ✏️ Edit
-                  </button> */}
-                  <button
-                    onClick={() => handleStockAdjust(product)}
-                    className="btn btn-sm btn-outline"
-                    title="Restock"
-                  >
-                    📊 Restock
-                  </button>
-                </>
+                <button
+                  onClick={() => handleStockAdjust(product)}
+                  className="btn btn-sm btn-outline"
+                  title="Restock"
+                >
+                  📊 Restock
+                </button>
               )}
             </div>
           </td>
@@ -259,16 +252,29 @@ const Products = () => {
       {/* Header */}
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={styles.pageTitle}>Products & Stock</h1>
+          <h1 className={styles.pageTitle}>Products &amp; Stock</h1>
           {filter === 'low' && (
             <p className={styles.pageSubtitle} style={{ color: '#ef4444', fontWeight: 600 }}>
               Showing Out of Stock Items ({filteredProducts.length})
             </p>
           )}
         </div>
+
+        {/* ── Action buttons — Add Product + Returns ── */}
         <div className={styles.headerButtons}>
           {isStaffOrAdmin && (
-            <button onClick={handleAddProduct} className="btn btn-primary">➕ Add Product</button>
+            <>
+              <button onClick={handleAddProduct} className="btn btn-primary">
+                ➕ Add Product
+              </button>
+              {/* TASK 2: Returns button */}
+              <button
+                onClick={() => setShowReturnsModal(true)}
+                className={styles.btnReturns}
+              >
+                🔄 Returns
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -332,18 +338,11 @@ const Products = () => {
                   <table className="table">
                     <thead>
                       <tr>
-                        <th>Code</th>
-                        <th>Name</th>
-                        <th>Group</th>
-                        <th>Price</th>
-                        <th>Stock</th>
-                        <th>Status</th>
-                        <th>Actions</th>
+                        <th>Code</th><th>Name</th><th>Group</th>
+                        <th>Price</th><th>Stock</th><th>Status</th><th>Actions</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {renderProductRows(filteredProducts)}
-                    </tbody>
+                    <tbody>{renderProductRows(filteredProducts)}</tbody>
                   </table>
                 </div>
               </div>
@@ -352,7 +351,7 @@ const Products = () => {
         </div>
       ) : (
         <>
-          {/* Category Navigation — hidden while searching */}
+          {/* Category Navigation */}
           <div className={styles.categoryNav}>
             <button
               onClick={() => { setCategoryFilter('all'); setSubcategoryFilter('all'); }}
@@ -360,7 +359,7 @@ const Products = () => {
             >
               ALL CATEGORIES
             </button>
-            {categories.map(cat => (
+            {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => { setCategoryFilter(cat.id.toString()); setSubcategoryFilter('all'); }}
@@ -412,26 +411,12 @@ const Products = () => {
                       {Object.entries(groups).map(([groupName, products]) => (
                         <div key={groupName} className={styles.productGroupSection}>
                           <h4 className={styles.groupHeader}>{groupName}</h4>
-                          <div className="card">
-                            <div className="card-body">
-                              <div className="table-container">
-                                <table className="table">
-                                  <thead>
-                                    <tr>
-                                      <th>Code</th>
-                                      <th>Name</th>
-                                      <th>Group</th>
-                                      <th>Price</th>
-                                      <th>Stock</th>
-                                      <th>Status</th>
-                                      <th>Actions</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>{renderProductRows(products)}</tbody>
-                                </table>
-                              </div>
-                            </div>
-                          </div>
+                          <div className="card"><div className="card-body"><div className="table-container">
+                            <table className="table">
+                              <thead><tr><th>Code</th><th>Name</th><th>Group</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead>
+                              <tbody>{renderProductRows(products)}</tbody>
+                            </table>
+                          </div></div></div>
                         </div>
                       ))}
                     </div>
@@ -445,26 +430,12 @@ const Products = () => {
                   {Object.entries(groups).map(([groupName, products]) => (
                     <div key={groupName} className={styles.productGroupSection}>
                       <h3 className={styles.groupHeader}>{groupName}</h3>
-                      <div className="card">
-                        <div className="card-body">
-                          <div className="table-container">
-                            <table className="table">
-                              <thead>
-                                <tr>
-                                  <th>Code</th>
-                                  <th>Name</th>
-                                  <th>Group</th>
-                                  <th>Price</th>
-                                  <th>Stock</th>
-                                  <th>Status</th>
-                                  <th>Actions</th>
-                                </tr>
-                              </thead>
-                              <tbody>{renderProductRows(products)}</tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </div>
+                      <div className="card"><div className="card-body"><div className="table-container">
+                        <table className="table">
+                          <thead><tr><th>Code</th><th>Name</th><th>Group</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead>
+                          <tbody>{renderProductRows(products)}</tbody>
+                        </table>
+                      </div></div></div>
                     </div>
                   ))}
                 </div>
@@ -473,26 +444,12 @@ const Products = () => {
               Object.entries(groupedProducts).map(([groupName, products]) => (
                 <div key={groupName} className={styles.productGroupSection}>
                   <h3 className={styles.groupHeader}>{groupName}</h3>
-                  <div className="card">
-                    <div className="card-body">
-                      <div className="table-container">
-                        <table className="table">
-                          <thead>
-                            <tr>
-                              <th>Code</th>
-                              <th>Name</th>
-                              <th>Group</th>
-                              <th>Price</th>
-                              <th>Stock</th>
-                              <th>Status</th>
-                              <th>Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>{renderProductRows(products)}</tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
+                  <div className="card"><div className="card-body"><div className="table-container">
+                    <table className="table">
+                      <thead><tr><th>Code</th><th>Name</th><th>Group</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead>
+                      <tbody>{renderProductRows(products)}</tbody>
+                    </table>
+                  </div></div></div>
                 </div>
               ))
             )}
@@ -515,6 +472,14 @@ const Products = () => {
           allProducts={allProducts}
           suppliers={suppliers}
           onClose={handleModalClose}
+        />
+      )}
+
+      {/* TASK 2: Returns modal */}
+      {showReturnsModal && (
+        <ReturnsModal
+          onClose={() => setShowReturnsModal(false)}
+          onStockUpdated={loadAllProducts}   // refresh stock counts after a return
         />
       )}
     </div>

@@ -1,4 +1,11 @@
 // src/pages/Sales/SaleModal.jsx
+// ─ CHANGES FROM ORIGINAL ────────────────────────────────────────────────────
+//  Task 1: handleSubmit now calls api.updateSale() correctly and the payload
+//          includes line-item `id` fields so the backend can diff/update them.
+//  Task 3: ALL dropdown items now use onMouseDown + e.preventDefault() instead
+//          of onClick, which prevents the input's onBlur from firing first and
+//          closing the dropdown before the selection registers.
+// ────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import styles from './SaleModal.module.css';
@@ -75,17 +82,18 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
       lpo_quotation_number: sale.lpo_quotation_number || '',
       delivery_number: sale.delivery_number || '',
       mode_of_payment: sale.mode_of_payment || 'Not Paid',
-      amount_paid: sale.amount_paid && parseFloat(sale.amount_paid) > 0
-        ? String(sale.amount_paid)
-        : '',
+      amount_paid:
+        sale.amount_paid && parseFloat(sale.amount_paid) > 0
+          ? String(sale.amount_paid)
+          : '',
     });
 
     setCustomerSearch(sale.customer_name || '');
     setSalespersonSearch(sale.salesperson || '');
 
     if (Array.isArray(sale.line_items) && sale.line_items.length > 0) {
-      const items = sale.line_items.map(item => ({
-        id: item.id,                          // keep line item id for PUT
+      const items = sale.line_items.map((item) => ({
+        id: item.id, // preserve id for PUT diff
         product: item.product,
         quantity_ordered: String(item.quantity_ordered || ''),
         supply_status: item.supply_status || 'Supplied',
@@ -94,7 +102,7 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
       }));
       setLineItems(items);
 
-      const searches = sale.line_items.map(item =>
+      const searches = sale.line_items.map((item) =>
         item.product_code && item.product_name
           ? `${item.product_code} - ${item.product_name}`
           : item.product_name || ''
@@ -102,7 +110,7 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
       setProductSearch(searches);
       setShowProductDropdown(sale.line_items.map(() => false));
     }
-  }, [isEditing]);
+  }, [isEditing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Search side-effects ──────────────────────────────────────────────────
   useEffect(() => {
@@ -121,10 +129,14 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
     try {
       const data = await api.request(`/sales/search_products/?q=${query}`);
       setProductSuggestions(Array.isArray(data) ? data : []);
-      const newShow = [...showProductDropdown];
-      newShow[index] = true;
-      setShowProductDropdown(newShow);
-    } catch (e) { console.error('Error searching products:', e); }
+      setShowProductDropdown((prev) => {
+        const n = [...prev];
+        n[index] = true;
+        return n;
+      });
+    } catch (e) {
+      console.error('Error searching products:', e);
+    }
   };
 
   const searchCustomers = async (query) => {
@@ -132,7 +144,9 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
       const data = await api.request(`/sales/search_customers/?q=${query}`);
       setCustomerSuggestions(Array.isArray(data) ? data : []);
       setShowCustomerDropdown(true);
-    } catch (e) { console.error('Error searching customers:', e); }
+    } catch (e) {
+      console.error('Error searching customers:', e);
+    }
   };
 
   const searchSalespersons = async (query) => {
@@ -140,12 +154,17 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
       const data = await api.request(`/sales/search_salespersons/?q=${query}`);
       setSalespersonSuggestions(Array.isArray(data) ? data : []);
       setShowSalespersonDropdown(true);
-    } catch (e) { console.error('Error searching salespersons:', e); }
+    } catch (e) {
+      console.error('Error searching salespersons:', e);
+    }
   };
 
   // ── Selection handlers ───────────────────────────────────────────────────
+  // TASK 3 FIX: selections are called from onMouseDown (not onClick) so the
+  // input's onBlur fires AFTER the selection is already stored in state.
+
   const selectSalesperson = (sp) => {
-    setFormData(prev => ({ ...prev, salesperson: sp.name }));
+    setFormData((prev) => ({ ...prev, salesperson: sp.name }));
     setSalespersonSearch(sp.name);
     setShowSalespersonDropdown(false);
   };
@@ -153,7 +172,7 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
   const handleSalespersonSearchChange = (e) => {
     const value = e.target.value;
     setSalespersonSearch(value);
-    setFormData(prev => ({ ...prev, salesperson: value }));
+    setFormData((prev) => ({ ...prev, salesperson: value }));
     if (value.length >= 2) searchSalespersons(value);
     else setSalespersonSuggestions([]);
   };
@@ -169,13 +188,15 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
     const newSearch = [...productSearch];
     newSearch[index] = `${product.code} - ${product.name}`;
     setProductSearch(newSearch);
-    const newShow = [...showProductDropdown];
-    newShow[index] = false;
-    setShowProductDropdown(newShow);
+    setShowProductDropdown((prev) => {
+      const n = [...prev];
+      n[index] = false;
+      return n;
+    });
   };
 
   const selectCustomer = (customer) => {
-    setFormData(prev => ({ ...prev, customer: customer.id }));
+    setFormData((prev) => ({ ...prev, customer: customer.id }));
     setCustomerSearch(customer.company_name);
     setShowCustomerDropdown(false);
   };
@@ -183,7 +204,7 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
   const handleCustomerSearchChange = (e) => {
     const value = e.target.value;
     setCustomerSearch(value);
-    setFormData(prev => ({ ...prev, customer: '' }));
+    setFormData((prev) => ({ ...prev, customer: '' }));
     if (value.length >= 2) searchCustomers(value);
     else setCustomerSuggestions([]);
   };
@@ -193,6 +214,13 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
     newSearch[index] = value;
     setProductSearch(newSearch);
     if (value.length >= 2) searchProducts(value, index);
+    else {
+      setShowProductDropdown((prev) => {
+        const n = [...prev];
+        n[index] = false;
+        return n;
+      });
+    }
   };
 
   // ── Line item change handler ─────────────────────────────────────────────
@@ -224,10 +252,10 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
   };
 
   const addLineItem = () => {
-    setLineItems([...lineItems, {
-      product: '', quantity_ordered: '', supply_status: 'Supplied',
-      quantity_supplied: '', unit_price: '',
-    }]);
+    setLineItems([
+      ...lineItems,
+      { product: '', quantity_ordered: '', supply_status: 'Supplied', quantity_supplied: '', unit_price: '' },
+    ]);
     setProductSearch([...productSearch, '']);
     setShowProductDropdown([...showProductDropdown, false]);
   };
@@ -243,10 +271,10 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     if (name === 'amount_paid') {
-      setFormData(prev => ({ ...prev, amount_paid: handleDecimalInput(value) }));
+      setFormData((prev) => ({ ...prev, amount_paid: handleDecimalInput(value) }));
       return;
     }
-    setFormData(prev => {
+    setFormData((prev) => {
       const updated = { ...prev, [name]: value };
       if (name === 'mode_of_payment' && value === 'Not Paid') updated.amount_paid = '';
       return updated;
@@ -255,15 +283,18 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
 
   // ── Totals ───────────────────────────────────────────────────────────────
   const calculateSubtotal = () =>
-    lineItems.reduce((sum, item) =>
-      sum + ((parseFloat(item.quantity_ordered) || 0) * (parseFloat(item.unit_price) || 0)), 0);
+    lineItems.reduce(
+      (sum, item) =>
+        sum + (parseFloat(item.quantity_ordered) || 0) * (parseFloat(item.unit_price) || 0),
+      0
+    );
 
   const calculateTotal = () => roundToTwoDecimals(calculateSubtotal());
 
   const calculateBalance = () =>
     roundToTwoDecimals(calculateTotal() - (parseFloat(formData.amount_paid) || 0));
 
-  // ── Validation (shared for create & edit) ────────────────────────────────
+  // ── Validation ───────────────────────────────────────────────────────────
   const validate = () => {
     if (!customerSearch.trim()) { alert('Please enter or select a customer'); return false; }
     if (!formData.sale_date) { alert('Please enter a sale date'); return false; }
@@ -291,50 +322,56 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
       }
     }
 
-    if (formData.mode_of_payment !== 'Not Paid' &&
-        (!formData.amount_paid || parseFloat(formData.amount_paid) <= 0)) {
+    if (
+      formData.mode_of_payment !== 'Not Paid' &&
+      (!formData.amount_paid || parseFloat(formData.amount_paid) <= 0)
+    ) {
       alert('Please enter the amount paid');
       return false;
     }
     return true;
   };
 
-  // ── Build shared payload ─────────────────────────────────────────────────
+  // ── Build payload ────────────────────────────────────────────────────────
   const buildPayload = () => {
     const subtotal = roundToTwoDecimals(calculateSubtotal());
     return {
       ...(formData.customer
         ? { customer: formData.customer }
-        : { customer_name: customerSearch.trim() }
-      ),
+        : { customer_name: customerSearch.trim() }),
       sale_date: formData.sale_date,
       salesperson: formData.salesperson.trim() || null,
       lpo_quotation_number: formData.lpo_quotation_number,
       delivery_number: formData.delivery_number,
       mode_of_payment: formData.mode_of_payment,
-      line_items: lineItems.map(item => ({
-        ...(item.id ? { id: item.id } : {}),        // include id when editing
+      line_items: lineItems.map((item) => ({
+        // Include the line-item id when editing so the backend can diff
+        ...(item.id ? { id: item.id } : {}),
         product: item.product,
         quantity_ordered: parseInt(item.quantity_ordered),
         quantity_supplied:
-          item.supply_status === 'Not Supplied' ? 0
-          : item.supply_status === 'Supplied' ? parseInt(item.quantity_ordered)
-          : parseInt(item.quantity_supplied),
+          item.supply_status === 'Not Supplied'
+            ? 0
+            : item.supply_status === 'Supplied'
+            ? parseInt(item.quantity_ordered)
+            : parseInt(item.quantity_supplied),
         supply_status: item.supply_status,
-        unit_price: item.unit_price === '' || item.unit_price == null
-          ? null
-          : roundToTwoDecimals(parseFloat(item.unit_price)),
+        unit_price:
+          item.unit_price === '' || item.unit_price == null
+            ? null
+            : roundToTwoDecimals(parseFloat(item.unit_price)),
       })),
-      amount_paid: formData.mode_of_payment === 'Not Paid'
-        ? 0
-        : roundToTwoDecimals(parseFloat(formData.amount_paid)),
+      amount_paid:
+        formData.mode_of_payment === 'Not Paid'
+          ? 0
+          : roundToTwoDecimals(parseFloat(formData.amount_paid)),
       subtotal,
       vat_amount: 0,
       total_amount: subtotal,
     };
   };
 
-  // ── Submit handler — create OR update ───────────────────────────────────
+  // ── Submit ───────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
@@ -345,24 +382,23 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
 
       let result;
       if (isEditing) {
-        // PUT to update the existing pending sale; status stays 'pending'
         result = await api.updateSale(sale.id, payload);
         alert(
           `✅ Sale updated and resubmitted!\n\n` +
-          `Sale #: ${result.sale_number}\n` +
-          `Date: ${result.sale_date}\n` +
-          `Total: KES ${formatCurrency(result.total_amount)}\n\n` +
-          `⏳ Status: Pending Admin Approval`
+            `Sale #: ${result.sale_number}\n` +
+            `Date: ${result.sale_date}\n` +
+            `Total: KES ${formatCurrency(result.total_amount)}\n\n` +
+            `⏳ Status: Pending Admin Approval`
         );
       } else {
         result = await api.request('/sales/', { method: 'POST', body: JSON.stringify(payload) });
         alert(
           `✅ Sale submitted successfully!\n\n` +
-          `Sale #: ${result.sale_number}\n` +
-          `Date: ${result.sale_date || formData.sale_date}\n` +
-          `Total: KES ${formatCurrency(result.total_amount)}\n\n` +
-          `⏳ Status: Pending Admin Approval\n` +
-          `Stock will be deducted once an admin approves this sale.`
+            `Sale #: ${result.sale_number}\n` +
+            `Date: ${result.sale_date || formData.sale_date}\n` +
+            `Total: KES ${formatCurrency(result.total_amount)}\n\n` +
+            `⏳ Status: Pending Admin Approval\n` +
+            `Stock will be deducted once an admin approves this sale.`
         );
       }
 
@@ -418,7 +454,7 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
             <h3 className={styles.sectionTitle}><span>👤</span> Customer Details</h3>
             <div className={styles.formGrid}>
 
-              {/* Customer autocomplete */}
+              {/* Customer autocomplete — TASK 3 FIX: onMouseDown on items */}
               <div className={`${styles.formGroup} ${styles.autocompleteGroup}`}>
                 <label className={styles.formLabel}>
                   Customer <span className={styles.required}>*</span>
@@ -434,20 +470,25 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
                 />
                 {showCustomerDropdown && customerSuggestions.length > 0 && (
                   <div className={styles.dropdown}>
-                    {customerSuggestions.map(c => (
-                      <div key={c.id} className={styles.dropdownItem} onClick={() => selectCustomer(c)}>
+                    {customerSuggestions.map((c) => (
+                      <div
+                        key={c.id}
+                        className={styles.dropdownItem}
+                        // TASK 3: onMouseDown + preventDefault stops the blur
+                        // from firing before the selection is captured
+                        onMouseDown={(e) => { e.preventDefault(); selectCustomer(c); }}
+                      >
                         <strong>{c.company_name}</strong>
                         <span>{c.phone}</span>
                       </div>
                     ))}
                   </div>
                 )}
-                {formData.customer
-                  ? <span className={styles.customerSelected}>✓ Existing customer selected</span>
-                  : customerSearch.trim()
-                    ? <span className={styles.manualHint}>Will be saved as a new customer name</span>
-                    : null
-                }
+                {formData.customer ? (
+                  <span className={styles.customerSelected}>✓ Existing customer selected</span>
+                ) : customerSearch.trim() ? (
+                  <span className={styles.manualHint}>Will be saved as a new customer name</span>
+                ) : null}
               </div>
 
               {/* Sale Date */}
@@ -465,7 +506,7 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
                 />
               </div>
 
-              {/* Salesperson autocomplete */}
+              {/* Salesperson autocomplete — TASK 3 FIX */}
               <div className={`${styles.formGroup} ${styles.autocompleteGroup}`}>
                 <label className={styles.formLabel}>Salesperson</label>
                 <input
@@ -479,8 +520,12 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
                 />
                 {showSalespersonDropdown && salespersonSuggestions.length > 0 && (
                   <div className={styles.dropdown}>
-                    {salespersonSuggestions.map(sp => (
-                      <div key={sp.id} className={styles.dropdownItem} onClick={() => selectSalesperson(sp)}>
+                    {salespersonSuggestions.map((sp) => (
+                      <div
+                        key={sp.id}
+                        className={styles.dropdownItem}
+                        onMouseDown={(e) => { e.preventDefault(); selectSalesperson(sp); }}
+                      >
                         <strong>{sp.name}</strong>
                         {sp.phone && <span>{sp.phone}</span>}
                       </div>
@@ -530,16 +575,13 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
                   <div className={styles.lineItemHeader}>
                     <span>Product {index + 1}</span>
                     {lineItems.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeLineItem(index)}
-                        className={styles.btnRemove}
-                      >
+                      <button type="button" onClick={() => removeLineItem(index)} className={styles.btnRemove}>
                         ×
                       </button>
                     )}
                   </div>
                   <div className={styles.formGrid}>
+                    {/* Product search — TASK 3 FIX */}
                     <div className={`${styles.formGroup} ${styles.autocompleteGroup} ${styles.fullWidth}`}>
                       <label className={styles.formLabel}>
                         Product <span className={styles.required}>*</span>
@@ -550,20 +592,31 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
                         onChange={(e) => handleProductSearchChange(e.target.value, index)}
                         onFocus={() =>
                           productSearch[index]?.length >= 2 &&
-                          setShowProductDropdown(prev => {
-                            const n = [...prev]; n[index] = true; return n;
+                          setShowProductDropdown((prev) => {
+                            const n = [...prev];
+                            n[index] = true;
+                            return n;
                           })
+                        }
+                        onBlur={() =>
+                          setTimeout(() =>
+                            setShowProductDropdown((prev) => {
+                              const n = [...prev];
+                              n[index] = false;
+                              return n;
+                            }), 150
+                          )
                         }
                         className={styles.formInput}
                         placeholder="Search products..."
                       />
                       {showProductDropdown[index] && productSuggestions.length > 0 && (
                         <div className={styles.dropdown}>
-                          {productSuggestions.map(p => (
+                          {productSuggestions.map((p) => (
                             <div
                               key={p.id}
                               className={styles.dropdownItem}
-                              onClick={() => selectProduct(p, index)}
+                              onMouseDown={(e) => { e.preventDefault(); selectProduct(p, index); }}
                             >
                               <strong>{p.code}</strong> - {p.name}
                               <span>Stock: {p.current_stock} | KES {p.unit_price ?? '—'}</span>
@@ -623,9 +676,7 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
                           type="text"
                           inputMode="numeric"
                           value={item.quantity_supplied}
-                          onChange={(e) =>
-                            handleLineItemChange(index, 'quantity_supplied', e.target.value)
-                          }
+                          onChange={(e) => handleLineItemChange(index, 'quantity_supplied', e.target.value)}
                           className={styles.formInput}
                           placeholder="0"
                         />
@@ -637,9 +688,10 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
                       <div className={styles.subtotal}>
                         <label>Item Subtotal</label>
                         <span>
-                          KES {formatCurrency(
+                          KES{' '}
+                          {formatCurrency(
                             (parseFloat(item.quantity_ordered) || 0) *
-                            (parseFloat(item.unit_price) || 0)
+                              (parseFloat(item.unit_price) || 0)
                           )}
                         </span>
                       </div>
@@ -699,9 +751,7 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
                 <>
                   <div className={styles.summaryRow}>
                     <span className={styles.summaryLabel}>Amount Paid:</span>
-                    <span className={styles.paidValue}>
-                      KES {formatCurrency(formData.amount_paid)}
-                    </span>
+                    <span className={styles.paidValue}>KES {formatCurrency(formData.amount_paid)}</span>
                   </div>
                   <div className={`${styles.summaryRow} ${styles.balanceRow}`}>
                     <span className={styles.balanceLabel}>Outstanding Balance:</span>
@@ -740,9 +790,12 @@ const SaleModal = ({ onClose, onSuccess, sale }) => {
             disabled={loading}
           >
             {loading
-              ? isEditing ? 'Updating...' : 'Submitting...'
-              : isEditing ? 'Update & Resubmit' : 'Submit for Approval'
-            }
+              ? isEditing
+                ? 'Updating...'
+                : 'Submitting...'
+              : isEditing
+              ? 'Update & Resubmit'
+              : 'Submit for Approval'}
           </button>
         </div>
 

@@ -23,7 +23,7 @@ const Sidebar = ({
     { id: 'sales', label: 'Sales Entry', icon: '💰', path: '/sales', role: 'non-director' },
     { id: 'stock-entries', label: 'Stock Entries', icon: '📝', path: '/stock-entries', role: 'admin' },
     { id: 'suppliers', label: 'Suppliers', icon: '🏢', path: '/suppliers', role: 'staff' },
-    { id: 'customers', label: 'Customers', icon: '👥', path: '/customers', role: 'staff' },
+    { id: 'customers', label: 'Customers', icon: '👥', path: '/customers', role: 'all' },
     { id: 'reports', label: 'Reports', icon: '📈', path: '/reports', role: 'admin' },
     { id: 'receive-payments', label: 'Receive Payments', icon: '💳', path: '/receive-payments', role: 'admin' },
     { id: 'pending-approvals', label: 'Pending Approvals', icon: '✅', path: '/pending-approvals', role: 'admin' },
