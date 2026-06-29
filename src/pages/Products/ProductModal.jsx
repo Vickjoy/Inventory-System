@@ -12,7 +12,7 @@ const ProductModal = ({ product, categories, subcategories, onClose }) => {
   const [availableSubcategories, setAvailableSubcategories] = useState([]);
   const [availableSubsubcategories, setAvailableSubsubcategories] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState('');-
 
   useEffect(() => {
     if (product) {

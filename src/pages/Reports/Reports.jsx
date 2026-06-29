@@ -1,5 +1,5 @@
 // src/pages/Reports/Reports.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -43,17 +43,83 @@ const groupSalesByCustomer = (sales) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Reports = () => {
-  const [reportType, setReportType] = useState('sales');
-  const [loading, setLoading] = useState(false);
-  const [reportData, setReportData] = useState(null);
-  const [dateRange, setDateRange] = useState({ start_date: '', end_date: '' });
-  const [categories, setCategories] = useState([]);
+  const [reportType, setReportType]               = useState('sales');
+  const [loading, setLoading]                     = useState(false);
+  const [reportData, setReportData]               = useState(null);
+  const [dateRange, setDateRange]                 = useState({ start_date: '', end_date: '' });
+  const [categories, setCategories]               = useState([]);
   const [stockCategoryFilter, setStockCategoryFilter] = useState('all');
+
+  // ── Customer filter state ──────────────────────────────────────────────────
+  const [customerSearch, setCustomerSearch]       = useState('');
+  const [selectedCustomer, setSelectedCustomer]   = useState(null); // { id, name }
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+  const [allCustomers, setAllCustomers]           = useState([]);
+  const customerDropdownRef                       = useRef(null);
+  // ──────────────────────────────────────────────────────────────────────────
 
   const formatCurrency = (amount) => {
     const num = parseFloat(amount) || 0;
     return num.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
+
+  // Close customer dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (customerDropdownRef.current && !customerDropdownRef.current.contains(e.target)) {
+        setCustomerDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Load customers for the filter dropdown
+  useEffect(() => {
+    const loadCustomers = async () => {
+      try {
+        const data = await api.getCustomers();
+        const list = Array.isArray(data) ? data : (data?.results || []);
+        // Normalise: customers come back with company_name, expose as .name for display
+        setAllCustomers(list.map(c => ({
+          ...c,
+          name: c.company_name || c.name || '',
+        })));
+      } catch (e) { console.error('Error loading customers:', e); }
+    };
+    loadCustomers();
+  }, []);
+
+  // ── Apply customer filter to sales-type data ───────────────────────────────
+  // sale.customer is a numeric FK; selectedCustomer.id comes from the same list
+  const applyCustomerFilter = (items) => {
+    if (!selectedCustomer) return items;
+    return items.filter((sale) => {
+      // numeric FK match (most reliable)
+      if (sale.customer != null && selectedCustomer.id != null) {
+        // use == (not ===) to handle string/number mismatch
+        // eslint-disable-next-line eqeqeq
+        if (sale.customer == selectedCustomer.id) return true;
+      }
+      // fallback: name match
+      if (
+        sale.customer_name &&
+        selectedCustomer.name &&
+        sale.customer_name.toLowerCase() === selectedCustomer.name.toLowerCase()
+      ) return true;
+      return false;
+    });
+  };
+
+  // Filtered customers shown in dropdown — search against normalised .name
+  const filteredCustomers = customerSearch.trim()
+    ? allCustomers.filter((c) =>
+        (c.name || '').toLowerCase().includes(customerSearch.toLowerCase())
+      )
+    : allCustomers;
+
+  // Whether customer filter applies to this report type
+  const customerFilterApplies = ['sales', 'outstanding_supplies', 'outstanding_balances'].includes(reportType);
 
   // ───────────────────────────────────────────────────────────────────────────
   // EXCEL EXPORT
@@ -152,7 +218,6 @@ const Reports = () => {
             'Outstanding Balance (KES)': parseFloat(sale.outstanding_balance) || 0,
           });
         });
-        // Subtotal row per customer
         rows.push({
           Customer: `TOTAL — ${group.customerName}`,
           Date: '', 'Sale Number': '', 'LPO/Quote': '', Products: '',
@@ -160,7 +225,7 @@ const Reports = () => {
           'Amount Paid (KES)': '',
           'Outstanding Balance (KES)': group.totalOutstanding,
         });
-        rows.push({}); // blank separator
+        rows.push({});
       });
       const ws = XLSX.utils.json_to_sheet(rows);
       XLSX.utils.book_append_sheet(wb, ws, 'Outstanding Balances');
@@ -196,13 +261,15 @@ const Reports = () => {
     const SALE_BG_ODD  = [241, 245, 249];
     const DIVIDER      = [30,  64,  175];
 
-    const title      = getReportTitle();
+    const customerSuffix = selectedCustomer ? ` — ${selectedCustomer.name}` : '';
+    const title      = getReportTitle() + customerSuffix;
     const exportDate = new Date().toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' });
 
     const HEADER_H = 44;
     const FOOTER_H = 24;
     const MARGIN   = { top: HEADER_H + 16, right: 30, bottom: FOOTER_H + 12, left: 30 };
 
+    // ── Draw header & footer — called only in the final page-number pass ──────
     const drawPageHeader = (pageNum, totalPages) => {
       doc.setFillColor(...BLUE_DARK);
       doc.rect(0, 0, pageWidth, HEADER_H, 'F');
@@ -228,6 +295,7 @@ const Reports = () => {
       doc.text('CONFIDENTIAL — For internal use only', 40, pageHeight - 8);
     };
 
+    // ── Shared table config — NO didDrawPage here (avoids double-draw) ────────
     const baseTableStyles = {
       margin: MARGIN,
       tableLineColor: SLATE_300,
@@ -243,11 +311,6 @@ const Reports = () => {
         lineWidth: 0.75, lineColor: SLATE_300, valign: 'middle',
       },
       alternateRowStyles: { fillColor: SLATE_50 },
-      didDrawPage: () => {
-        const { pageNumber, pageCount } = doc.internal.getCurrentPageInfo();
-        drawPageHeader(pageNumber, pageCount);
-        drawPageFooter();
-      },
     };
 
     // ── SALES REPORT ──────────────────────────────────────────────────────────
@@ -314,6 +377,72 @@ const Reports = () => {
           doc.line(x, y + height, x + width, y + height);
         },
       });
+
+      // ── Sales grand total summary bar ─────────────────────────────────────
+      const grandTotalAmount      = reportData.reduce((s, sale) => s + (parseFloat(sale.total_amount)        || 0), 0);
+      const grandTotalPaid        = reportData.reduce((s, sale) => s + (parseFloat(sale.amount_paid)         || 0), 0);
+      const grandTotalOutstanding = reportData.reduce((s, sale) => s + (parseFloat(sale.outstanding_balance) || 0), 0);
+
+      const BAR_H   = 36;
+      const summaryY = doc.lastAutoTable.finalY + 10;
+      const safeY    = summaryY + BAR_H > pageHeight - MARGIN.bottom
+        ? (doc.addPage(), MARGIN.top)
+        : summaryY;
+
+      const barW = pageWidth - MARGIN.left - MARGIN.right;
+
+      // Dark background bar
+      doc.setFillColor(15, 23, 42);
+      doc.rect(MARGIN.left, safeY, barW, BAR_H, 'F');
+
+      // Divide the bar into four equal sections:
+      // [REPORT TOTALS label] [Total Amount] [Amount Paid] [Outstanding]
+      const sectionW = barW / 4;
+      const midY     = safeY + BAR_H / 2;   // vertical centre of bar
+
+      // Helper: draw a label + value pair centred in a section
+      const drawSection = (sectionIndex, label, value, valueColor) => {
+        const sectionX = MARGIN.left + sectionIndex * sectionW;
+        const centreX  = sectionX + sectionW / 2;
+
+        // Small label above centre
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(148, 163, 184); // slate-400
+        doc.text(label, centreX, midY - 5, { align: 'center' });
+
+        // Bold value below centre
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...valueColor);
+        doc.text(value, centreX, midY + 7, { align: 'center' });
+      };
+
+      // Section 0 — title + sale count
+      const centreX0 = MARGIN.left + sectionW / 2;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(...WHITE);
+      doc.text('REPORT TOTALS', centreX0, midY - 5, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(148, 163, 184);
+      doc.text(`${reportData.length} sale${reportData.length !== 1 ? 's' : ''}`, centreX0, midY + 7, { align: 'center' });
+
+      // Thin vertical dividers between sections
+      doc.setDrawColor(71, 85, 105); // slate-600
+      doc.setLineWidth(0.5);
+      [1, 2, 3].forEach(i => {
+        const x = MARGIN.left + i * sectionW;
+        doc.line(x, safeY + 6, x, safeY + BAR_H - 6);
+      });
+
+      // Section 1 — Total Amount
+      drawSection(1, 'TOTAL AMOUNT', `KES ${formatCurrency(grandTotalAmount)}`, WHITE);
+      // Section 2 — Amount Paid
+      drawSection(2, 'AMOUNT PAID', `KES ${formatCurrency(grandTotalPaid)}`, [134, 239, 172]);
+      // Section 3 — Outstanding
+      drawSection(3, 'OUTSTANDING', `KES ${formatCurrency(grandTotalOutstanding)}`, [252, 165, 165]);
     }
 
     // ── STOCK REPORT ──────────────────────────────────────────────────────────
@@ -496,6 +625,7 @@ const Reports = () => {
       }
     }
 
+    // ── FINAL PASS: stamp correct page numbers on every page ─────────────────
     const totalPages = doc.internal.getNumberOfPages();
     for (let p = 1; p <= totalPages; p++) {
       doc.setPage(p);
@@ -551,7 +681,6 @@ const Reports = () => {
         case 'sales': {
           const raw = await api.getSales();
           const all = Array.isArray(raw) ? raw : (raw?.results || []);
-          // Exclude rejected sales from reports
           data = all.filter(sale => sale.status !== 'rejected');
           break;
         }
@@ -563,7 +692,6 @@ const Reports = () => {
         case 'outstanding_supplies': {
           const salesData = await api.getSales();
           const allSales = Array.isArray(salesData) ? salesData : (salesData?.results || []);
-          // Exclude rejected sales from reports
           data = allSales.filter(sale =>
             sale.status !== 'rejected' &&
             sale.line_items && sale.line_items.some(item =>
@@ -575,7 +703,6 @@ const Reports = () => {
         case 'outstanding_balances': {
           const allSalesData = await api.getSales();
           const salesList = Array.isArray(allSalesData) ? allSalesData : (allSalesData?.results || []);
-          // Exclude rejected sales from reports
           data = salesList.filter(sale =>
             sale.status !== 'rejected' &&
             parseFloat(sale.outstanding_balance || 0) > 0
@@ -584,7 +711,10 @@ const Reports = () => {
         }
         default: data = [];
       }
-      if (reportType !== 'stock') data = applyDateFilter(data);
+      if (reportType !== 'stock') {
+        data = applyDateFilter(data);
+        data = applyCustomerFilter(data);
+      }
       setReportData(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error generating report:', error);
@@ -651,13 +781,18 @@ const Reports = () => {
       </div>
 
       <div className={styles.controlPanel}>
-        {/* Row 1: Report type + Date filters */}
+        {/* Row 1: Report type + Date filters + Customer filter */}
         <div className={styles.filtersRow}>
           <div className={styles.reportSelector}>
             <label className={styles.label}>Report Type</label>
             <select
               value={reportType}
-              onChange={(e) => { setReportType(e.target.value); setStockCategoryFilter('all'); }}
+              onChange={(e) => {
+                setReportType(e.target.value);
+                setStockCategoryFilter('all');
+                setSelectedCustomer(null);
+                setCustomerSearch('');
+              }}
               className={styles.select}
             >
               <option value="sales">Sales Report</option>
@@ -677,9 +812,58 @@ const Reports = () => {
               <input type="date" name="end_date" value={dateRange.end_date} onChange={handleDateChange} className={styles.input} />
             </div>
           </div>
+
+          {/* ── Customer filter — only for non-stock reports ── */}
+          {customerFilterApplies && (
+            <div className={styles.customerFilterWrapper} ref={customerDropdownRef}>
+              <label className={styles.label}>Filter by Customer</label>
+              <div className={styles.customerInputRow}>
+                <input
+                  type="text"
+                  className={`${styles.input} ${styles.customerInput}`}
+                  placeholder="Search customers…"
+                  value={customerSearch}
+                  onFocus={() => setCustomerDropdownOpen(true)}
+                  onChange={(e) => {
+                    setCustomerSearch(e.target.value);
+                    setCustomerDropdownOpen(true);
+                    // Clear selection when user edits text
+                    if (selectedCustomer && e.target.value !== selectedCustomer.name) {
+                      setSelectedCustomer(null);
+                    }
+                  }}
+                />
+                {selectedCustomer && (
+                  <button
+                    className={styles.clearCustomerBtn}
+                    onClick={() => { setSelectedCustomer(null); setCustomerSearch(''); }}
+                    title="Clear customer filter"
+                  >✕</button>
+                )}
+              </div>
+              {customerDropdownOpen && filteredCustomers.length > 0 && (
+                <div className={styles.customerDropdown}>
+                  {filteredCustomers.map((c) => (
+                    <div
+                      key={c.id}
+                      className={`${styles.customerDropdownItem} ${selectedCustomer?.id === c.id ? styles.customerDropdownItemActive : ''}`}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setSelectedCustomer({ id: c.id, name: c.name });
+                        setCustomerSearch(c.name);
+                        setCustomerDropdownOpen(false);
+                      }}
+                    >
+                      {c.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Row 2: Action buttons — full width below the filters */}
+        {/* Row 2: Action buttons — Print removed */}
         <div className={styles.actionButtonsRow}>
           <button onClick={generateReport} className={styles.generateBtn} disabled={loading}>
             {loading ? (<><span className={styles.spinner}></span>Generating...</>) : (<><span className={styles.btnIcon}>📊</span>Generate Report</>)}
@@ -691,6 +875,18 @@ const Reports = () => {
             <span className={styles.btnIcon}>📗</span>Export Excel
           </button>
         </div>
+
+        {/* Active customer filter badge */}
+        {selectedCustomer && (
+          <div className={styles.activeFilterBadge}>
+            <span className={styles.activeFilterLabel}>Filtered by customer:</span>
+            <span className={styles.activeFilterValue}>{selectedCustomer.name}</span>
+            <button
+              className={styles.activeFilterClear}
+              onClick={() => { setSelectedCustomer(null); setCustomerSearch(''); }}
+            >✕ Clear</button>
+          </div>
+        )}
       </div>
 
       {reportType === 'stock' && (
@@ -715,9 +911,12 @@ const Reports = () => {
         </div>
       )}
 
-      <div className={styles.reportCard}>
+      <div className={styles.reportCard} id="printable-report">
         <div className={styles.reportHeader}>
-          <h2 className={styles.reportTitle}>{getReportTitle()}</h2>
+          <h2 className={styles.reportTitle}>
+            {getReportTitle()}
+            {selectedCustomer && <span className={styles.reportCustomerTag}> — {selectedCustomer.name}</span>}
+          </h2>
           {hasData && (
             <div className={styles.recordCount}>
               {reportType === 'stock' && stockCategoryFilter !== 'all'
@@ -738,9 +937,11 @@ const Reports = () => {
               <div className={styles.emptyIcon}>📊</div>
               <p className={styles.emptyText}>No data available for this report</p>
               <p className={styles.emptySubtext}>
-                {(dateRange.start_date || dateRange.end_date)
-                  ? 'No records found in the selected date range. Try adjusting your dates.'
-                  : 'Try adjusting your filters or date range'}
+                {selectedCustomer
+                  ? `No records found for ${selectedCustomer.name}. Try a different customer or clear the filter.`
+                  : (dateRange.start_date || dateRange.end_date)
+                    ? 'No records found in the selected date range. Try adjusting your dates.'
+                    : 'Try adjusting your filters or date range'}
               </p>
             </div>
           ) : (
