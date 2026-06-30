@@ -231,7 +231,7 @@ const OutstandingSupplies = () => {
                               className={styles.btnRecordDelivery}
                               onClick={() => openDeliveryModal(sale)}
                             >
-                              🚚 Record Delivery
+                              Record Delivery
                             </button>
                           </td>
                         )}

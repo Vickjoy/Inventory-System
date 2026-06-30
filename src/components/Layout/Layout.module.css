@@ -4,7 +4,7 @@
   min-height: 100vh;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
   position: relative;
-  padding-bottom: 60px;
+  padding-bottom: 44px; /* ↓ was 60px */
 }
 
 .mainContainer {
@@ -17,7 +17,7 @@
 
 .content {
   flex: 1;
-  padding: 2.5rem;
+  padding: 1rem 1.25rem; /* ↓ was 2.5rem */
   overflow-y: auto;
   background: transparent;
 }
@@ -27,7 +27,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 1.25rem 2.5rem;
+  padding: 0.625rem 1.25rem; /* ↓ was 1.25rem 2.5rem */
   background-color: #ffffff;
   border-top: 1px solid #e2e8f0;
   text-align: center;
@@ -37,7 +37,7 @@
 
 .footerText {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 0.75rem; /* ↓ was 0.875rem */
   color: #64748b;
   font-weight: 500;
 }
@@ -49,18 +49,18 @@
   }
 
   .content {
-    padding: 1.5rem 1rem;
-    padding-bottom: 2rem;
+    padding: 0.875rem 0.75rem;
+    padding-bottom: 1.25rem;
   }
 
   .footer {
-    padding: 1rem 1.5rem;
+    padding: 0.625rem 1rem;
     left: 0;
     margin-left: 0;
   }
 
   .footerText {
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
   }
 }
 

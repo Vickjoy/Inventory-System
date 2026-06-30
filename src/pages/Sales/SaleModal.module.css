@@ -13,7 +13,7 @@
   justify-content: center;
   z-index: 1000;
   overflow-y: auto;
-  padding: 2rem 1rem;
+  padding: 1.5rem 1rem;
 }
 
 .modal {
@@ -29,25 +29,25 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
+  padding: 1rem 1.25rem; /* ↓ was 1.5rem 2rem */
   background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
   color: white;
   border-radius: 12px 12px 0 0;
 }
 
 .modalTitle {
-  font-size: 1.5rem;
+  font-size: 1.125rem; /* ↓ was 1.5rem */
   font-weight: 700;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.4rem 0;
   letter-spacing: -0.3px;
 }
 
 .badge {
   display: inline-block;
   background: rgba(255, 255, 255, 0.2);
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.625rem;
   border-radius: 6px;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.3px;
 }
@@ -56,9 +56,9 @@
   background: rgba(255, 255, 255, 0.15);
   border: 2px solid rgba(255, 255, 255, 0.3);
   color: white;
-  font-size: 1.75rem;
-  width: 40px;
-  height: 40px;
+  font-size: 1.5rem;
+  width: 34px; /* ↓ was 40px */
+  height: 34px;
   border-radius: 8px;
   cursor: pointer;
   display: flex;
@@ -73,13 +73,13 @@
 }
 
 .modalBody {
-  padding: 1.5rem 2rem;
+  padding: 1rem 1.25rem; /* ↓ was 1.5rem 2rem */
   max-height: calc(100vh - 200px);
   overflow-y: auto;
   background: #f8fafc;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.875rem; /* ↓ was 1.5rem */
 }
 
 .modalBody::-webkit-scrollbar {
@@ -103,9 +103,9 @@
 
 .modalFooter {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.625rem;
   justify-content: flex-end;
-  padding: 1.25rem 2rem;
+  padding: 0.875rem 1.25rem; /* ↓ was 1.25rem 2rem */
   background: white;
   border-radius: 0 0 12px 12px;
   border-top: 2px solid #e2e8f0;
@@ -116,7 +116,7 @@
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 1.25rem;
+  padding: 0.875rem; /* ↓ was 1.25rem */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
@@ -136,14 +136,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .sectionTitle {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #1e40af;
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.75rem 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   display: flex;
@@ -159,7 +159,7 @@
 .formGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  gap: 0.625rem; /* ↓ was 1rem */
 }
 
 .fullWidth {
@@ -169,12 +169,12 @@
 .formGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 0.3rem;
 }
 
 .formLabel {
   font-weight: 600;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   color: #334155;
   letter-spacing: 0.3px;
 }
@@ -187,10 +187,10 @@
 .formInput,
 .formSelect {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem; /* ↓ was 0.75rem 1rem */
   border: 2px solid #e2e8f0;
   border-radius: 8px;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: #1e293b;
   transition: all 0.2s ease;
@@ -230,7 +230,7 @@
 }
 
 .hint {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #64748b;
   font-style: italic;
 }
@@ -249,18 +249,18 @@
   border: 2px solid #2563eb;
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-  max-height: 240px;
+  max-height: 220px; /* ↓ was 240px */
   overflow-y: auto;
   z-index: 100;
   margin-top: 0.25rem;
 }
 
 .dropdownItem {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem; /* ↓ was 0.75rem 1rem */
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: 0.1rem;
   border-bottom: 1px solid #f1f5f9;
   transition: background 0.15s ease;
 }
@@ -275,12 +275,12 @@
 
 .dropdownItem strong {
   color: #1e40af;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 
 .dropdownItem span {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #64748b;
 }
 
@@ -288,12 +288,12 @@
 .lineItems {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.625rem; /* ↓ was 1rem */
 }
 
 .lineItem {
   background: white;
-  padding: 1rem;
+  padding: 0.75rem; /* ↓ was 1rem */
   border-radius: 8px;
   border: 2px solid #e2e8f0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -303,18 +303,18 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
+  margin-bottom: 0.625rem;
+  padding-bottom: 0.4rem;
   border-bottom: 1px solid #f1f5f9;
   font-weight: 700;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #1e40af;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .btnAdd {
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.875rem; /* ↓ was 0.5rem 1rem */
   background: white;
   border: 2px solid #2563eb;
   color: #2563eb;
@@ -334,9 +334,9 @@
   background: #fee2e2;
   border: 2px solid #fca5a5;
   color: #dc2626;
-  font-size: 1.25rem;
-  width: 28px;
-  height: 28px;
+  font-size: 1.125rem;
+  width: 26px;
+  height: 26px;
   border-radius: 6px;
   cursor: pointer;
   display: flex;
@@ -358,7 +358,7 @@
 }
 
 .subtotal label {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #64748b;
   text-transform: uppercase;
@@ -366,7 +366,7 @@
 }
 
 .subtotal span {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem; /* ↓ was 0.75rem 1rem */
   background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
   border: 2px solid #60a5fa;
   border-radius: 8px;
@@ -377,14 +377,14 @@
 
 /* Financial Summary */
 .financialSummary {
-  margin-top: 1.5rem;
-  padding: 1.5rem;
+  margin-top: 0.875rem; /* ↓ was 1.5rem */
+  padding: 0.875rem; /* ↓ was 1.5rem */
   background: white;
   border-radius: 8px;
   border: 2px solid #10b981;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.625rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
@@ -392,7 +392,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem; /* ↓ was 0.75rem 1rem */
   background: #f8fafc;
   border-radius: 6px;
   border: 1px solid #e2e8f0;
@@ -400,38 +400,38 @@
 
 .summaryLabel {
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: #475569;
 }
 
 .summaryValue {
   font-weight: 700;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: #1e293b;
 }
 
 .totalRow {
   background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
   border: 2px solid #3b82f6;
-  margin-top: 0.25rem;
+  margin-top: 0.2rem;
 }
 
 .totalLabel {
   font-weight: 800;
-  font-size: 1rem;
+  font-size: 0.9375rem;
   color: #1e40af;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .totalValue {
-  font-size: 1.375rem;
+  font-size: 1.1875rem;
   font-weight: 800;
   color: #1e40af;
 }
 
 .paidValue {
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 700;
   color: #059669;
 }
@@ -439,42 +439,42 @@
 .balanceRow {
   background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
   border: 2px solid #ef4444;
-  margin-top: 0.25rem;
+  margin-top: 0.2rem;
 }
 
 .balanceLabel {
   font-weight: 800;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: #dc2626;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .balanceValue {
-  font-size: 1.125rem;
+  font-size: 1.0625rem;
   font-weight: 800;
   color: #dc2626;
 }
 
 .fullyPaidValue {
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 800;
   color: #059669;
   background: #d1fae5;
-  padding: 0.375rem 0.875rem;
+  padding: 0.3rem 0.75rem;
   border-radius: 6px;
   border: 2px solid #10b981;
 }
 
 /* Buttons */
 .btnOutline {
-  padding: 0.75rem 1.5rem;
+  padding: 0.4rem 0.875rem; /* ↓ was 0.75rem 1.5rem */
   background: white;
   color: #475569;
   border: 2px solid #cbd5e1;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -490,13 +490,13 @@
 }
 
 .btnPrimary {
-  padding: 0.75rem 1.75rem;
+  padding: 0.4rem 0.875rem; /* ↓ was 0.75rem 1.75rem */
   background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
   color: white;
   border: none;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
@@ -521,24 +521,24 @@
 
 /* Status hints below customer input */
 .customerSelected {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #16a34a;
   font-weight: 600;
-  margin-top: 0.25rem;
+  margin-top: 0.2rem;
   display: block;
 }
 
 .manualHint {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #64748b;
-  margin-top: 0.25rem;
+  margin-top: 0.2rem;
   display: block;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .modalOverlay {
-    padding: 1rem 0.5rem;
+    padding: 0.75rem 0.5rem;
   }
 
   .modal {
@@ -546,21 +546,21 @@
   }
 
   .modalHeader {
-    padding: 1.25rem;
+    padding: 0.875rem;
     border-radius: 8px 8px 0 0;
   }
 
   .modalTitle {
-    font-size: 1.25rem;
+    font-size: 1.0625rem;
   }
 
   .modalBody {
-    padding: 1rem;
-    gap: 1rem;
+    padding: 0.75rem;
+    gap: 0.75rem;
   }
 
   .modalFooter {
-    padding: 1rem;
+    padding: 0.75rem;
     flex-direction: column-reverse;
   }
 
@@ -576,7 +576,7 @@
   .sectionHeader {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.75rem;
+    gap: 0.625rem;
   }
 
   .btnAdd {
@@ -584,12 +584,12 @@
   }
 
   .financialSummary {
-    padding: 1rem;
+    padding: 0.75rem;
   }
 
   .summaryRow {
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.2rem;
     text-align: center;
   }
 }
@@ -606,19 +606,19 @@
 
   .modalHeader {
     border-radius: 0;
-    padding: 1rem;
+    padding: 0.75rem;
   }
 
   .modalBody {
-    padding: 0.75rem;
+    padding: 0.625rem;
   }
 
   .section {
-    padding: 1rem;
+    padding: 0.75rem;
   }
 
   .lineItem {
-    padding: 0.75rem;
+    padding: 0.625rem;
   }
 
   .formInput,
@@ -627,67 +627,66 @@
   }
 
   .financialSummary {
-    padding: 0.75rem;
+    padding: 0.625rem;
   }
 }
 
 
-/* ── Append these classes to the bottom of Sales.module.css ── */
+/* ── Append these classes — VAT badges & edit-mode notice ── */
 
-/* VAT status badges shown under total amount */
 .vatAppliedBadge {
   display: inline-block;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: #b45309;
   background: #fef3c7;
   border: 1px solid #fde68a;
   border-radius: 4px;
-  padding: 0.1rem 0.4rem;
+  padding: 0.1rem 0.35rem;
   margin-top: 3px;
   letter-spacing: 0.2px;
 }
 
 .vatExemptBadge {
   display: inline-block;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: #15803d;
   background: #dcfce7;
   border: 1px solid #86efac;
   border-radius: 4px;
-  padding: 0.1rem 0.4rem;
+  padding: 0.1rem 0.35rem;
   margin-top: 3px;
   letter-spacing: 0.2px;
 }
 
 .vatPendingBadge {
   display: inline-block;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: #64748b;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
-  padding: 0.1rem 0.4rem;
+  padding: 0.1rem 0.35rem;
   margin-top: 3px;
   letter-spacing: 0.2px;
   font-style: italic;
 }
 
 .btnUpdate {
-  padding: 0.625rem 1.5rem;
+  padding: 0.4rem 0.875rem; /* ↓ was 0.625rem 1.5rem */
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   color: white;
   border: none;
   border-radius: 8px;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.3rem;
   box-shadow: 0 3px 8px rgba(245, 158, 11, 0.3);
 }
  
@@ -707,30 +706,30 @@
 .editNoticeBanner {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: 0.625rem;
   background: #fffbeb;
   border: 1.5px solid #fde68a;
   border-radius: 8px;
-  padding: 0.875rem 1rem;
-  margin-bottom: 1.25rem;
+  padding: 0.625rem 0.75rem; /* ↓ was 0.875rem 1rem */
+  margin-bottom: 0.875rem; /* ↓ was 1.25rem */
 }
  
 .editNoticeIcon {
-  font-size: 1.25rem;
+  font-size: 1.0625rem;
   flex-shrink: 0;
   margin-top: 0.1rem;
 }
  
 .editNoticeBanner strong {
   display: block;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   color: #92400e;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
 }
  
 .editNoticeBanner p {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   color: #78350f;
   margin: 0;
   line-height: 1.5;
